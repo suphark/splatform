@@ -40,7 +40,7 @@ function doGet(e) {
       });
     }
     if (!requiredRoles.includes(session.role)) {
-      return render('page_access_denied.html', {
+      return render('page/access_denied.html', {
         title: APP_CONFIG.routing.titles.accessDenied
       });
     }
@@ -155,11 +155,11 @@ function handleHomePage(session, params) {
 }
 
 function handleAboutPage(session, params) {
-  return render('page_about.html', { title: "About" });
+  return render('page/about.html', { title: "About" });
 }
 
 function handleDebugPage(session, params) {
-  return HtmlService.createTemplateFromFile('page_debug.html').evaluate();
+  return HtmlService.createTemplateFromFile('page/debug.html').evaluate();
 }
 
 function handleNotFoundPage(session, params) {

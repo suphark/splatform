@@ -43,18 +43,18 @@ const GOOGLE_SERVICES = {
 // 1.3 การตั้งค่าเส้นทางและหน้าเว็บ
 const ROUTING_CONFIG = {
   files: {
-    'admin/dashboard': 'page_admin_dashboard',
-    'admin/settings': 'page_admin_settings',
-    'admin/user/manage': 'page_admin_user_manage',
-    'admin/role/manage': 'page_admin_role_manage',
-    'dashboard': 'page_dashboard',
-    'home': 'page_home',
+    'admin/dashboard': 'page/admin/dashboard',
+    'admin/settings': 'page/admin/settings',
+    'admin/user/manage': 'page/admin/user_manage',
+    'admin/role/manage': 'page/admin/role_manage',
+    'dashboard': 'page/dashboard',
+    'home': 'page/home',
     // ====== User ======
-    'login': 'page_user_login',
-    'register': 'page_user_register',
-    'profile': 'page_user_profile',
-    'forgot-password': 'page_user_forgot_password',
-    'reset-password': 'page_user_reset_password',
+    'login': 'page/user/login',
+    'register': 'page/user/register',
+    'profile': 'page/user/profile',
+    'forgot-password': 'page/user/forgot_password',
+    'reset-password': 'page/user/reset_password',
     // ====== Package ======
     'package/manage': 'page_package_manage',
     // ====== Vendor ======

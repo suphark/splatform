@@ -28,13 +28,13 @@
   </head>
   <body>
 
-    <?!= include('partials_header.html', data) ?>
+    <?!= include('page/partials/header.html', data) ?>
 
     <main role="main" class="container mt-4">
       <?!= pageContent ?>
     </main>
 
-    <?!= include('partials_footer.html', data) ?>
+    <?!= include('page/partials/footer.html', data) ?>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     
@@ -43,8 +43,8 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
-    <?!= include('partials_utility_scripts.html', data) ?>
-    <?!= include('partials_header_script.html', data) ?>
+    <?!= include('page/partials/utility_scripts.html', data) ?>
+    <?!= include('page/partials/header_script.html', data) ?>
 
     <? if (data.title === APP_CONFIG.routing.titles['vendor/manage']) { ?>
       <?!= include('page_vendor_script.html', data) ?>
