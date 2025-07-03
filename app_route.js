@@ -23,35 +23,35 @@ const routeMap = {
   // Vendors
   'vendor/manage': handleManageVendorsPage,
   // Vendor Statuses
-  
+
 
 };
 
 function doGet(e) {
   const session = checkUserSession();
   const page = e.parameter.page || (session.isLoggedIn ? 'dashboard' : 'home');
-  
+
   const requiredRoles = APP_CONFIG.routing.permissions[page];
   if (requiredRoles) {
     if (!session.isLoggedIn) {
-      return render(APP_CONFIG.routing.files.login, { 
-        title: APP_CONFIG.routing.titles.login, 
+      return render(APP_CONFIG.routing.files.login, {
+        title: APP_CONFIG.routing.titles.login,
         alert: { type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ' }
       });
     }
     if (!requiredRoles.includes(session.role)) {
-      return render('page_access_denied.html', { 
-        title: APP_CONFIG.routing.titles.accessDenied 
+      return render('page_access_denied.html', {
+        title: APP_CONFIG.routing.titles.accessDenied
       });
     }
   }
 
   const loginRequiredPages = ['profile', 'dashboard'];
   if (loginRequiredPages.includes(page) && !session.isLoggedIn) {
-    return render(APP_CONFIG.routing.files.login, { 
-        title: APP_CONFIG.routing.titles.login,
-        alert: { type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อดูหน้านี้' }
-      });
+    return render(APP_CONFIG.routing.files.login, {
+      title: APP_CONFIG.routing.titles.login,
+      alert: { type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อดูหน้านี้' }
+    });
   }
 
   const handler = routeMap[page] || handleNotFoundPage;
@@ -75,7 +75,7 @@ function handleLoginAction(e) {
 }
 
 function handleUnknownAction(e) {
-    return handleHomePage(checkUserSession(), {});
+  return handleHomePage(checkUserSession(), {});
 }
 
 function doPost(e) {
@@ -88,7 +88,7 @@ function doPost(e) {
 
 function handleDashboardPage(session, params) {
   const dashboardData = getDashboardData(session);
-  return render(APP_CONFIG.routing.files.dashboard, { 
+  return render(APP_CONFIG.routing.files.dashboard, {
     title: APP_CONFIG.routing.titles.dashboard,
     email: session.email,
     role: session.role,
@@ -103,12 +103,12 @@ function handleLoginPage(session, params, alert = null) {
     const html = `<script>window.top.location.href = "${redirectUrl}";</script>`;
     return HtmlService.createHtmlOutput(html);
   }
-  
+
   // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้าล็อกอินตามปกติ
-  return render(APP_CONFIG.routing.files.login, { 
-      title: APP_CONFIG.routing.titles.login,
-      alert: alert
-    });
+  return render(APP_CONFIG.routing.files.login, {
+    title: APP_CONFIG.routing.titles.login,
+    alert: alert
+  });
 }
 
 function handleRegisterPage(session, params) {
@@ -116,15 +116,15 @@ function handleRegisterPage(session, params) {
 }
 
 function handleProfilePage(session, params) {
-  return render(APP_CONFIG.routing.files.profile, { 
-    title: APP_CONFIG.routing.titles.profile, 
-    email: session.email, 
-    role: session.role 
+  return render(APP_CONFIG.routing.files.profile, {
+    title: APP_CONFIG.routing.titles.profile,
+    email: session.email,
+    role: session.role
   });
 }
 
 function handleManageUsersPage(session, params) {
-  return render(APP_CONFIG.routing.files['admin/user/manage'], { 
+  return render(APP_CONFIG.routing.files['admin/user/manage'], {
     title: APP_CONFIG.routing.titles.manageUsers
   });
 }
@@ -138,16 +138,16 @@ function handleManageRolesPage(session, params) {
 }
 
 function handleAdminDashboardPage(session, params) {
-  return render(APP_CONFIG.routing.files['admin/dashboard'], { 
+  return render(APP_CONFIG.routing.files['admin/dashboard'], {
     title: APP_CONFIG.routing.titles['admin/dashboard']
   });
 }
 
 function handleAdminSettingsPage(session, params) {
-    return render(APP_CONFIG.routing.files['admin/settings'], {
-        title: APP_CONFIG.routing.titles['admin/settings'],
-        currentSettings: getSiteSettings()
-    });
+  return render(APP_CONFIG.routing.files['admin/settings'], {
+    title: APP_CONFIG.routing.titles['admin/settings'],
+    currentSettings: getSiteSettings()
+  });
 }
 
 function handleHomePage(session, params) {
@@ -163,39 +163,35 @@ function handleDebugPage(session, params) {
 }
 
 function handleNotFoundPage(session, params) {
-  return render('page_404.html', { title: '404 - ไม่พบหน้า' });
+  return render('page/404.html', { title: '404 - ไม่พบหน้า' });
 }
 
 function handleForgotPasswordPage(session, params) {
-    return render(APP_CONFIG.routing.files['forgot-password'], {
-        title: APP_CONFIG.routing.titles['forgot-password']
-    });
+  return render(APP_CONFIG.routing.files['forgot-password'], {
+    title: APP_CONFIG.routing.titles['forgot-password']
+  });
 }
 
 function handleResetPasswordPage(session, params) {
-    const token = params.token || null;
-    const cache = CacheService.getScriptCache();
-    const email = cache.get(token); // ตรวจสอบว่า token ยังใช้ได้และมีใน cache หรือไม่
+  const token = params.token || null;
+  const cache = CacheService.getScriptCache();
+  const email = cache.get(token); // ตรวจสอบว่า token ยังใช้ได้และมีใน cache หรือไม่
 
-    return render(APP_CONFIG.routing.files['reset-password'], {
-        title: APP_CONFIG.routing.titles['reset-password'],
-        isValidToken: !!email, // ส่ง true ถ้า token ใช้งานได้
-        token: token
-    });
+  return render(APP_CONFIG.routing.files['reset-password'], {
+    title: APP_CONFIG.routing.titles['reset-password'],
+    isValidToken: !!email, // ส่ง true ถ้า token ใช้งานได้
+    token: token
+  });
 }
 
 function handleManagePackagesPage(session, params) {
-    return render(APP_CONFIG.routing.files['package/manage'], {
-        title: APP_CONFIG.routing.titles['package/manage']
-    });
+  return render(APP_CONFIG.routing.files['package/manage'], {
+    title: APP_CONFIG.routing.titles['package/manage']
+  });
 }
 
 function handleManageVendorsPage(session, params) {
-    return render(APP_CONFIG.routing.files['vendor/manage'], {
-        title: APP_CONFIG.routing.titles['vendor/manage']
-    });
+  return render(APP_CONFIG.routing.files['vendor/manage'], {
+    title: APP_CONFIG.routing.titles['vendor/manage']
+  });
 }
-
-
-
-

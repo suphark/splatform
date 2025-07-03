@@ -46,7 +46,7 @@ function getPaginatedVendors(options = {}) {
             sort: { column: options.sortColumn || 'Id', direction: 'asc' },
             filters: filters // <-- ส่งเงื่อนไขการกรองเข้าไป
         };
-        
+
         const result = ProjectUtilsLib.getPaginatedData(config);
 
         return {
@@ -76,7 +76,7 @@ function processAddOrEditVendor(formData, fileData) {
         }
 
         const isEditMode = !!formData.Id;
-        
+
         if (isEditMode) {
             // --- โหมดแก้ไข ---
             const oldVendorData = findVendorById(formData.Id);
@@ -87,7 +87,7 @@ function processAddOrEditVendor(formData, fileData) {
             // 1. อัปโหลดไฟล์ (ถ้ามี)
             if (fileData && Object.keys(fileData).length > 0) {
                 const result = uploadVendorFiles(currentFolderId, formData.NameThai, fileData);
-                
+
                 // [CRITICAL FIX] อัปเดต FolderId ที่ได้มาใหม่ และเพิ่ม File Ids เข้าไปในข้อมูลที่จะบันทึก
                 currentFolderId = result.folderId;
                 formData.FolderId = currentFolderId;
@@ -132,7 +132,7 @@ function processDeleteVendor(vendorId) {
     try {
         // 1. ค้นหาข้อมูล Vendor เพื่อเอา FolderId
         const vendorToDelete = findVendorById(vendorId);
-        
+
         // 2. ลบข้อมูลในชีต
         deleteVendorById(vendorId);
 
@@ -171,11 +171,26 @@ function getVendorDetailsById(vendorId) {
     } catch (e) {
         Logger.log('Error in getVendorDetailsById: ' + e.message);
         // ส่งกลับเป็น null หรือโยน error เพื่อให้ client จัดการ
-        return null; 
+        return null;
     }
 }
 
 
+/**
+ * ฟังก์ชันสำหรับทดสอบการทำงานของ getPaginatedVendors โดยเฉพาะ
+ */
+function testVendorPagination() {
+    try {
+        // ทดลองเรียกใช้ฟังก์ชันโดยตรง
+        const result = getPaginatedVendors({ page: 1, limit: 5 });
+
+        // แสดงผลลัพธ์ใน Log
+        Logger.log(JSON.stringify(result, null, 2));
+
+    } catch (e) {
+        Logger.log("Error running test: " + e.toString());
+    }
+}
 
 
 
