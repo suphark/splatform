@@ -1,211 +1,100 @@
 <script>
   // ==================== GLOBAL STATE ====================
-  let availablePackages = [],
-    availableStatuses = [],
-    availableProjectTypes = [],
-    availableProjectOwners = [];
-  let currentPage = 1,
-    totalPages = 1;
-  let searchTerm = "",
-    selectedStatusId = "",
-    selectedPackageId = "";
-  let sortState = { column: "Id", direction: "asc" };
+  let availablePackages = [], availableStatuses = [], availableProjectTypes = [], availableProjectOwners = [];
+  let currentPage = 1, totalPages = 1;
+  let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
+  let sortState = { column: 'Id', direction: 'asc' };
   let debounceTimer;
 
   // ==================== INITIALIZATION (Entry Point) ====================
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener('DOMContentLoaded', function () {
     fetchAndRenderVendors();
     populateStatusFilter();
     populatePackageFilter();
 
-    document
-      .getElementById("saveVendorButton")
-      .addEventListener("click", handleSaveVendor);
-    document
-      .getElementById("saveContactButton")
-      .addEventListener("click", handleSaveContact);
-    document
-      .getElementById("saveBoardMemberButton")
-      .addEventListener("click", handleSaveBoardMember);
-    document
-      .getElementById("saveFinanceButton")
-      .addEventListener("click", handleSaveFinanceRecord);
-    document
-      .getElementById("saveProjectButton")
-      .addEventListener("click", handleSaveProject);
+    document.getElementById('saveVendorButton').addEventListener('click', handleSaveVendor);
+    document.getElementById('saveContactButton').addEventListener('click', handleSaveContact);
+    document.getElementById('saveBoardMemberButton').addEventListener('click', handleSaveBoardMember);
+    document.getElementById('saveFinanceButton').addEventListener('click', handleSaveFinanceRecord);
+    document.getElementById('saveProjectButton').addEventListener('click', handleSaveProject);
 
-    document
-      .getElementById("companyType")
-      .addEventListener("change", toggleFileSections);
-    document
-      .getElementById("projectOwnerId")
-      .addEventListener("change", toggleProjectOwnerInput);
-    document.getElementById("searchInput").addEventListener("input", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        searchTerm = document.getElementById("searchInput").value;
-        currentPage = 1;
-        fetchAndRenderVendors();
-      }, 500);
-    });
-    document.getElementById("statusFilter").addEventListener("change", () => {
-      selectedStatusId = document.getElementById("statusFilter").value;
-      currentPage = 1;
-      fetchAndRenderVendors();
-    });
-    document.getElementById("packageFilter").addEventListener("change", () => {
-      selectedPackageId = document.getElementById("packageFilter").value;
-      currentPage = 1;
-      fetchAndRenderVendors();
-    });
-    document.querySelectorAll("th[data-column]").forEach((header) => {
-      header.addEventListener("click", () => {
-        const column = header.dataset.column;
-        if (sortState.column === column) {
-          sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
-        } else {
-          sortState.column = column;
-          sortState.direction = "asc";
-        }
-        updateSortIcons();
-        fetchAndRenderVendors();
-      });
-    });
+    document.getElementById('companyType').addEventListener('change', toggleFileSections);
+    document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
+    document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
+    document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
+    document.getElementById('packageFilter').addEventListener('change', () => { selectedPackageId = document.getElementById('packageFilter').value; currentPage = 1; fetchAndRenderVendors(); });
+    document.querySelectorAll('th[data-column]').forEach(header => { header.addEventListener('click', () => { const column = header.dataset.column; if (sortState.column === column) { sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; } else { sortState.column = column; sortState.direction = 'asc'; } updateSortIcons(); fetchAndRenderVendors(); }); });
   });
 
   // ==================== MODAL PREPARATION (Global Functions) ====================
   window.prepareAddVendorModal = function () {
-    document.getElementById("vendorForm").reset();
-    document.getElementById("vendorId").value = "";
-    $("#vendorModalLabel").text("เพิ่มข้อมูล Vendor ใหม่");
+    document.getElementById('vendorForm').reset();
+    document.getElementById('vendorId').value = '';
+    $('#vendorModalLabel').text('เพิ่มข้อมูล Vendor ใหม่');
     setModalLoading(false);
     toggleFileSections();
     loadInitialDataForModal();
-    $("#vendorTab a:first").tab("show");
-    document.getElementById("vendor-folder-link").style.display = "none";
-    document.getElementById("addContactBtn").disabled = true;
-    document.getElementById("addBoardMemberBtn").disabled = true;
-    document.getElementById("addFinanceBtn").disabled = true;
-    document.getElementById("addProjectBtn").disabled = true;
-    $("#vendorModal").modal("show");
+    $('#vendorTab a:first').tab('show');
+    document.getElementById('vendor-folder-link').style.display = 'none';
+    document.getElementById('addContactBtn').disabled = true;
+    document.getElementById('addBoardMemberBtn').disabled = true;
+    document.getElementById('addFinanceBtn').disabled = true;
+    document.getElementById('addProjectBtn').disabled = true;
+    $('#vendorModal').modal('show');
   };
 
   window.prepareEditVendorModal = function (vendorId) {
-    document.getElementById("addContactBtn").disabled = false;
-    document.getElementById("addBoardMemberBtn").disabled = false;
-    document.getElementById("addFinanceBtn").disabled = false;
-    document.getElementById("addProjectBtn").disabled = false;
-    $("#vendorModalLabel").text("แก้ไขข้อมูล Vendor");
+    document.getElementById('addContactBtn').disabled = false;
+    document.getElementById('addBoardMemberBtn').disabled = false;
+    document.getElementById('addFinanceBtn').disabled = false;
+    document.getElementById('addProjectBtn').disabled = false;
+    $('#vendorModalLabel').text('แก้ไขข้อมูล Vendor');
     setModalLoading(true);
-    $("#vendorTab a:first").tab("show");
-    $("#vendorModal").modal("show");
+    $('#vendorTab a:first').tab('show');
+    $('#vendorModal').modal('show');
 
     Promise.all([
       loadInitialDataForModal(),
-      serverCall("getVendorDetailsById", vendorId),
-      serverCall("getContactsByVendorId", vendorId),
-      serverCall("getBoardMembersByVendorId", vendorId),
-      serverCall("getFinanceByVendorId", vendorId),
-      serverCall("getProjectsByVendorId", vendorId),
-    ])
-      .then(
-        ([
-          ,
-          vendorData,
-          contactsData,
-          boardData,
-          financeData,
-          projectsData,
-        ]) => {
-          if (!vendorData) {
-            showToast("ไม่พบข้อมูล Vendor", false);
-            $("#vendorModal").modal("hide");
-            return;
-          }
-          populateForm(vendorData);
-          renderContactsTable(contactsData);
-          renderBoardMembersTable(boardData);
-          renderFinanceTable(financeData);
-          renderProjectsTable(projectsData);
-          setModalLoading(false);
-        }
-      )
-      .catch((err) => {
-        handleServerError(err);
-        $("#vendorModal").modal("hide");
-      });
+      serverCall('getVendorDetailsById', vendorId),
+      serverCall('getContactsByVendorId', vendorId),
+      serverCall('getBoardMembersByVendorId', vendorId),
+      serverCall('getFinanceByVendorId', vendorId),
+      serverCall('getProjectsByVendorId', vendorId)
+    ]).then(([, vendorData, contactsData, boardData, financeData, projectsData]) => {
+      if (!vendorData) { showToast('ไม่พบข้อมูล Vendor', false); $('#vendorModal').modal('hide'); return; }
+      populateForm(vendorData);
+      renderContactsTable(contactsData);
+      renderBoardMembersTable(boardData);
+      renderFinanceTable(financeData);
+      renderProjectsTable(projectsData);
+      setModalLoading(false);
+    }).catch(err => {
+      handleServerError(err);
+      $('#vendorModal').modal('hide');
+    });
   };
   window.handleDeleteVendor = function (vendorId) {
-    Swal.fire({
-      title: "ยืนยันการลบ",
-      text: `คุณกำลังจะลบข้อมูล Vendor (ID: ${vendorId}) พร้อมไฟล์ทั้งหมด`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "ใช่, ลบเลย!",
-      cancelButtonText: "ยกเลิก",
-      showLoaderOnConfirm: true,
-      preConfirm: () =>
-        serverCall("processDeleteVendor", vendorId).catch((error) =>
-          Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)
-        ),
-      allowOutsideClick: () => !Swal.isLoading(),
-    }).then((result) => {
-      if (result.isConfirmed && result.value.success) {
-        Swal.fire("ลบสำเร็จ!", result.value.message, "success");
-        fetchAndRenderVendors();
-      } else if (result.value) {
-        Swal.fire("เกิดข้อผิดพลาด!", result.value.message, "error");
-      }
-    });
+    Swal.fire({ title: 'ยืนยันการลบ', text: `คุณกำลังจะลบข้อมูล Vendor (ID: ${vendorId}) พร้อมไฟล์ทั้งหมด`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true, preConfirm: () => serverCall('processDeleteVendor', vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)), allowOutsideClick: () => !Swal.isLoading() }).then(result => { if (result.isConfirmed && result.value.success) { Swal.fire('ลบสำเร็จ!', result.value.message, 'success'); fetchAndRenderVendors(); } else if (result.value) { Swal.fire('เกิดข้อผิดพลาด!', result.value.message, 'error'); } });
   };
 
   // CONTACT
-  window.prepareAddContactModal = function () {
-    const currentVendorId = document.getElementById("vendorId").value;
-    if (!currentVendorId) {
-      showToast("กรุณาบันทึกข้อมูล Vendor หลักก่อน", false);
-      return;
-    }
-    document.getElementById("contactForm").reset();
-    document.getElementById("contactId").value = "";
-    document.getElementById("contactVendorId").value = currentVendorId;
-    $("#contactModalLabel").text("เพิ่มข้อมูลผู้ติดต่อ");
-    $("#contactModal").modal("show");
-  };
-  window.prepareEditContactModal = function (contactData) {
-    document.getElementById("contactForm").reset();
-    $("#contactModalLabel").text("แก้ไขข้อมูลผู้ติดต่อ");
-    document.getElementById("contactId").value = contactData.Id;
-    document.getElementById("contactVendorId").value = contactData.VendorId;
-    document.getElementById("contactName").value = contactData.Name || "";
-    document.getElementById("contactPosition").value =
-      contactData.Position || "";
-    document.getElementById("contactEmail").value = contactData.Email || "";
-    document.getElementById("contactPhoneNumber").value =
-      contactData.PhoneNumber
-        ? String(contactData.PhoneNumber).replace(/'/g, "")
-        : "";
-    document.getElementById("contactLineId").value = contactData.LineId || "";
-    $("#contactModal").modal("show");
-  };
+  window.prepareAddContactModal = function () { const currentVendorId = document.getElementById('vendorId').value; if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('contactForm').reset(); document.getElementById('contactId').value = ''; document.getElementById('contactVendorId').value = currentVendorId; $('#contactModalLabel').text('เพิ่มข้อมูลผู้ติดต่อ'); $('#contactModal').modal('show'); };
+  window.prepareEditContactModal = function (contactData) { document.getElementById('contactForm').reset(); $('#contactModalLabel').text('แก้ไขข้อมูลผู้ติดต่อ'); document.getElementById('contactId').value = contactData.Id; document.getElementById('contactVendorId').value = contactData.VendorId; document.getElementById('contactName').value = contactData.Name || ''; document.getElementById('contactPosition').value = contactData.Position || ''; document.getElementById('contactEmail').value = contactData.Email || ''; document.getElementById('contactPhoneNumber').value = contactData.PhoneNumber ? String(contactData.PhoneNumber).replace(/'/g, '') : ''; document.getElementById('contactLineId').value = contactData.LineId || ''; $('#contactModal').modal('show'); };
   window.handleDeleteContact = function (contactId, vendorId) {
     Swal.fire({
-      title: "ยืนยันการลบ",
+      title: 'ยืนยันการลบ',
       text: "คุณต้องการลบผู้ติดต่อรายนี้ใช่หรือไม่?",
-      icon: "warning",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "ใช่, ลบเลย",
-      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ลบเลย',
+      cancelButtonText: 'ยกเลิก',
       showLoaderOnConfirm: true,
       preConfirm: () => {
-        return serverCall("processDeleteContact", contactId, vendorId).catch(
-          (error) =>
-            Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)
-        );
+        return serverCall('processDeleteContact', contactId, vendorId)
+          .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
       },
-      allowOutsideClick: () => !Swal.isLoading(),
+      allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
@@ -216,45 +105,23 @@
     });
   };
 
-  window.prepareAddBoardMemberModal = function () {
-    const currentVendorId = document.getElementById("vendorId").value;
-    if (!currentVendorId) {
-      showToast("กรุณาบันทึกข้อมูล Vendor หลักก่อน", false);
-      return;
-    }
-    document.getElementById("boardMemberForm").reset();
-    document.getElementById("boardMemberId").value = "";
-    document.getElementById("boardMemberVendorId").value = currentVendorId;
-    $("#boardMemberModalLabel").text("เพิ่มข้อมูลกรรมการ");
-    $("#boardMemberModal").modal("show");
-  };
-  window.prepareEditBoardMemberModal = function (memberData) {
-    document.getElementById("boardMemberForm").reset();
-    $("#boardMemberModalLabel").text("แก้ไขข้อมูลกรรมการ");
-    document.getElementById("boardMemberId").value = memberData.Id;
-    document.getElementById("boardMemberVendorId").value = memberData.VendorId;
-    document.getElementById("boardMemberName").value = memberData.Name || "";
-    document.getElementById("boardMemberSurname").value =
-      memberData.Surname || "";
-    $("#boardMemberModal").modal("show");
-  };
+  window.prepareAddBoardMemberModal = function () { const currentVendorId = document.getElementById('vendorId').value; if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('boardMemberForm').reset(); document.getElementById('boardMemberId').value = ''; document.getElementById('boardMemberVendorId').value = currentVendorId; $('#boardMemberModalLabel').text('เพิ่มข้อมูลกรรมการ'); $('#boardMemberModal').modal('show'); };
+  window.prepareEditBoardMemberModal = function (memberData) { document.getElementById('boardMemberForm').reset(); $('#boardMemberModalLabel').text('แก้ไขข้อมูลกรรมการ'); document.getElementById('boardMemberId').value = memberData.Id; document.getElementById('boardMemberVendorId').value = memberData.VendorId; document.getElementById('boardMemberName').value = memberData.Name || ''; document.getElementById('boardMemberSurname').value = memberData.Surname || ''; $('#boardMemberModal').modal('show'); };
   window.handleDeleteBoardMember = function (memberId, vendorId) {
     Swal.fire({
-      title: "ยืนยันการลบ",
+      title: 'ยืนยันการลบ',
       text: "คุณต้องการลบข้อมูลกรรมการท่านนี้ใช่หรือไม่?",
-      icon: "warning",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "ใช่, ลบเลย",
-      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ลบเลย',
+      cancelButtonText: 'ยกเลิก',
       showLoaderOnConfirm: true,
       preConfirm: () => {
-        return serverCall("processDeleteBoardMember", memberId, vendorId).catch(
-          (error) =>
-            Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)
-        );
+        return serverCall('processDeleteBoardMember', memberId, vendorId)
+          .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
       },
-      allowOutsideClick: () => !Swal.isLoading(),
+      allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
@@ -265,69 +132,23 @@
     });
   };
 
-  window.prepareAddFinanceModal = function () {
-    const currentVendorId = document.getElementById("vendorId").value;
-    if (!currentVendorId) {
-      showToast("กรุณาบันทึกข้อมูล Vendor หลักก่อน", false);
-      return;
-    }
-    document.getElementById("financeForm").reset();
-    document.getElementById("financeId").value = "";
-    document.getElementById("financeVendorId").value = currentVendorId;
-    $("#financeModalLabel").text("เพิ่มข้อมูลงบการเงิน");
-    setFinanceModalLoading(false);
-    $("#financeModal").modal("show");
-  };
-  window.prepareEditFinanceModal = function (financeId) {
-    $("#financeModalLabel").text("แก้ไขข้อมูลงบการเงิน");
-    setFinanceModalLoading(true);
-    $("#financeModal").modal("show");
-    serverCall("getFinanceRecordById", financeId)
-      .then((recordData) => {
-        if (!recordData) {
-          showToast("ไม่สามารถดึงข้อมูลได้", false);
-          $("#financeModal").modal("hide");
-          return;
-        }
-        document.getElementById("financeForm").reset();
-        document.getElementById("financeId").value = recordData.Id;
-        document.getElementById("financeVendorId").value = recordData.VendorId;
-        document.getElementById("financeYear").value = recordData.Year || "";
-        document.getElementById("financeRevenue").value =
-          recordData.Revenue || "";
-        document.getElementById("financeCurrentAssets").value =
-          recordData.CurrentAssets || "";
-        document.getElementById("financeCurrentLiabilities").value =
-          recordData.CurrentLiabilities || "";
-        document.getElementById("financeTotalLiabilities").value =
-          recordData.TotalLiabilities || "";
-        setFinanceModalLoading(false);
-      })
-      .catch((err) => {
-        handleServerError(err);
-        $("#financeModal").modal("hide");
-      });
-  };
+  window.prepareAddFinanceModal = function () { const currentVendorId = document.getElementById('vendorId').value; if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('financeForm').reset(); document.getElementById('financeId').value = ''; document.getElementById('financeVendorId').value = currentVendorId; $('#financeModalLabel').text('เพิ่มข้อมูลงบการเงิน'); setFinanceModalLoading(false); $('#financeModal').modal('show'); };
+  window.prepareEditFinanceModal = function (financeId) { $('#financeModalLabel').text('แก้ไขข้อมูลงบการเงิน'); setFinanceModalLoading(true); $('#financeModal').modal('show'); serverCall('getFinanceRecordById', financeId).then(recordData => { if (!recordData) { showToast('ไม่สามารถดึงข้อมูลได้', false); $('#financeModal').modal('hide'); return; } document.getElementById('financeForm').reset(); document.getElementById('financeId').value = recordData.Id; document.getElementById('financeVendorId').value = recordData.VendorId; document.getElementById('financeYear').value = recordData.Year || ''; document.getElementById('financeRevenue').value = recordData.Revenue || ''; document.getElementById('financeCurrentAssets').value = recordData.CurrentAssets || ''; document.getElementById('financeCurrentLiabilities').value = recordData.CurrentLiabilities || ''; document.getElementById('financeTotalLiabilities').value = recordData.TotalLiabilities || ''; setFinanceModalLoading(false); }).catch(err => { handleServerError(err); $('#financeModal').modal('hide'); }); };
   window.handleDeleteFinanceRecord = function (financeId, vendorId) {
     Swal.fire({
-      title: "ยืนยันการลบ",
+      title: 'ยืนยันการลบ',
       text: "คุณต้องการลบข้อมูลงบการเงินรายการนี้ใช่หรือไม่?",
-      icon: "warning",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "ใช่, ลบเลย",
-      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ลบเลย',
+      cancelButtonText: 'ยกเลิก',
       showLoaderOnConfirm: true,
       preConfirm: () => {
-        return serverCall(
-          "processDeleteFinanceRecord",
-          financeId,
-          vendorId
-        ).catch((error) =>
-          Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)
-        );
+        return serverCall('processDeleteFinanceRecord', financeId, vendorId)
+          .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
       },
-      allowOutsideClick: () => !Swal.isLoading(),
+      allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
@@ -338,67 +159,23 @@
     });
   };
 
-  window.prepareAddProjectModal = function () {
-    const vendorId = document.getElementById("vendorId").value;
-    if (!vendorId) {
-      showToast("กรุณาบันทึกข้อมูล Vendor หลักก่อน", false);
-      return;
-    }
-    document.getElementById("projectForm").reset();
-    document.getElementById("projectId").value = "";
-    document.getElementById("projectVendorId").value = vendorId;
-    $("#projectModalLabel").text("เพิ่มโครงการอ้างอิง");
-    toggleProjectOwnerInput();
-    $("#projectModal").modal("show");
-  };
-  window.prepareEditProjectModal = function (p) {
-    document.getElementById("projectForm").reset();
-    $("#projectModalLabel").text("แก้ไขโครงการอ้างอิง");
-    document.getElementById("projectId").value = p.Id;
-    document.getElementById("projectVendorId").value = p.VendorId;
-    document.getElementById("projectName").value = p.ProjectName;
-    document.getElementById("projectYear").value = p.ProjectYear;
-    document.getElementById("contractValue").value = p.ContractValue;
-    document.getElementById("projectDescription").value = p.ProjectDescription;
-    document.getElementById("projectTypeId").value = p.ProjectTypeId || "";
-    if (p.ProjectOwnerId && p.ProjectOwnerId !== "other") {
-      document.getElementById("projectOwnerId").value = p.ProjectOwnerId;
-    } else {
-      document.getElementById("projectOwnerId").value = "other";
-      document.getElementById("projectOwnerCustom").value =
-        p.ProjectOwnerCustom || "";
-    }
-    toggleProjectOwnerInput();
-    const packageSelect = document.getElementById("projectPackageIds");
-    if (p.PackageIds && typeof p.PackageIds === "string") {
-      const selectedIds = p.PackageIds.split(",");
-      Array.from(packageSelect.options).forEach((opt) => {
-        opt.selected = selectedIds.includes(opt.value);
-      });
-    } else {
-      Array.from(packageSelect.options).forEach((opt) => {
-        opt.selected = false;
-      });
-    }
-    $("#projectModal").modal("show");
-  };
+  window.prepareAddProjectModal = function () { const vendorId = document.getElementById('vendorId').value; if (!vendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('projectForm').reset(); document.getElementById('projectId').value = ''; document.getElementById('projectVendorId').value = vendorId; $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง'); toggleProjectOwnerInput(); $('#projectModal').modal('show'); };
+  window.prepareEditProjectModal = function (p) { document.getElementById('projectForm').reset(); $('#projectModalLabel').text('แก้ไขโครงการอ้างอิง'); document.getElementById('projectId').value = p.Id; document.getElementById('projectVendorId').value = p.VendorId; document.getElementById('projectName').value = p.ProjectName; document.getElementById('projectYear').value = p.ProjectYear; document.getElementById('contractValue').value = p.ContractValue; document.getElementById('projectDescription').value = p.ProjectDescription; document.getElementById('projectTypeId').value = p.ProjectTypeId || ''; if (p.ProjectOwnerId && p.ProjectOwnerId !== 'other') { document.getElementById('projectOwnerId').value = p.ProjectOwnerId; } else { document.getElementById('projectOwnerId').value = 'other'; document.getElementById('projectOwnerCustom').value = p.ProjectOwnerCustom || ''; } toggleProjectOwnerInput(); const packageSelect = document.getElementById('projectPackageIds'); if (p.PackageIds && typeof p.PackageIds === 'string') { const selectedIds = p.PackageIds.split(','); Array.from(packageSelect.options).forEach(opt => { opt.selected = selectedIds.includes(opt.value); }); } else { Array.from(packageSelect.options).forEach(opt => { opt.selected = false; }); } $('#projectModal').modal('show'); };
   window.handleDeleteProject = function (projectId, vendorId) {
     Swal.fire({
-      title: "ยืนยันการลบ",
+      title: 'ยืนยันการลบ',
       text: "คุณต้องการลบโครงการอ้างอิงนี้ใช่หรือไม่?",
-      icon: "warning",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "ใช่, ลบเลย",
-      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ลบเลย',
+      cancelButtonText: 'ยกเลิก',
       showLoaderOnConfirm: true,
       preConfirm: () => {
-        return serverCall("processDeleteProject", projectId, vendorId).catch(
-          (error) =>
-            Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)
-        );
+        return serverCall('processDeleteProject', projectId, vendorId)
+          .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
       },
-      allowOutsideClick: () => !Swal.isLoading(),
+      allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
@@ -410,550 +187,78 @@
   };
 
   // ==================== DATA FETCHING & RENDERING ====================
-  function fetchAndRenderVendors() {
-    const tableBody = document.getElementById("vendor-table-body");
-    tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`;
-    const options = {
-      page: currentPage,
-      limit: 10,
-      searchTerm: searchTerm,
-      statusId: selectedStatusId,
-      packageId: selectedPackageId,
-      sortColumn: sortState.column,
-      sortDirection: sortState.direction,
-    };
-    serverCall("getPaginatedVendors", options)
-      .then((response) => {
-        if (response.success) {
-          renderVendorTable(response.vendors);
-          renderPagination(response);
-        } else {
-          handleServerError({ message: response.message });
-        }
-      })
-      .catch(handleServerError);
-  }
-  function renderVendorTable(vendors) {
-    const tableBody = document.getElementById("vendor-table-body");
-    tableBody.innerHTML = "";
-    if (!vendors || vendors.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
-      return;
-    }
-    vendors.forEach((vendor) => {
-      const row = tableBody.insertRow();
-      const statusBadge = `<span class="badge ${
-        vendor.StatusColor || "badge-light"
-      }">${vendor.StatusName || "N/A"}</span>`;
-      const packageIds = vendor.PackageId
-        ? String(vendor.PackageId).split(",")
-        : [];
-      const packageBadges = packageIds
-        .map((id) => `<span class="badge badge-info mr-1">${id.trim()}</span>`)
-        .join(" ");
-      row.innerHTML = `<td>${vendor.NameThai}</td><td>${
-        vendor.NameEnglish || "-"
-      }</td><td>${packageBadges || "-"}</td><td>${statusBadge}</td><td>${
-        vendor.Remark || "-"
-      }</td><td><button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${
-        vendor.Id
-      }')" title="แก้ไข"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${
-        vendor.Id
-      }')" title="ลบ"><i class="fas fa-trash-alt"></i></button></td>`;
-    });
-  }
-  function renderPagination(data) {
-    currentPage = data.currentPage;
-    totalPages = data.totalPages;
-    document.getElementById(
-      "pageInfo"
-    ).textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`;
-    const paginationControls = document.getElementById("pagination-controls");
-    paginationControls.innerHTML = "";
-    const prevLi = document.createElement("li");
-    prevLi.className = `page-item ${currentPage <= 1 ? "disabled" : ""}`;
-    prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`;
-    prevLi.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (currentPage > 1) {
-        currentPage--;
-        fetchAndRenderVendors();
-      }
-    });
-    paginationControls.appendChild(prevLi);
-    const nextLi = document.createElement("li");
-    nextLi.className = `page-item ${
-      currentPage >= totalPages ? "disabled" : ""
-    }`;
-    nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`;
-    nextLi.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (currentPage < totalPages) {
-        currentPage++;
-        fetchAndRenderVendors();
-      }
-    });
-    paginationControls.appendChild(nextLi);
-  }
-  function populateStatusFilter() {
-    serverCall("getAllVendorStatuses")
-      .then((statuses) => {
-        const select = document.getElementById("statusFilter");
-        for (let i = select.options.length - 1; i > 0; i--) {
-          select.remove(i);
-        }
-        statuses.forEach((stat) => select.add(new Option(stat.Name, stat.Id)));
-      })
-      .catch(handleServerError);
-  }
-  function populatePackageFilter() {
-    serverCall("getAllPackagesForSelection")
-      .then((packages) => {
-        const select = document.getElementById("packageFilter");
-        for (let i = select.options.length - 1; i > 0; i--) {
-          select.remove(i);
-        }
-        packages.forEach((pkg) => select.add(new Option(pkg.NameThai, pkg.Id)));
-      })
-      .catch(handleServerError);
-  }
-  function renderContactsTable(contacts) {
-    const tableBody = document.getElementById("vendor-contacts-table-body");
-    tableBody.innerHTML = "";
-    if (!contacts || contacts.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลผู้ติดต่อ</td></tr>`;
-      return;
-    }
-    contacts.forEach((contact) => {
-      const row = tableBody.insertRow();
-      const contactJsonString = JSON.stringify(contact).replace(/"/g, "&quot;");
-      row.innerHTML = `<td>${contact.Name || "-"}</td><td>${
-        contact.Position || "-"
-      }</td><td>${contact.PhoneNumber || "-"}</td><td>${
-        contact.Email || "-"
-      }</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditContactModal(${contactJsonString})"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteContact('${
-        contact.Id
-      }', '${
-        contact.VendorId
-      }')"><i class="fas fa-trash-alt"></i></button></td>`;
-    });
-  }
-  function renderBoardMembersTable(members) {
-    const tableBody = document.getElementById("vendor-board-table-body");
-    tableBody.innerHTML = "";
-    if (!members || members.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูลกรรมการ</td></tr>`;
-      return;
-    }
-    members.forEach((member) => {
-      const row = tableBody.insertRow();
-      const memberJsonString = JSON.stringify(member).replace(/"/g, "&quot;");
-      row.innerHTML = `<td>${member.Name || "-"}</td><td>${
-        member.Surname || "-"
-      }</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditBoardMemberModal(${memberJsonString})'><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteBoardMember('${
-        member.Id
-      }', '${
-        member.VendorId
-      }')"><i class="fas fa-trash-alt"></i></button></td>`;
-    });
-  }
-  function renderFinanceTable(financeRecords) {
-    const tableBody = document.getElementById("vendor-finance-table-body");
-    tableBody.innerHTML = "";
-    if (!financeRecords || financeRecords.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`;
-      return;
-    }
-    financeRecords.forEach((rec) => {
-      const row = tableBody.insertRow();
-      const fileLink = rec.FinancialStatementFileId
-        ? `<a href="https://drive.google.com/file/d/${rec.FinancialStatementFileId}/view" target="_blank"><i class="fas fa-file-alt"></i></a>`
-        : "-";
-      const recordJsonString = JSON.stringify(rec).replace(/"/g, "&quot;");
-      row.innerHTML = `<td>${rec.Year || "-"}</td><td>${
-        rec.Revenue ? Number(rec.Revenue).toLocaleString() : "-"
-      }</td><td>${
-        rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : "-"
-      }</td><td>${
-        rec.CurrentLiabilities
-          ? Number(rec.CurrentLiabilities).toLocaleString()
-          : "-"
-      }</td><td>${
-        rec.TotalLiabilities
-          ? Number(rec.TotalLiabilities).toLocaleString()
-          : "-"
-      }</td><td class="text-center">${fileLink}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${
-        rec.Id
-      }')"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${
-        rec.Id
-      }', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`;
-    });
-  }
+  function fetchAndRenderVendors() { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`; const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction }; serverCall('getPaginatedVendors', options).then(response => { if (response.success) { renderVendorTable(response.vendors); renderPagination(response); } else { handleServerError({ message: response.message }); } }).catch(handleServerError); }
+  function renderVendorTable(vendors) { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = ''; if (!vendors || vendors.length === 0) { tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`; return; } vendors.forEach(vendor => { const row = tableBody.insertRow(); const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`; const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : []; const packageBadges = packageIds.map(id => `<span class="badge badge-info mr-1">${id.trim()}</span>`).join(' '); row.innerHTML = `<td>${vendor.NameThai}</td><td>${vendor.NameEnglish || '-'}</td><td>${packageBadges || '-'}</td><td>${statusBadge}</td><td>${vendor.Remark || '-'}</td><td><button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+  function renderPagination(data) { currentPage = data.currentPage; totalPages = data.totalPages; document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`; const paginationControls = document.getElementById('pagination-controls'); paginationControls.innerHTML = ''; const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderVendors(); } }); paginationControls.appendChild(prevLi); const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderVendors(); } }); paginationControls.appendChild(nextLi); }
+  function populateStatusFilter() { serverCall('getAllVendorStatuses').then(statuses => { const select = document.getElementById('statusFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
+  function populatePackageFilter() { serverCall('getAllPackagesForSelection').then(packages => { const select = document.getElementById('packageFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } packages.forEach(pkg => select.add(new Option(pkg.NameThai, pkg.Id))); }).catch(handleServerError); }
+  function renderContactsTable(contacts) { const tableBody = document.getElementById('vendor-contacts-table-body'); tableBody.innerHTML = ''; if (!contacts || contacts.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลผู้ติดต่อ</td></tr>`; return; } contacts.forEach(contact => { const row = tableBody.insertRow(); const contactJsonString = JSON.stringify(contact).replace(/"/g, '&quot;'); row.innerHTML = `<td>${contact.Name || '-'}</td><td>${contact.Position || '-'}</td><td>${contact.PhoneNumber || '-'}</td><td>${contact.Email || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditContactModal(${contactJsonString})"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteContact('${contact.Id}', '${contact.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+  function renderBoardMembersTable(members) { const tableBody = document.getElementById('vendor-board-table-body'); tableBody.innerHTML = ''; if (!members || members.length === 0) { tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูลกรรมการ</td></tr>`; return; } members.forEach(member => { const row = tableBody.insertRow(); const memberJsonString = JSON.stringify(member).replace(/"/g, '&quot;'); row.innerHTML = `<td>${member.Name || '-'}</td><td>${member.Surname || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditBoardMemberModal(${memberJsonString})'><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteBoardMember('${member.Id}', '${member.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+  function renderFinanceTable(financeRecords) { const tableBody = document.getElementById('vendor-finance-table-body'); tableBody.innerHTML = ''; if (!financeRecords || financeRecords.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`; return; } financeRecords.forEach(rec => { const row = tableBody.insertRow(); const fileLink = rec.FinancialStatementFileId ? `<a href="https://drive.google.com/file/d/${rec.FinancialStatementFileId}/view" target="_blank"><i class="fas fa-file-alt"></i></a>` : '-'; const recordJsonString = JSON.stringify(rec).replace(/"/g, '&quot;'); row.innerHTML = `<td>${rec.Year || '-'}</td><td>${rec.Revenue ? Number(rec.Revenue).toLocaleString() : '-'}</td><td>${rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : '-'}</td><td>${rec.CurrentLiabilities ? Number(rec.CurrentLiabilities).toLocaleString() : '-'}</td><td>${rec.TotalLiabilities ? Number(rec.TotalLiabilities).toLocaleString() : '-'}</td><td class="text-center">${fileLink}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${rec.Id}')"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${rec.Id}', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
   function renderProjectsTable(projects) {
-    const tableBody = document.getElementById("vendor-projects-table-body");
-    tableBody.innerHTML = "";
+    const tableBody = document.getElementById('vendor-projects-table-body');
+    tableBody.innerHTML = '';
     if (!projects || projects.length === 0) {
       // แก้ไข colspan จาก 5 เป็น 4
       tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ยังไม่มีโครงการอ้างอิง</td></tr>`;
       return;
     }
-    projects.forEach((p) => {
+    projects.forEach(p => {
       const row = tableBody.insertRow();
-      const projectJsonString = JSON.stringify(p).replace(/"/g, "&quot;");
+      const projectJsonString = JSON.stringify(p).replace(/"/g, '&quot;');
       // นำคอลัมน์ไฟล์แนบออก
       row.innerHTML = `
                 <td>${p.ProjectYear}</td>
                 <td>${p.ProjectName}</td>
-                <td>${
-                  p.ContractValue
-                    ? Number(p.ContractValue).toLocaleString()
-                    : "-"
-                }</td>
+                <td>${p.ContractValue ? Number(p.ContractValue).toLocaleString() : '-'}</td>
                 <td>
                     <button type="button" class="btn btn-xs btn-outline-warning" onclick='prepareEditProjectModal(${projectJsonString})'><i class="fas fa-edit"></i></button>
-                    <button type="button" class="btn btn-xs btn-outline-danger" onclick="handleDeleteProject('${
-                      p.Id
-                    }', '${
-        p.VendorId
-      }')"><i class="fas fa-trash-alt"></i></button>
+                    <button type="button" class="btn btn-xs btn-outline-danger" onclick="handleDeleteProject('${p.Id}', '${p.VendorId}')"><i class="fas fa-trash-alt"></i></button>
                 </td>
             `;
     });
   }
 
   // ==================== FORM & MODAL LOGIC ====================
-  function loadInitialDataForModal() {
-    if (availablePackages.length === 0) loadPackagesIntoSelect();
-    if (availableStatuses.length === 0) loadStatusesIntoSelect();
-    if (availableProjectTypes.length === 0) loadProjectTypesForModal();
-    if (availableProjectOwners.length === 0) loadProjectOwnersForModal();
-  }
-  function loadPackagesIntoSelect() {
-    return serverCall("getAllPackagesForSelection")
-      .then((packages) => {
-        availablePackages = packages;
-        const selects = [
-          document.getElementById("packageIds"),
-          document.getElementById("projectPackageIds"),
-        ];
-        selects.forEach((select) => {
-          if (select) {
-            select.innerHTML = "";
-            packages.forEach((pkg) =>
-              select.add(new Option(`${pkg.NameThai} (${pkg.Id})`, pkg.Id))
-            );
-          }
-        });
-      })
-      .catch(handleServerError);
-  }
-  function loadStatusesIntoSelect() {
-    return serverCall("getAllVendorStatuses")
-      .then((statuses) => {
-        availableStatuses = statuses;
-        const select = document.getElementById("status");
-        select.innerHTML = "";
-        statuses.forEach((stat) => select.add(new Option(stat.Name, stat.Id)));
-      })
-      .catch(handleServerError);
-  }
-  function loadProjectTypesForModal() {
-    return serverCall("getAllProjectTypes")
-      .then((data) => {
-        availableProjectTypes = data;
-        const select = document.getElementById("projectTypeId");
-        select.innerHTML = '<option value="">-- กรุณาเลือก --</option>';
-        data.forEach((item) => select.add(new Option(item.Name, item.Id)));
-      })
-      .catch(handleServerError);
-  }
-  function loadProjectOwnersForModal() {
-    return serverCall("getAllProjectOwners")
-      .then((data) => {
-        availableProjectOwners = data;
-        const select = document.getElementById("projectOwnerId");
-        while (select.options.length > 2) {
-          select.remove(1);
-        }
-        data.forEach((item) => {
-          const option = new Option(item.Name, item.Id);
-          select.insertBefore(
-            option,
-            select.options[select.options.length - 1]
-          );
-        });
-      })
-      .catch(handleServerError);
-  }
-  function populateForm(data) {
-    document.getElementById("vendorForm").reset();
-    document.getElementById("vendorId").value = data.Id;
-    document.getElementById("nameThai").value = data.NameThai;
-    document.getElementById("nameEnglish").value = data.NameEnglish || "";
-    document.getElementById("status").value = data.StatusId;
-    document.getElementById("remark").value = data.Remark || "";
-    document.getElementById("companyType").value = data.CompanyType;
-    document.getElementById("registeredCapital").value =
-      data.RegisteredCapital || "";
-    document.getElementById("registeredDate").value = data.RegisteredDate
-      ? new Date(data.RegisteredDate).toISOString().split("T")[0]
-      : "";
-    document.getElementById("registeredObject").value =
-      data.RegisteredObject || "";
-    if (data.PackageId && Array.isArray(data.PackageId)) {
-      Array.from(document.getElementById("packageIds").options).forEach(
-        (option) => {
-          option.selected = data.PackageId.includes(option.value);
-        }
-      );
-    }
-    const folderLink = document.getElementById("vendor-folder-link");
-    if (data.FolderId) {
-      folderLink.href = `https://drive.google.com/drive/folders/${data.FolderId}`;
-      folderLink.style.display = "inline-block";
-    } else {
-      folderLink.style.display = "none";
-    }
-    toggleFileSections();
-  }
-  async function handleSaveVendor() {
-    const saveButton = document.getElementById("saveVendorButton");
-    const form = document.getElementById("vendorForm");
-    const packageSelect = document.getElementById("packageIds");
-    if (packageSelect.selectedOptions.length === 0) {
-      showToast("กรุณาเลือกประเภทพัสดุอย่างน้อย 1 รายการ", false);
-      return;
-    }
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      showToast("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", false);
-      return;
-    }
-    setLoading(saveButton, true);
-    try {
-      const formData = {
-        Id: document.getElementById("vendorId").value,
-        NameThai: document.getElementById("nameThai").value,
-        NameEnglish: document.getElementById("nameEnglish").value,
-        PackageId: Array.from(
-          document.getElementById("packageIds").selectedOptions
-        ).map((opt) => opt.value),
-        StatusId: document.getElementById("status").value,
-        Remark: document.getElementById("remark").value,
-        CompanyType: document.getElementById("companyType").value,
-        RegisteredCapital: document.getElementById("registeredCapital").value,
-        RegisteredDate: document.getElementById("registeredDate").value,
-        RegisteredObject: document.getElementById("registeredObject").value,
-      };
-      const fileInputs = form.querySelectorAll('input[type="file"]');
-      const filePromises = [];
-      const fileData = {};
-      fileInputs.forEach((input) => {
-        if (input.files.length > 0) {
-          const file = input.files[0];
-          const promise = new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              fileData[input.id] = {
-                fileName: file.name,
-                mimeType: file.type,
-                base64: e.target.result.split(",")[1],
-              };
-              resolve();
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          filePromises.push(promise);
-        }
-      });
-      await Promise.all(filePromises);
-      const response = await serverCall(
-        "processAddOrEditVendor",
-        formData,
-        fileData
-      );
-      if (response.success) {
-        showToast(response.message, true);
-        $("#vendorModal").modal("hide");
-        fetchAndRenderVendors();
-      } else {
-        showToast(response.message, false);
-      }
-    } catch (err) {
-      handleServerError(err);
-    } finally {
-      setLoading(saveButton, false);
-    }
-  }
-  async function handleSaveContact() {
-    const form = document.getElementById("contactForm");
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    const saveButton = document.getElementById("saveContactButton");
-    setLoading(saveButton, true);
-    const formData = {
-      Id: document.getElementById("contactId").value,
-      VendorId: document.getElementById("contactVendorId").value,
-      Name: document.getElementById("contactName").value,
-      Position: document.getElementById("contactPosition").value,
-      Email: document.getElementById("contactEmail").value,
-      PhoneNumber: "'" + document.getElementById("contactPhoneNumber").value,
-      LineId: document.getElementById("contactLineId").value,
-    };
-    try {
-      const response = await serverCall("processAddOrEditContact", formData);
-      if (response.success) {
-        showToast(response.message, true);
-        renderContactsTable(response.contacts);
-        $("#contactModal").modal("hide");
-      } else {
-        showToast(response.message, false);
-      }
-    } catch (err) {
-      handleServerError(err);
-    } finally {
-      setLoading(saveButton, false);
-    }
-  }
-  async function handleSaveBoardMember() {
-    const form = document.getElementById("boardMemberForm");
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    const saveButton = document.getElementById("saveBoardMemberButton");
-    setLoading(saveButton, true);
-    const formData = {
-      Id: document.getElementById("boardMemberId").value,
-      VendorId: document.getElementById("boardMemberVendorId").value,
-      Name: document.getElementById("boardMemberName").value,
-      Surname: document.getElementById("boardMemberSurname").value,
-    };
-    try {
-      const response = await serverCall(
-        "processAddOrEditBoardMember",
-        formData
-      );
-      if (response.success) {
-        showToast(response.message, true);
-        renderBoardMembersTable(response.members);
-        $("#boardMemberModal").modal("hide");
-      } else {
-        showToast(response.message, false);
-      }
-    } catch (err) {
-      handleServerError(err);
-    } finally {
-      setLoading(saveButton, false);
-    }
-  }
-  async function handleSaveFinanceRecord() {
-    const form = document.getElementById("financeForm");
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    const saveButton = document.getElementById("saveFinanceButton");
-    setLoading(saveButton, true);
-    const formData = {
-      Id: document.getElementById("financeId").value,
-      VendorId: document.getElementById("financeVendorId").value,
-      Year: document.getElementById("financeYear").value,
-      Revenue: document.getElementById("financeRevenue").value,
-      CurrentAssets: document.getElementById("financeCurrentAssets").value,
-      CurrentLiabilities: document.getElementById("financeCurrentLiabilities")
-        .value,
-      TotalLiabilities: document.getElementById("financeTotalLiabilities")
-        .value,
-    };
-    const fileInput = document.getElementById("financialStatementFile");
-    let fileData = {};
-    if (fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      try {
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result.split(",")[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        fileData["financialStatementFile"] = {
-          fileName: file.name,
-          mimeType: file.type,
-          base64: base64,
-        };
-      } catch (err) {
-        handleServerError({ message: "ไม่สามารถอ่านไฟล์ได้" });
-        setLoading(saveButton, false);
-        return;
-      }
-    }
-    try {
-      const response = await serverCall(
-        "processAddOrEditFinanceRecord",
-        formData,
-        fileData
-      );
-      if (response.success) {
-        showToast(response.message, true);
-        renderFinanceTable(response.financeData);
-        $("#financeModal").modal("hide");
-      } else {
-        showToast(response.message, false);
-      }
-    } catch (err) {
-      handleServerError(err);
-    } finally {
-      setLoading(saveButton, false);
-    }
-  }
+  function loadInitialDataForModal() { if (availablePackages.length === 0) loadPackagesIntoSelect(); if (availableStatuses.length === 0) loadStatusesIntoSelect(); if (availableProjectTypes.length === 0) loadProjectTypesForModal(); if (availableProjectOwners.length === 0) loadProjectOwnersForModal(); }
+  function loadPackagesIntoSelect() { return serverCall('getAllPackagesForSelection').then(packages => { availablePackages = packages; const selects = [document.getElementById('packageIds'), document.getElementById('projectPackageIds')]; selects.forEach(select => { if (select) { select.innerHTML = ''; packages.forEach(pkg => select.add(new Option(`${pkg.NameThai} (${pkg.Id})`, pkg.Id))); } }); }).catch(handleServerError); }
+  function loadStatusesIntoSelect() { return serverCall('getAllVendorStatuses').then(statuses => { availableStatuses = statuses; const select = document.getElementById('status'); select.innerHTML = ''; statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
+  function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
+  function loadProjectOwnersForModal() { return serverCall('getAllProjectOwners').then(data => { availableProjectOwners = data; const select = document.getElementById('projectOwnerId'); while (select.options.length > 2) { select.remove(1); } data.forEach(item => { const option = new Option(item.Name, item.Id); select.insertBefore(option, select.options[select.options.length - 1]); }); }).catch(handleServerError); }
+  function populateForm(data) { document.getElementById('vendorForm').reset(); document.getElementById('vendorId').value = data.Id; document.getElementById('nameThai').value = data.NameThai; document.getElementById('nameEnglish').value = data.NameEnglish || ''; document.getElementById('status').value = data.StatusId; document.getElementById('remark').value = data.Remark || ''; document.getElementById('companyType').value = data.CompanyType; document.getElementById('registeredCapital').value = data.RegisteredCapital || ''; document.getElementById('registeredDate').value = data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : ''; document.getElementById('registeredObject').value = data.RegisteredObject || ''; if (data.PackageId && Array.isArray(data.PackageId)) { Array.from(document.getElementById('packageIds').options).forEach(option => { option.selected = data.PackageId.includes(option.value); }); } const folderLink = document.getElementById('vendor-folder-link'); if (data.FolderId) { folderLink.href = `https://drive.google.com/drive/folders/${data.FolderId}`; folderLink.style.display = 'inline-block'; } else { folderLink.style.display = 'none'; } toggleFileSections(); }
+  async function handleSaveVendor() { const saveButton = document.getElementById('saveVendorButton'); const form = document.getElementById('vendorForm'); const packageSelect = document.getElementById('packageIds'); if (packageSelect.selectedOptions.length === 0) { showToast('กรุณาเลือกประเภทพัสดุอย่างน้อย 1 รายการ', false); return; } if (!form.checkValidity()) { form.reportValidity(); showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', false); return; } setLoading(saveButton, true); try { const formData = { Id: document.getElementById('vendorId').value, NameThai: document.getElementById('nameThai').value, NameEnglish: document.getElementById('nameEnglish').value, PackageId: Array.from(document.getElementById('packageIds').selectedOptions).map(opt => opt.value), StatusId: document.getElementById('status').value, Remark: document.getElementById('remark').value, CompanyType: document.getElementById('companyType').value, RegisteredCapital: document.getElementById('registeredCapital').value, RegisteredDate: document.getElementById('registeredDate').value, RegisteredObject: document.getElementById('registeredObject').value }; const fileInputs = form.querySelectorAll('input[type="file"]'); const filePromises = []; const fileData = {}; fileInputs.forEach(input => { if (input.files.length > 0) { const file = input.files[0]; const promise = new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => { fileData[input.id] = { fileName: file.name, mimeType: file.type, base64: e.target.result.split(',')[1] }; resolve(); }; reader.onerror = reject; reader.readAsDataURL(file); }); filePromises.push(promise); } }); await Promise.all(filePromises); const response = await serverCall('processAddOrEditVendor', formData, fileData); if (response.success) { showToast(response.message, true); $('#vendorModal').modal('hide'); fetchAndRenderVendors(); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.contacts); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveBoardMember() { const form = document.getElementById('boardMemberForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveBoardMemberButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('boardMemberId').value, VendorId: document.getElementById('boardMemberVendorId').value, Name: document.getElementById('boardMemberName').value, Surname: document.getElementById('boardMemberSurname').value, }; try { const response = await serverCall('processAddOrEditBoardMember', formData); if (response.success) { showToast(response.message, true); renderBoardMembersTable(response.members); $('#boardMemberModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveFinanceRecord() { const form = document.getElementById('financeForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveFinanceButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('financeId').value, VendorId: document.getElementById('financeVendorId').value, Year: document.getElementById('financeYear').value, Revenue: document.getElementById('financeRevenue').value, CurrentAssets: document.getElementById('financeCurrentAssets').value, CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value, TotalLiabilities: document.getElementById('financeTotalLiabilities').value, }; const fileInput = document.getElementById('financialStatementFile'); let fileData = {}; if (fileInput.files.length > 0) { const file = fileInput.files[0]; try { const base64 = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => resolve(e.target.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); }); fileData['financialStatementFile'] = { fileName: file.name, mimeType: file.type, base64: base64 }; } catch (err) { handleServerError({ message: 'ไม่สามารถอ่านไฟล์ได้' }); setLoading(saveButton, false); return; } } try { const response = await serverCall('processAddOrEditFinanceRecord', formData, fileData); if (response.success) { showToast(response.message, true); renderFinanceTable(response.financeData); $('#financeModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
   async function handleSaveProject() {
-    const form = document.getElementById("projectForm");
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    if (
-      document.getElementById("projectOwnerId").value === "other" &&
-      !document.getElementById("projectOwnerCustom").value
-    ) {
-      showToast("กรุณาระบุชื่อเจ้าของโครงการ", false);
-      return;
-    }
+    const form = document.getElementById('projectForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (document.getElementById('projectOwnerId').value === 'other' && !document.getElementById('projectOwnerCustom').value) { showToast('กรุณาระบุชื่อเจ้าของโครงการ', false); return; }
 
-    const saveButton = document.getElementById("saveProjectButton");
-    setLoading(saveButton, true, "กำลังบันทึก...");
+    const saveButton = document.getElementById('saveProjectButton');
+    setLoading(saveButton, true, 'กำลังบันทึก...');
 
     try {
       const formData = {
-        Id: document.getElementById("projectId").value,
-        VendorId: document.getElementById("projectVendorId").value,
-        ProjectName: document.getElementById("projectName").value,
-        ProjectYear: document.getElementById("projectYear").value,
-        ContractValue: document.getElementById("contractValue").value,
-        ProjectDescription: document.getElementById("projectDescription").value,
-        ProjectTypeId: document.getElementById("projectTypeId").value,
-        ProjectOwnerId: document.getElementById("projectOwnerId").value,
-        ProjectOwnerCustom: document.getElementById("projectOwnerCustom").value,
-        PackageIds: Array.from(
-          document.getElementById("projectPackageIds").selectedOptions
-        ).map((opt) => opt.value),
+        Id: document.getElementById('projectId').value,
+        VendorId: document.getElementById('projectVendorId').value,
+        ProjectName: document.getElementById('projectName').value,
+        ProjectYear: document.getElementById('projectYear').value,
+        ContractValue: document.getElementById('contractValue').value,
+        ProjectDescription: document.getElementById('projectDescription').value,
+        ProjectTypeId: document.getElementById('projectTypeId').value,
+        ProjectOwnerId: document.getElementById('projectOwnerId').value,
+        ProjectOwnerCustom: document.getElementById('projectOwnerCustom').value,
+        PackageIds: Array.from(document.getElementById('projectPackageIds').selectedOptions).map(opt => opt.value),
       };
 
       // ลบส่วนของการจัดการไฟล์ออกทั้งหมด
-      const response = await serverCall(
-        "processAddOrEditProject",
-        formData,
-        {}
-      ); // ส่ง fileData เป็น object ว่างไปแทน
+      const response = await serverCall('processAddOrEditProject', formData, {}); // ส่ง fileData เป็น object ว่างไปแทน
 
       if (response.success) {
         showToast(response.message, true);
         renderProjectsTable(response.projects);
-        $("#projectModal").modal("hide");
+        $('#projectModal').modal('hide');
       } else {
         showToast(response.message, false);
       }
@@ -962,62 +267,12 @@
     } finally {
       setLoading(saveButton, false);
     }
-  }
+  };
 
   // ==================== UI HELPERS & UTILITIES ====================
-  function updateSortIcons() {
-    document.querySelectorAll("th[data-column]").forEach((header) => {
-      const icon = header.querySelector("i");
-      const columnOfHeader = header.dataset.column;
-      icon.className = "fas fa-sort ml-1 sort-icon";
-      if (sortState.column === columnOfHeader) {
-        if (sortState.direction === "asc") {
-          icon.classList.replace("fa-sort", "fa-sort-up");
-        } else if (sortState.direction === "desc") {
-          icon.classList.replace("fa-sort", "fa-sort-down");
-        }
-      }
-    });
-  }
-  function toggleFileSections() {
-    const isJuristic =
-      document.getElementById("companyType").value === "Juristic Person";
-    document.getElementById("juristic-files").style.display = isJuristic
-      ? "block"
-      : "none";
-    document.getElementById("individual-files").style.display = isJuristic
-      ? "none"
-      : "block";
-  }
-  function toggleProjectOwnerInput() {
-    const ownerSelect = document.getElementById("projectOwnerId");
-    const customGroup = document.getElementById("projectOwnerCustomGroup");
-    const customInput = document.getElementById("projectOwnerCustom");
-    if (ownerSelect.value === "other") {
-      customGroup.style.display = "block";
-      customInput.required = true;
-    } else {
-      customGroup.style.display = "none";
-      customInput.required = false;
-      customInput.value = "";
-    }
-  }
-  function setModalLoading(isLoading) {
-    document.getElementById("modal-loader").style.display = isLoading
-      ? "block"
-      : "none";
-    document.getElementById("vendorForm").style.display = isLoading
-      ? "none"
-      : "block";
-    document.getElementById("saveVendorButton").disabled = isLoading;
-  }
-  function setFinanceModalLoading(isLoading) {
-    document.getElementById("finance-modal-loader").style.display = isLoading
-      ? "block"
-      : "none";
-    document.getElementById("financeForm").style.display = isLoading
-      ? "none"
-      : "block";
-    document.getElementById("saveFinanceButton").disabled = isLoading;
-  }
+  function updateSortIcons() { document.querySelectorAll('th[data-column]').forEach(header => { const icon = header.querySelector('i'); const columnOfHeader = header.dataset.column; icon.className = 'fas fa-sort ml-1 sort-icon'; if (sortState.column === columnOfHeader) { if (sortState.direction === 'asc') { icon.classList.replace('fa-sort', 'fa-sort-up'); } else if (sortState.direction === 'desc') { icon.classList.replace('fa-sort', 'fa-sort-down'); } } }); }
+  function toggleFileSections() { const isJuristic = document.getElementById('companyType').value === 'Juristic Person'; document.getElementById('juristic-files').style.display = isJuristic ? 'block' : 'none'; document.getElementById('individual-files').style.display = isJuristic ? 'none' : 'block'; }
+  function toggleProjectOwnerInput() { const ownerSelect = document.getElementById('projectOwnerId'); const customGroup = document.getElementById('projectOwnerCustomGroup'); const customInput = document.getElementById('projectOwnerCustom'); if (ownerSelect.value === 'other') { customGroup.style.display = 'block'; customInput.required = true; } else { customGroup.style.display = 'none'; customInput.required = false; customInput.value = ''; } }
+  function setModalLoading(isLoading) { document.getElementById('modal-loader').style.display = isLoading ? 'block' : 'none'; document.getElementById('vendorForm').style.display = isLoading ? 'none' : 'block'; document.getElementById('saveVendorButton').disabled = isLoading; }
+  function setFinanceModalLoading(isLoading) { document.getElementById('finance-modal-loader').style.display = isLoading ? 'block' : 'none'; document.getElementById('financeForm').style.display = isLoading ? 'none' : 'block'; document.getElementById('saveFinanceButton').disabled = isLoading; }
 </script>
