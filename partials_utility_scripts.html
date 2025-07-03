@@ -1,0 +1,71 @@
+<!-- file: partials_utility_scripts.html -->
+
+<script>
+    /**
+     * แสดงการแจ้งเตือนแบบ Toast
+     * @param {string} text - ข้อความที่ต้องการแสดง
+     * @param {boolean} isSuccess - true สำหรับสีเขียว (สำเร็จ), false สำหรับสีแดง (ผิดพลาด)
+     */
+    function showToast(text, isSuccess = true) {
+        Toastify({
+            text: text,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "right",
+            stopOnFocus: true,
+            style: {
+              background: isSuccess ? "linear-gradient(to right, #00b09b, #96c93d)" : "linear-gradient(to right, #ff5f6d, #ffc371)",
+            }
+        }).showToast();
+    }
+
+    /**
+     * [UTILITY] เรียกใช้ฟังก์ชันฝั่ง Server และคืนค่าเป็น Promise
+     * @param {string} functionName - ชื่อฟังก์ชันใน .gs ที่จะเรียก
+     * @param {...any} args - Arguments ที่จะส่งไปให้ฟังก์ชัน
+     * @returns {Promise<any>}
+     */
+    function serverCall(functionName, ...args) {
+        return new Promise((resolve, reject) => {
+            google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject)
+                [functionName](...args);
+        });
+    }
+
+    /**
+     * [UTILITY] จัดการข้อผิดพลาดที่ได้จาก Server Call
+     * @param {Error} error - Object ข้อผิดพลาด
+     */
+    function handleServerError(error) {
+        console.error('Server Error:', error);
+        showToast('เกิดข้อผิดพลาด: ' + error.message, false);
+    }
+
+/**
+ * [UPDATED] จัดการสถานะ Loading ของปุ่มให้มีความเสถียรมากขึ้น
+ * @param {HTMLElement} button - Element ของปุ่ม
+ * @param {boolean} isLoading - true เพื่อแสดง Spinner, false เพื่อคืนค่าเดิม
+ * @param {string} [loadingText='กำลังบันทึก...'] - ข้อความที่จะแสดงตอนโหลด
+ */
+function setLoading(button, isLoading, loadingText = 'กำลังบันทึก...') {
+    if (!button) return;
+    
+    if (isLoading) {
+        // เก็บข้อความเดิมไว้ใน data attribute หากยังไม่มี
+        if (!button.dataset.originalText) {
+            button.dataset.originalText = button.textContent;
+        }
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${loadingText}`;
+    } else {
+        // คืนค่าข้อความเดิมจาก data attribute
+        if (button.dataset.originalText) {
+            button.textContent = button.dataset.originalText;
+        }
+        button.disabled = false;
+    }
+}
+</script>

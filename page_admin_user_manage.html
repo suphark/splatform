@@ -1,0 +1,319 @@
+<!-- file : page_admin_user_manage.html -->
+
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-users-cog"></i> <?= data.title ?></h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+            </div>
+            <input type="text" id="searchInput" class="form-control" placeholder="ค้นหาด้วยอีเมล...">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <label class="input-group-text" for="roleFilter"><i class="fas fa-tags"></i></label>
+            </div>
+            <select class="custom-select" id="roleFilter">
+                <option value="" selected>แสดงทุก Role</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <label class="input-group-text" for="statusFilter"><i class="fas fa-user-clock"></i></label>
+            </div>
+            <select class="custom-select" id="statusFilter">
+                <option value="" selected>ทุกสถานะ</option>
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-3 text-right">
+        <button type="button" class="btn btn-success" onclick="prepareAddModal()">
+            <i class="fas fa-plus"></i> เพิ่มผู้ใช้ใหม่
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <thead class="thead-dark">
+          <tr>
+              <th style="cursor: pointer;" data-column="Id">ID <i class="fas fa-sort ml-1 sort-icon"></i></th>
+              <th style="cursor: pointer;" data-column="Email">อีเมล <i class="fas fa-sort ml-1 sort-icon"></i></th>
+              <th style="cursor: pointer;" data-column="RoleName">Role <i class="fas fa-sort ml-1 sort-icon"></i></th>
+            <th style="cursor: pointer;" data-column="Status">สถานะ <i class="fas fa-sort ml-1 sort-icon"></i></th>
+              <th style="cursor: pointer;" data-column="CreateDate">วันที่สร้าง <i class="fas fa-sort ml-1 sort-icon"></i></th>
+              <th style="cursor: pointer;" data-column="LastLogin">ล็อกอินล่าสุด <i class="fas fa-sort ml-1 sort-icon"></i></th>
+              <th>จัดการ</th>
+          </tr>
+      </thead>
+      <tbody id="user-table-body"></tbody>
+    </table>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div><span id="pageInfo"></span></div>
+    <nav>
+        <ul class="pagination mb-0">
+            <li class="page-item" id="prevButton"><a class="page-link" href="#">ก่อนหน้า</a></li>
+            <li class="page-item" id="nextButton"><a class="page-link" href="#">ถัดไป</a></li>
+        </ul>
+    </nav>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="userModalLabel"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-alert" class="alert alert-danger" style="display: none;" role="alert"></div>
+        <form id="userForm">
+          <input type="hidden" id="userId" name="userId">
+          <div class="form-group">
+            <label for="userEmail">อีเมล</label>
+            <input type="email" class="form-control" id="userEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="userPassword">รหัสผ่าน</label>
+            <input type="password" class="form-control" id="userPassword">
+            <small id="passwordHelp" class="form-text text-muted"></small>
+          </div>
+          <div class="form-group">
+            <label for="userRole">Role</label>
+            <select class="form-control" id="userRole" required>
+              <option value="" disabled>-- กรุณาเลือก Role --</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+        <button type="submit" id="saveUserButton" class="btn btn-primary" form="userForm">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ==================== STATE & ELEMENT MANAGEMENT ====================
+    let currentPage = 1;
+    let totalPages = 1;
+    let searchTerm = '';
+    let selectedRoleId = '';
+    let selectedStatus = '';
+    let sortState = { column: '', direction: '' };
+    let debounceTimer;
+
+    // --- Elements ---
+    const tableBody = document.getElementById('user-table-body');
+    const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const pageInfo = document.getElementById('pageInfo');
+    const sortableHeaders = document.querySelectorAll('th[data-column]');
+
+    // --- Modal Elements ---
+    const userForm = document.getElementById('userForm');
+    const modal = $('#userModal');
+    const modalLabel = document.getElementById('userModalLabel');
+    const modalAlert = document.getElementById('modal-alert');
+    const saveButton = document.getElementById('saveUserButton');
+    const userIdInput = document.getElementById('userId');
+    const userEmailInput = document.getElementById('userEmail');
+    const userRoleInput = document.getElementById('userRole');
+    const passwordInput = document.getElementById('userPassword');
+    const passwordHelp = document.getElementById('passwordHelp');
+
+    // ==================== INITIAL LOAD & EVENT LISTENERS ====================
+    fetchAndRenderUsers();
+    fetchRolesForModal();
+    populateRoleFilter(); 
+
+    prevButton.addEventListener('click', e => { e.preventDefault(); if (!prevButton.classList.contains('disabled')) { currentPage--; fetchAndRenderUsers(); } });
+    nextButton.addEventListener('click', e => { e.preventDefault(); if (!nextButton.classList.contains('disabled')) { currentPage++; fetchAndRenderUsers(); } });
+    searchInput.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = searchInput.value; currentPage = 1; fetchAndRenderUsers(); }, 500); });
+    roleFilter.addEventListener('change', () => { selectedRoleId = roleFilter.value; currentPage = 1; fetchAndRenderUsers(); });
+    statusFilter.addEventListener('change', () => { selectedStatus = statusFilter.value; currentPage = 1; fetchAndRenderUsers(); });
+
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.dataset.column;
+            if (sortState.column === column) {
+                sortState.direction = (sortState.direction === 'asc') ? 'desc' : '';
+            } else {
+                sortState.column = column;
+                sortState.direction = 'asc';
+            }
+            if (sortState.direction === '') sortState.column = '';
+            updateSortIcons();
+            fetchAndRenderUsers();
+        });
+    });
+    
+    // ==================== DATA FETCHING ====================
+    function fetchAndRenderUsers() {
+        showLoadingState();
+        google.script.run.withSuccessHandler(response => {
+            if(response.success === false) { handleFailure({message: response.message}); return; }
+            renderTable(response.users);
+            renderPagination(response);
+        }).withFailureHandler(handleFailure).fetchPaginatedUsers({ 
+            page: currentPage, 
+            searchTerm: searchTerm, 
+            limit: 10,
+            roleId: selectedRoleId,
+            status: selectedStatus,
+            sortColumn: sortState.column,
+            sortDirection: sortState.direction
+        });
+    }
+    
+    function fetchRolesForModal() {
+        google.script.run.withSuccessHandler(roles => {
+            userRoleInput.innerHTML = '<option value="" disabled>-- กรุณาเลือก Role --</option>'; 
+            roles.forEach(role => userRoleInput.add(new Option(role.Name, role.Id)));
+        }).getAllRoles();
+    }
+
+    function populateRoleFilter() {
+        google.script.run.withSuccessHandler(roles => {
+            roles.forEach(role => {
+                roleFilter.add(new Option(role.Name, role.Id));
+            });
+        }).getAllRoles();
+    }
+    
+    // ==================== UI RENDERING ====================
+    function showLoadingState() {
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></td></tr>`;
+    }
+
+    function renderTable(users) {
+        tableBody.innerHTML = '';
+        if (!users || users.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="text-center">ไม่พบข้อมูลผู้ใช้ที่ตรงกับเงื่อนไข</td></tr>`; return; }
+        users.forEach(user => { const row = tableBody.insertRow(); row.id = `user-row-${user.Id}`; updateRowContent(row, user); });
+    }
+
+    function renderPagination(data) {
+        currentPage = data.currentPage;
+        totalPages = data.totalPages;
+        pageInfo.textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`;
+        prevButton.classList.toggle('disabled', currentPage <= 1);
+        nextButton.classList.toggle('disabled', currentPage >= totalPages);
+    }
+
+    function updateSortIcons() {
+        sortableHeaders.forEach(header => {
+            const icon = header.querySelector('i');
+            const columnOfHeader = header.dataset.column;
+            icon.className = 'fas fa-sort ml-1 sort-icon';
+            if (sortState.column === columnOfHeader) {
+                if (sortState.direction === 'asc') icon.classList.replace('fa-sort', 'fa-sort-up');
+                else if (sortState.direction === 'desc') icon.classList.replace('fa-sort', 'fa-sort-down');
+            }
+        });
+    }
+
+    function updateRowContent(row, user) {
+        const statusColors = { 'Active': 'badge-success', 'Pending': 'badge-warning' };
+        const statusBadge = `<span class="badge ${statusColors[user.Status] || 'badge-secondary'}">${user.Status}</span>`;
+
+        row.dataset.id = user.Id; row.dataset.email = user.Email; row.dataset.roleId = user.RoleId;
+        row.innerHTML = `
+            <td>${user.Id}</td>
+            <td>${user.Email}</td>
+            <td><span class="badge ${user.RoleColor}">${user.RoleName}</span></td>
+            <td>${statusBadge}</td>
+            <td>${user.CreateDate}</td>
+            <td>${user.LastLogin}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" title="แก้ไข" onclick="prepareEditModal('${user.Id}')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" title="ลบ" onclick="handleDeleteUser('${user.Id}', '${user.Email}')"><i class="fas fa-trash-alt"></i></button>
+            </td>
+        `;
+    }
+    
+    // ==================== CRUD FUNCTIONS ====================
+    window.prepareAddModal = function() {
+        userForm.reset(); userIdInput.value = ''; modalLabel.textContent = 'เพิ่มผู้ใช้ใหม่';
+        passwordInput.required = true; passwordHelp.textContent = 'ต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+        modalAlert.style.display = 'none'; modal.modal('show');
+    };
+
+    window.prepareEditModal = function(userId) {
+        userForm.reset(); const userRow = document.getElementById(`user-row-${userId}`);
+        userIdInput.value = userRow.dataset.id; userEmailInput.value = userRow.dataset.email;
+        userRoleInput.value = userRow.dataset.roleId; modalLabel.textContent = 'แก้ไขข้อมูลผู้ใช้';
+        passwordInput.required = false; passwordHelp.textContent = 'ปล่อยว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน';
+        modalAlert.style.display = 'none'; modal.modal('show');
+    };
+
+    userForm.addEventListener('submit', function(e) {
+        e.preventDefault(); setLoading(saveButton, true, 'กำลังบันทึก...');
+        const isEditMode = userIdInput.value !== '';
+        const formData = { userId: userIdInput.value, email: userEmailInput.value, roleId: userRoleInput.value, password: passwordInput.value };
+        const serverFunction = isEditMode ? 'processEditUser' : 'processAddNewUser';
+
+        google.script.run.withSuccessHandler(response => {
+            setLoading(saveButton, false, 'บันทึก');
+            if (response.success) { modal.modal('hide'); showToast(response.message, true); fetchAndRenderUsers(); } 
+            else { modalAlert.textContent = response.message; modalAlert.style.display = 'block'; }
+        }).withFailureHandler(err => { setLoading(saveButton, false, 'บันทึก'); handleFailure(err); })[serverFunction](formData);
+    });
+
+    window.handleDeleteUser = function(userId, userEmail) {
+        Swal.fire({
+            title: 'คุณแน่ใจหรือไม่?',
+            text: `คุณกำลังจะลบผู้ใช้: ${userEmail}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return serverCall('processDeleteUser', userId)
+                    .catch(error => {
+                        Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`);
+                    });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const response = result.value;
+                if (response && response.success) {
+                    Swal.fire('ลบสำเร็จ!', `ผู้ใช้ ${userEmail} ถูกลบแล้ว`, 'success');
+                    fetchAndRenderUsers(); // รีเฟรชตาราง
+                } else if (response) {
+                    // กรณี Server ประมวลผลได้ แต่ส่งค่า success: false กลับมา
+                    Swal.fire('เกิดข้อผิดพลาด!', response.message, 'error');
+                }
+            }
+        });
+    };
+    // ==================== UTILITY FUNCTIONS ====================
+    function handleFailure(error) { 
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">เกิดข้อผิดพลาด: ${error.message}</td></tr>`; 
+        showToast(`เกิดข้อผิดพลาด: ${error.message}`, false); 
+    }
+
+
+});
+</script>

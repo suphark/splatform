@@ -1,0 +1,69 @@
+<!-- file: page_dashboard.html -->
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><?= data.title ?></h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <span class="text-muted">Role: <strong><?= data.role ?></strong></span>
+    </div>
+</div>
+
+<div class="alert alert-primary">
+    👋 ยินดีต้อนรับกลับมา, <strong><?= data.email ?></strong>!
+</div>
+
+<div class="row">
+
+    <? if (data.dashboardData.userRole === 'Admin') { ?>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card text-white bg-danger h-100">
+                <div class="card-header"><i class="fas fa-users"></i> ภาพรวมผู้ใช้ (Admin)</div>
+                <div class="card-body">
+                    <h5 class="card-title">ผู้ใช้ทั้งหมด</h5>
+                    <p class="card-text display-4"><?= data.dashboardData.totalUsers ?></p>
+                    <h5 class="card-title mt-3">Role ทั้งหมด</h5>
+                    <p class="card-text display-4"><?= data.dashboardData.totalRoles ?></p>
+                    <a href="<?= data.baseUrl ?>?page=admin/user/manage" class="btn btn-light mt-2">จัดการผู้ใช้ &raquo;</a>
+                </div>
+            </div>
+        </div>
+    <? } ?>
+
+    <? if (data.dashboardData.totalPackages !== undefined) { ?>
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card text-white bg-success h-100">
+            <div class="card-header"><i class="fas fa-box-open"></i> ภาพรวมประเภทพัสดุ</div>
+            <div class="card-body">
+                <h5 class="card-title">ประเภทพัสดุทั้งหมด</h5>
+                <p class="card-text display-4"><?= data.dashboardData.totalPackages ?></p>
+                <a href="<?= data.baseUrl ?>?page=package/manage" class="btn btn-light mt-2">จัดการประเภทพัสดุ &raquo;</a>
+            </div>
+        </div>
+    </div>
+    <? } ?>
+
+    <? if (data.dashboardData.userRole === 'Editor') { ?>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card text-dark bg-warning h-100">
+                <div class="card-header"><i class="fas fa-pencil-alt"></i> ภาพรวมบทความ (Editor)</div>
+                <div class="card-body">
+                    <h5 class="card-title">บทความรอตรวจสอบ</h5>
+                    <p class="card-text display-4"><?= data.dashboardData.pendingArticles ?></p>
+                     <h5 class="card-title mt-3">บทความที่เผยแพร่แล้ว</h5>
+                    <p class="card-text display-4"><?= data.dashboardData.publishedArticles ?></p>
+                    <a href="#" class="btn btn-dark mt-2">จัดการบทความ &raquo;</a>
+                </div>
+            </div>
+        </div>
+    <? } ?>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-link"></i> ทางลัด</div>
+            <div class="card-body">
+                <p>เข้าถึงส่วนต่างๆ ของระบบได้อย่างรวดเร็ว</p>
+                <a href="<?= data.baseUrl ?>?page=profile" class="btn btn-secondary mb-2 w-100">โปรไฟล์ของฉัน</a>
+                <a href="#" class="btn btn-info mb-2 w-100">ดูคู่มือการใช้งาน</a>
+            </div>
+        </div>
+    </div>
+</div>

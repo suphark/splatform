@@ -1,0 +1,217 @@
+<!-- file: page_admin_role_manage.html -->
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tags"></i> <?= data.title ?></h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-success" onclick="prepareAddRoleModal()">
+            <i class="fas fa-plus"></i> เพิ่ม Role ใหม่
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>ชื่อ Role</th>
+                <th>คำอธิบาย</th>
+                <th>ตัวอย่าง Badge</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="role-table-body">
+            <? if (data.roles && data.roles.length > 0) { ?>
+                <? data.roles.forEach(role => { ?>
+                    <tr id="role-row-<?= role.Id ?>" data-id="<?= role.Id ?>" data-name="<?= role.Name ?>" data-color="<?= role.BadgeColor ?>" data-description="<?= role.Description ? role.Description : '' ?>">
+                        <td><?= role.Id ?></td>
+                        <td><?= role.Name ?></td>
+                        <td><?= role.Description ? role.Description : '-' ?></td>
+                        <td><span class="badge <?= role.BadgeColor ?>"><?= role.Name ?></span></td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" title="แก้ไข" onclick="prepareEditRoleModal('<?= role.Id ?>')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" title="ลบ" onclick="handleDeleteRole('<?= role.Id ?>', '<?= role.Name ?>')"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                <? }) ?>
+            <? } else { ?>
+                <tr id="no-roles-row">
+                    <td colspan="5" class="text-center">ไม่พบข้อมูล Role</td>
+                </tr>
+            <? } ?>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalLabel"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="role-modal-alert" class="alert alert-danger" style="display: none;" role="alert"></div>
+        <form id="roleForm">
+            <input type="hidden" id="roleId" name="roleId">
+            <div class="form-group">
+                <label for="roleName">ชื่อ Role</label>
+                <input type="text" class="form-control" id="roleName" required>
+            </div>
+            <div class="form-group">
+                <label for="roleBadgeColor">โค้ดสี Badge (เช่น badge-primary)</label>
+                <input type="text" class="form-control" id="roleBadgeColor" required>
+            </div>
+            <div class="form-group">
+                <label for="roleDescription">คำอธิบาย</label>
+                <textarea class="form-control" id="roleDescription" rows="3"></textarea>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+        <button type="submit" id="saveRoleButton" class="btn btn-primary" form="roleForm">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- การจัดการ Element ---
+    const roleForm = document.getElementById('roleForm');
+    const modal = $('#roleModal');
+    const modalLabel = document.getElementById('roleModalLabel');
+    const modalAlert = document.getElementById('role-modal-alert');
+    const saveButton = document.getElementById('saveRoleButton');
+    const roleIdInput = document.getElementById('roleId');
+    const roleNameInput = document.getElementById('roleName');
+    const roleBadgeColorInput = document.getElementById('roleBadgeColor');
+    // [CRITICAL FIX] บรรทัดนี้คือส่วนที่ขาดหายไปและเป็นสาเหตุของปัญหา
+    const roleDescriptionInput = document.getElementById('roleDescription');
+
+    // --- เตรียม Modal สำหรับการ "เพิ่ม" ---
+    window.prepareAddRoleModal = function() {
+        roleForm.reset();
+        roleIdInput.value = '';
+        modalLabel.textContent = 'เพิ่ม Role ใหม่';
+        modalAlert.style.display = 'none';
+        modal.modal('show');
+    }
+
+    // --- เตรียม Modal สำหรับการ "แก้ไข" ---
+    window.prepareEditRoleModal = function(roleId) {
+        roleForm.reset();
+        const roleRow = document.getElementById(`role-row-${roleId}`);
+        roleIdInput.value = roleRow.dataset.id;
+        roleNameInput.value = roleRow.dataset.name;
+        roleBadgeColorInput.value = roleRow.dataset.color;
+        roleDescriptionInput.value = roleRow.dataset.description; // ตอนนี้บรรทัดนี้จะทำงานได้ถูกต้อง
+        modalLabel.textContent = 'แก้ไข Role';
+        modalAlert.style.display = 'none';
+        modal.modal('show');
+    }
+
+    // --- จัดการการ Submit ฟอร์ม (ทั้งเพิ่มและแก้ไข) ---
+    roleForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        setLoading(saveButton, true);
+        const isEditMode = roleIdInput.value !== '';
+        const formData = {
+            Id: roleIdInput.value,
+            Name: roleNameInput.value,
+            BadgeColor: roleBadgeColorInput.value,
+            Description: roleDescriptionInput.value // ตอนนี้บรรทัดนี้จะทำงานได้ถูกต้อง
+        };
+        const serverFunction = isEditMode ? 'processEditRole' : 'processAddNewRole';
+
+        google.script.run
+            .withSuccessHandler(function(response) {
+                setLoading(saveButton, false);
+                if (response.success) {
+                    modal.modal('hide');
+                    showToast(response.message, true);
+                    if (isEditMode) {
+                        updateRoleRow(response.updatedRole);
+                    } else {
+                        appendRoleRow(response.newRole);
+                    }
+                } else {
+                    modalAlert.textContent = response.message;
+                    modalAlert.style.display = 'block';
+                }
+            })
+            .withFailureHandler(err => {
+                setLoading(saveButton, false);
+                handleFailure(err);
+            })
+            [serverFunction](formData);
+    });
+
+    window.handleDeleteRole = function(roleId, roleName) {
+        Swal.fire({
+            title: 'คุณแน่ใจหรือไม่?',
+            text: `คุณกำลังจะลบ Role: "${roleName}"`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return serverCall('processDeleteRole', roleId)
+                    .catch(error => {
+                        Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`);
+                    });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const response = result.value;
+                if (response && response.success) {
+                    showToast(response.message, true);
+                    document.getElementById(`role-row-${roleId}`).remove();
+                } else if (response) {
+                    Swal.fire('ไม่สามารถลบได้', response.message, 'error');
+                }
+            }
+        });
+    };
+    
+    // --- UI Update & Utility Functions ---
+    function appendRoleRow(role) {
+        document.getElementById('no-roles-row')?.remove();
+        const tableBody = document.getElementById('role-table-body');
+        const newRow = document.createElement('tr');
+        newRow.id = `role-row-${role.Id}`;
+        updateRowContent(newRow, role);
+        tableBody.appendChild(newRow);
+    }
+
+    function updateRoleRow(role) {
+        const rowToUpdate = document.getElementById(`role-row-${role.Id}`);
+        if(rowToUpdate) updateRowContent(rowToUpdate, role);
+    }
+
+    function updateRowContent(row, role) {
+        row.dataset.id = role.Id;
+        row.dataset.name = role.Name;
+        row.dataset.color = role.BadgeColor;
+        row.dataset.description = role.Description || '';
+        row.innerHTML = `
+            <td>${role.Id}</td>
+            <td>${role.Name}</td>
+            <td>${role.Description || '-'}</td>
+            <td><span class="badge ${role.BadgeColor}">${role.Name}</span></td>
+            <td>
+                <button class="btn btn-sm btn-warning" title="แก้ไข" onclick="prepareEditRoleModal('${role.Id}')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" title="ลบ" onclick="handleDeleteRole('${role.Id}', '${role.Name}')"><i class="fas fa-trash-alt"></i></button>
+            </td>
+        `;
+    }
+
+    function handleFailure(error) { showToast('การเชื่อมต่อล้มเหลว: ' + error.message, false); }
+
+});
+</script>

@@ -1,0 +1,72 @@
+<!-- file: page_admin_settings.html -->
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-cogs"></i> <?= data.title ?></h1>
+</div>
+
+<form id="settingsForm">
+    <div class="card">
+        <div class="card-header">
+            การตั้งค่าทั่วไป
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="appName">ชื่อเว็บไซต์ (App Name)</label>
+                <input type="text" class="form-control" id="appName" name="appName" value="<?= data.currentSettings.appName || '' ?>">
+                <small class="form-text text-muted">จะแสดงผลบน Title Bar ของเบราว์เซอร์</small>
+            </div>
+            <div class="form-group">
+                <label for="footerText">ข้อความส่วนท้าย (Footer Text)</label>
+                <input type="text" class="form-control" id="footerText" name="footerText" value="<?= data.currentSettings.footerText || '' ?>">
+                <small class="form-text text-muted">จะแสดงผลที่ส่วนล่างสุดของทุกหน้า</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary" id="saveButton">
+            <i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง
+        </button>
+    </div>
+</form>
+
+<script>
+document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const saveButton = document.getElementById('saveButton');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
+
+    // รวบรวมข้อมูลจากฟอร์ม
+    const settingsData = {
+        appName: document.getElementById('appName').value,
+        footerText: document.getElementById('footerText').value
+    };
+
+    google.script.run
+        .withSuccessHandler(response => {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง';
+            if (response.success) {
+                Swal.fire({
+                    title: 'บันทึกสำเร็จ!',
+                    text: response.message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // รีโหลดหน้าเพื่อให้เห็นการเปลี่ยนแปลง (เช่น Title)
+                    window.top.location.reload();
+                });
+            } else {
+                Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
+            }
+        })
+        .withFailureHandler(err => {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง';
+            Swal.fire('การเชื่อมต่อล้มเหลว', err.message, 'error');
+        })
+        .processUpdateSettings(settingsData);
+});
+</script>

@@ -1,0 +1,59 @@
+<!-- file: page_debug.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2><i class="fas fa-bug"></i> Web App Debug Info</h2>
+        <p>หน้านี้ใช้สำหรับตรวจสอบสถานะการทำงานของเว็บแอป ณ เวลาปัจจุบัน</p>
+        <button id="runTestBtn" class="btn btn-primary">Run Debug Test</button>
+        <div id="results" class="card mt-3" style="display:none;">
+            <div class="card-header">
+                <strong>Results</strong>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Time:</strong> <span id="res-time"></span></li>
+                <li class="list-group-item"><strong>Active User (Who is using the app):</strong> <span id="res-active"></span></li>
+                <li class="list-group-item"><strong>Effective User (Whose permission is used):</strong> <span id="res-effective"></span></li>
+                <li class="list-group-item"><strong>User Count (From Sheet):</strong> <span id="res-count"></span></li>
+                <li class="list-group-item bg-light"><strong>Analysis:</strong> <span id="res-analysis"></span></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('runTestBtn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    document.getElementById('results').style.display = 'block';
+                    if(response.success) {
+                        document.getElementById('res-time').textContent = response.timestamp;
+                        document.getElementById('res-active').textContent = response.activeUser;
+                        document.getElementById('res-effective').textContent = response.effectiveUser;
+                        document.getElementById('res-count').textContent = response.userCount;
+                        
+                        let analysis = '';
+                        if (response.activeUser === response.effectiveUser) {
+                            analysis = '<strong class="text-danger">ERROR: Script is running as the user, not the owner. This is likely the cause of the problem. Please check "Execute as: Me" in deployment settings.</strong>';
+                        } else {
+                            analysis = '<strong class="text-success">OK: Script is running as the project owner.</strong>';
+                        }
+                        document.getElementById('res-analysis').innerHTML = analysis;
+                        
+                    } else {
+                        document.getElementById('res-analysis').innerHTML = `<strong class="text-danger">ERROR: ${response.message}</strong>`;
+                    }
+                    document.getElementById('runTestBtn').style.display = 'none';
+                })
+                .getWebAppDebugInfo();
+        });
+    </script>
+</body>
+</html>

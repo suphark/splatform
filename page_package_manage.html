@@ -1,0 +1,308 @@
+<!-- page_package_manage.html -->
+
+
+<style>
+    .package-row.level-1 {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    .package-row.level-2 > td:first-child { padding-left: 2.5rem; }
+    .package-row.level-3 > td:first-child { padding-left: 5rem; }
+    .package-row > td:first-child > .package-name::before {
+        content: '↳ ';
+        color: #999;
+    }
+    .package-row.level-1 > td:first-child > .package-name::before {
+        content: '';
+    }
+</style>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-box-open"></i> <?= data.title ?></h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-5">
+        <div class="input-group">
+            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div>
+            <input type="text" id="searchInput" class="form-control" placeholder="ค้นหา...">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="input-group">
+            <div class="input-group-prepend"><label class="input-group-text" for="ownerFilter"><i class="fas fa-user-check"></i></label></div>
+            <select class="custom-select" id="ownerFilter">
+                <option value="" selected>Owner ทั้งหมด</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-4 text-right">
+        <button type="button" class="btn btn-success" onclick="prepareAddModal(null)"><i class="fas fa-plus"></i> เพิ่มประเภทหลัก</button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>ชื่อประเภทพัสดุ</th>
+                <th>Folder Name</th>
+                <th>Description</th>
+                <th>Owner</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="package-table-body">
+            </tbody>
+    </table>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div><span id="pageInfo"></span></div>
+    <nav>
+        <ul class="pagination mb-0">
+            <li class="page-item" id="prevButton"><a class="page-link" href="#">ก่อนหน้า</a></li>
+            <li class="page-item" id="nextButton"><a class="page-link" href="#">ถัดไป</a></li>
+        </ul>
+    </nav>
+</div>
+
+<div class="modal fade" id="packageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="packageModalLabel"></h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="packageForm">
+                    <input type="hidden" id="packageId">
+                    <input type="hidden" id="parentId">
+                    <div class="form-group">
+                        <label>ประเภทย่อยของ:</label>
+                        <p id="parentNameDisplay" class="font-weight-bold">N/A</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="nameThai">ชื่อภาษาไทย</label>
+                        <input type="text" class="form-control" id="nameThai" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nameEnglish">ชื่อภาษาอังกฤษ</label>
+                        <input type="text" class="form-control" id="nameEnglish">
+                    </div>
+                    <div class="form-group">
+                        <label for="folderName">Folder Name</label>
+                        <input type="text" class="form-control" id="folderName">
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerEmail">Owner (เจ้าของงาน)</label>
+                        <select class="form-control" id="ownerEmail" required>
+                            <option value="" disabled selected>-- กรุณาเลือก --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">คำอธิบาย</label>
+                        <textarea class="form-control" id="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" id="savePackageButton" class="btn btn-primary" form="packageForm">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allPackagesFlat = [], hierarchicalPackages = [], searchTerm = '', selectedOwner = '', debounceTimer, currentPage = 1, totalPages = 1;
+
+document.addEventListener('DOMContentLoaded', function() {
+    Promise.all([
+        fetchAndRenderPackages(),
+        populateOwnerDropdown(),
+        populateOwnerFilter()
+    ]);
+    document.getElementById('packageForm').addEventListener('submit', handleFormSubmit);
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { searchTerm = searchInput.value; currentPage = 1; fetchAndRenderPackages(); }, 500);
+    });
+
+    const ownerFilter = document.getElementById('ownerFilter');
+    ownerFilter.addEventListener('change', () => {
+        selectedOwner = ownerFilter.value;
+        currentPage = 1;
+        fetchAndRenderPackages();
+    });
+    
+    const prevButton = document.getElementById('prevButton'), nextButton = document.getElementById('nextButton');
+    prevButton.addEventListener('click', e => { e.preventDefault(); if (!prevButton.classList.contains('disabled')) { currentPage--; fetchAndRenderPackages(); } });
+    nextButton.addEventListener('click', e => { e.preventDefault(); if (!nextButton.classList.contains('disabled')) { currentPage++; fetchAndRenderPackages(); } });
+});
+
+async function fetchAndRenderPackages() {
+    showLoadingState(true);
+    try {
+        const response = await serverCall('getHierarchicalPackages', { searchTerm: searchTerm, ownerEmail: selectedOwner, page: currentPage, limit: 10 });
+        if (response.success) {
+            hierarchicalPackages = Array.isArray(response.data) ? response.data : [];
+            renderFullTable();
+            renderPagination(response);
+        } else { throw new Error(response.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'); }
+    } catch (err) {
+        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, false);
+        document.getElementById('package-table-body').innerHTML = `<tr><td colspan="5" class="text-center text-danger">โหลดข้อมูลล้มเหลว</td></tr>`;
+    } finally { showLoadingState(false); }
+}
+
+async function populateOwnerDropdown() {
+    try {
+        const ownerRoles = <?= JSON.stringify(APP_CONFIG.security.packageOwnerRoles) ?>;
+        const users = await serverCall('getUsersByRoles', ownerRoles);
+        const ownerSelect = document.getElementById('ownerEmail');
+        ownerSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือก --</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.Email;
+            option.textContent = user.Email;
+            ownerSelect.appendChild(option);
+        });
+    } catch (err) { console.error("Failed to populate owner dropdown:", err); showToast('ไม่สามารถโหลดรายชื่อ Owner ได้', false); }
+}
+
+async function populateOwnerFilter() {
+    try {
+        const owners = await serverCall('getDistinctPackageOwners');
+        const ownerFilterSelect = document.getElementById('ownerFilter');
+        ownerFilterSelect.innerHTML = '<option value="" selected>Owner ทั้งหมด</option>';
+        owners.forEach(owner => {
+            const option = document.createElement('option');
+            option.value = owner;
+            option.textContent = owner;
+            ownerFilterSelect.appendChild(option);
+        });
+    } catch (err) { console.error("Failed to populate owner filter:", err); }
+}
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    const saveButton = document.getElementById('savePackageButton'); setLoading(saveButton, true);
+    const formData = { Id: document.getElementById('packageId').value, ParentId: document.getElementById('parentId').value, NameThai: document.getElementById('nameThai').value, NameEnglish: document.getElementById('nameEnglish').value, FolderName: document.getElementById('folderName').value, Description: document.getElementById('description').value, Owner: document.getElementById('ownerEmail').value };
+    const serverFunction = formData.Id ? 'processEditPackage' : 'processAddNewPackage';
+    try {
+        const response = await serverCall(serverFunction, formData);
+        if (response.success) { $('#packageModal').modal('hide'); showToast(response.message, true); fetchAndRenderPackages(); }
+        else { showToast(response.message, false); }
+    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, false); }
+    finally { setLoading(saveButton, false); }
+}
+
+async function handleDelete(packageId, packageName) {
+    const result = await Swal.fire({
+        title: 'คุณแน่ใจหรือไม่?',
+        text: `คุณกำลังจะลบ "${packageName}"`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return serverCall('processDeletePackage', packageId)
+                .catch(error => {
+                    Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`);
+                });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    });
+
+    if (result.isConfirmed) {
+        const response = result.value;
+        if (response && response.success) {
+            showToast(response.message, true);
+            fetchAndRenderPackages();
+        } else if (response) {
+            Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
+        }
+    }
+}
+
+function renderFullTable() {
+    const tableBody = document.getElementById('package-table-body');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+    allPackagesFlat = flattenTree(hierarchicalPackages);
+    if (hierarchicalPackages.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center">ไม่พบข้อมูล</td></tr>`; }
+    else { hierarchicalPackages.forEach(pkg => renderRow(pkg, 1, tableBody)); }
+}
+
+function renderPagination(data) {
+    currentPage = data.currentPage; totalPages = data.totalPages;
+    const pageInfo = document.getElementById('pageInfo'), prevButton = document.getElementById('prevButton'), nextButton = document.getElementById('nextButton');
+    if (!pageInfo || !prevButton || !nextButton) return;
+    pageInfo.textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการหลัก)`;
+    prevButton.classList.toggle('disabled', currentPage <= 1);
+    nextButton.classList.toggle('disabled', currentPage >= totalPages);
+}
+
+function renderRow(pkg, level, tableBody) {
+    const row = document.createElement('tr');
+    row.id = `pkg-row-${pkg.Id}`;
+    row.dataset.package = JSON.stringify(pkg);
+    row.className = `package-row level-${level}`;
+    row.innerHTML = `<td><span class="package-name">${pkg.NameThai} | ${pkg.NameEnglish || ''}</span></td><td>${pkg.FullFolderName || '-'}</td><td>${pkg.Description || '-'}</td><td>${pkg.Owner || '-'}</td><td><button class="btn btn-sm btn-success" title="เพิ่มประเภทย่อย" onclick="prepareAddModal('${pkg.Id}')"><i class="fas fa-plus-circle"></i></button> <button class="btn btn-sm btn-warning" title="แก้ไข" onclick="prepareEditModal(event)"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-danger" title="ลบ" onclick="handleDelete('${pkg.Id}', '${pkg.NameThai}')"><i class="fas fa-trash-alt"></i></button></td>`;
+    tableBody.appendChild(row);
+    if (pkg.children && pkg.children.length > 0) { pkg.children.forEach(child => renderRow(child, level + 1, tableBody)); }
+}
+
+function prepareAddModal(parentId) {
+    document.getElementById('packageForm').reset();
+    document.getElementById('packageModalLabel').textContent = 'เพิ่มประเภทพัสดุ';
+    document.getElementById('packageId').value = '';
+    document.getElementById('parentId').value = parentId || '';
+    const parent = parentId ? allPackagesFlat.find(p => p.Id === parentId) : null;
+    document.getElementById('parentNameDisplay').textContent = parent ? parent.NameThai : 'ไม่มี (เป็นประเภทหลัก)';
+    $('#packageModal').modal('show');
+}
+
+function prepareEditModal(event) {
+    const row = event.target.closest('tr');
+    const pkg = JSON.parse(row.dataset.package);
+    document.getElementById('packageForm').reset();
+    document.getElementById('packageModalLabel').textContent = 'แก้ไขประเภทพัสดุ';
+    document.getElementById('packageId').value = pkg.Id;
+    document.getElementById('parentId').value = pkg.ParentId || '';
+    document.getElementById('nameThai').value = pkg.NameThai;
+    document.getElementById('nameEnglish').value = pkg.NameEnglish;
+    document.getElementById('folderName').value = pkg.FolderName;
+    document.getElementById('description').value = pkg.Description;
+    document.getElementById('ownerEmail').value = pkg.Owner || '';
+    const parent = pkg.ParentId ? allPackagesFlat.find(p => p.Id === pkg.ParentId) : null;
+    document.getElementById('parentNameDisplay').textContent = parent ? parent.NameThai : 'ไม่มี (เป็นประเภทหลัก)';
+    $('#packageModal').modal('show');
+}
+
+function flattenTree(nodes) {
+    if (!Array.isArray(nodes)) return [];
+    let flat = [];
+    nodes.forEach(node => {
+        flat.push({ ...node, children: undefined });
+        if (node.children && node.children.length > 0) { flat = flat.concat(flattenTree(node.children)); }
+    });
+    return flat;
+}
+
+
+function showLoadingState(isLoading) {
+    const tableBody = document.getElementById('package-table-body');
+    if (isLoading) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center"><div class="spinner-border"></div></td></tr>`; }
+}
+
+function setLoading(button, isLoading) {
+    button.disabled = isLoading;
+    button.innerHTML = isLoading ? '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...' : 'บันทึก';
+}
+
+</script>

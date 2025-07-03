@@ -1,0 +1,167 @@
+<!-- page_user_profile.html -->
+
+<style>
+    .profile-pic-container { position: relative; width: 150px; height: 150px; }
+    .profile-pic { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .profile-pic-edit-button { position: absolute; bottom: 5px; right: 5px; width: 40px; height: 40px; border-radius: 50%; }
+    #profilePicInput { display: none; }
+</style>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="profile-pic-container mx-auto">
+                    <img id="profilePicImage" src="" class="profile-pic" alt="Profile Picture">
+                    <label for="profilePicInput" class="btn btn-primary btn-sm profile-pic-edit-button" title="เปลี่ยนรูปโปรไฟล์">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="profilePicInput" accept="image/png, image/jpeg, image/gif">
+                </div>
+                <h5 class="mt-3" id="profileEmailDisplay"></h5>
+                <p class="text-muted" id="profileRoleDisplay"></p>
+                <button id="savePicButton" class="btn btn-success btn-sm mt-2" style="display: none;">บันทึกรูปภาพ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <h5 class="card-header"><i class="fas fa-key mr-2"></i>เปลี่ยนรหัสผ่าน</h5>
+            <div class="card-body">
+                  <form id="changePasswordForm">
+                  <div class="form-group">
+                      <label for="currentPassword">รหัสผ่านปัจจุบัน</label>
+                      <input type="password" class="form-control" id="currentPassword" required>
+                  </div>
+                  <div class="form-group">
+                      <label for="newPassword">รหัสผ่านใหม่</label>
+                      <input type="password" class="form-control" id="newPassword" required minlength="6">
+                      <small class="form-text text-muted">ต้องมีความยาวอย่างน้อย 6 ตัวอักษร</small>
+                  </div>
+                  <div class="form-group">
+                      <label for="confirmNewPassword">ยืนยันรหัสผ่านใหม่</label>
+                      <input type="password" class="form-control" id="confirmNewPassword" required>
+                  </div>
+                  <button type="submit" id="submitButton" class="btn btn-primary">
+                      ยืนยันการเปลี่ยนรหัสผ่าน
+                  </button>
+                  </form>
+              </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ======================= Elements =======================
+    const profilePicImage = document.getElementById('profilePicImage');
+    const profilePicInput = document.getElementById('profilePicInput');
+    const savePicButton = document.getElementById('savePicButton');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const changePassSubmitButton = document.getElementById('submitButton');
+
+    // ======================= Initial Load =======================
+    google.script.run.withSuccessHandler(function(session) {
+        document.getElementById('profileEmailDisplay').textContent = session.email;
+        document.getElementById('profileRoleDisplay').textContent = 'Role: ' + session.role;
+        
+        if (session.profilePicId) {
+            // NEW: เปลี่ยนมาใช้ /thumbnail
+            profilePicImage.src = 'https://drive.google.com/thumbnail?id=' + session.profilePicId;
+        } else {
+            // ใช้ ui-avatars เหมือนเดิมสำหรับคนไม่มีรูป
+            profilePicImage.src = 'https://ui-avatars.com/api/?name=' + session.email.charAt(0) + '&background=random&size=150';
+        }
+    }).checkUserSession();
+
+    // ======================= Event Listeners =======================
+    profilePicInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => profilePicImage.src = e.target.result;
+            reader.readAsDataURL(file);
+            savePicButton.style.display = 'inline-block';
+        }
+    });
+
+        savePicButton.addEventListener('click', function() {
+        const file = profilePicInput.files[0];
+        if (!file) return;
+
+        setLoading(savePicButton, true, 'กำลังอัปโหลด...');
+        const reader = new FileReader();
+        reader.onload = e => {
+            google.script.run
+                .withSuccessHandler(response => {
+                    setLoading(savePicButton, false);
+                    showToast(response.message, response.success);
+                    if (response.success) {
+                        savePicButton.style.display = 'none';
+
+                        // NEW: เพิ่มบรรทัดนี้เพื่ออัปเดตรูปหลักบนหน้าทันที
+                        profilePicImage.src = response.imageUrl; 
+                        
+                        // อัปเดตรูปที่ Header
+                        if (window.updateHeaderProfilePic) {
+                           window.updateHeaderProfilePic(response.imageUrl);
+                        }
+                    }
+                })
+                .withFailureHandler(err => {
+                    setLoading(savePicButton, false);
+                    showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+                })
+                .processProfilePictureUpload(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Event Listener สำหรับฟอร์มเปลี่ยนรหัสผ่าน
+    changePasswordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        setLoading(changePassSubmitButton, true, 'กำลังตรวจสอบ...');
+
+        const formData = {
+            currentPassword: document.getElementById('currentPassword').value,
+            newPassword: document.getElementById('newPassword').value,
+            confirmNewPassword: document.getElementById('confirmNewPassword').value
+        };
+
+        google.script.run
+            .withSuccessHandler(response => {
+                setLoading(changePassSubmitButton, false);
+                showToast(response.message, response.success);
+                if (response.success) changePasswordForm.reset();
+            })
+            .withFailureHandler(err => {
+                setLoading(changePassSubmitButton, false);
+                showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message, false);
+            })
+            .processChangePassword(formData);
+    });
+
+    // ======================= Improved Utility Function =======================
+    function setLoading(button, isLoading, loadingText = '') {
+        if (!button) return;
+        if (isLoading) {
+            // เก็บข้อความเดิมไว้ใน data attribute
+            if (!button.dataset.originalHTML) {
+                button.dataset.originalHTML = button.innerHTML;
+            }
+            button.disabled = true;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${loadingText}`;
+        } else {
+            // คืนค่าจาก data attribute ถ้ามี
+            if (button.dataset.originalHTML) {
+                button.innerHTML = button.dataset.originalHTML;
+                // ล้างค่าที่เก็บไว้
+                delete button.dataset.originalHTML;
+            }
+            button.disabled = false;
+        }
+    }
+});
+</script>

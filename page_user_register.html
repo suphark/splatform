@@ -1,0 +1,136 @@
+<!-- page_user_register.html -->
+
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card mt-5">
+            <div class="card-body">
+                <div id="register-form-container">
+                    <h3 class="card-title text-center mb-4">ลงทะเบียน</h3>
+                    <div id="register-alert-message" class="alert" role="alert" style="display: none;"></div>
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="email">อีเมล (email)</label>
+                            <input type="text" class="form-control" id="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">รหัสผ่าน (Password)</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                         <div class="form-group">
+                            <label for="confirm-password">ยืนยันรหัสผ่าน</label>
+                            <input type="password" class="form-control" id="confirm-password" required>
+                        </div>
+                        <button type="submit" id="submit-register-button" class="btn btn-success btn-block">
+                            รับรหัสยืนยันทางอีเมล
+                        </button>
+                    </form>
+                </div>
+
+                <div id="otp-form-container" style="display: none;">
+                    <h3 class="card-title text-center mb-4">ยืนยันรหัส OTP</h3>
+                    <p class="text-center text-muted">กรุณาตรวจสอบรหัส 6 หลักจากอีเมลของคุณ</p>
+                    <div id="otp-alert-message" class="alert" role="alert" style="display: none;"></div>
+                    <form id="otp-form">
+                        <div class="form-group">
+                            <label for="otp">รหัสยืนยัน (OTP)</label>
+                            <input type="text" class="form-control" id="otp" required maxlength="6">
+                        </div>
+                        <button type="submit" id="submit-otp-button" class="btn btn-primary btn-block">
+                            ยืนยันและสร้างบัญชี
+                        </button>
+                    </form>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="<?= data.baseUrl ?>?page=login">มีบัญชีอยู่แล้ว? เข้าสู่ระบบที่นี่</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // จัดการฟอร์มลงทะเบียน
+    document.getElementById('register-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const submitButton = document.getElementById('submit-register-button');
+        const alertDiv = document.getElementById('register-alert-message');
+        
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังส่ง...';
+        alertDiv.style.display = 'none';
+
+        const formData = { 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value, 
+            confirmPassword: document.getElementById('confirm-password').value
+        };
+        
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.success) {
+                    // ถ้าสำเร็จ ให้สลับไปหน้ากรอก OTP
+                    document.getElementById('register-form-container').style.display = 'none';
+                    document.getElementById('otp-form-container').style.display = 'block';
+                } else {
+                    alertDiv.textContent = response.message;
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'รับรหัสยืนยันทางอีเมล';
+                }
+            })
+            .withFailureHandler(function(error) {
+                alertDiv.textContent = 'เกิดข้อผิดพลาด: ' + error.message;
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'รับรหัสยืนยันทางอีเมล';
+            })
+            .processRegistration(formData);
+    });
+
+    // จัดการฟอร์ม OTP
+    document.getElementById('otp-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const submitButton = document.getElementById('submit-otp-button');
+        const alertDiv = document.getElementById('otp-alert-message');
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังตรวจสอบ...';
+        alertDiv.style.display = 'none';
+
+        const formData = {
+            email: document.getElementById('email').value, // ยังคงใช้อีเมลเดิม
+            otp: document.getElementById('otp').value
+        };
+
+        google.script.run
+            .withSuccessHandler(function(response) {
+                if (response.success) {
+                    alertDiv.textContent = response.message + ' กำลังนำคุณไปหน้าเข้าสู่ระบบ...';
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.style.display = 'block';
+                    window.top.location.href = "<?= data.baseUrl ?>?page=login";
+                    // setTimeout(function() {
+                    //     window.top.location.href = "<?= data.baseUrl ?>?page=login";
+                    // }, 2000);
+                } else {
+                    alertDiv.textContent = response.message;
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'ยืนยันและสร้างบัญชี';
+                }
+            })
+            .withFailureHandler(function(error) {
+                alertDiv.textContent = 'เกิดข้อผิดพลาด: ' + error.message;
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'ยืนยันและสร้างบัญชี';
+            })
+            .verifyRegistrationOtp(formData);
+    });
+</script>

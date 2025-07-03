@@ -1,0 +1,25 @@
+{
+  "timeZone": "Asia/Bangkok",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "SheetQueryLib",
+        "version": "0",
+        "libraryId": "1h5vcv725p-6F22xsN6mpITinOBrFyhszuysYxmUqUDdGkhtEXvLLUJvP",
+        "developmentMode": true
+      },
+      {
+        "userSymbol": "ProjectUtilsLib",
+        "version": "0",
+        "libraryId": "17QYiQJaJSqNRDGHBQ0Uk9tX6JVBLYsdJygZawM82AXqcQgBDAEG2uZA9",
+        "developmentMode": true
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE_ANONYMOUS"
+  }
+}

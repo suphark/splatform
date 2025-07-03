@@ -1,0 +1,31 @@
+<!-- page_home.html -->
+
+
+<h1><?= data.title ?></h1>
+<p>ยินดีต้อนรับสู่เว็บแอปพลิเคชันที่สร้างด้วย Google Apps Script ในสไตล์ Next.js</p>
+<hr>
+<h4>การสื่อสารกับ Server (Client-Side)</h4>
+<p>กดปุ่มด้านล่างเพื่อเรียกใช้ฟังก์ชัน <code>getServerTimestamp()</code> ที่อยู่ในไฟล์ <code>Code.gs</code> ผ่าน <code>google.script.run</code></p>
+<button class="btn btn-primary" onclick="callServerFunction()">เรียกข้อมูลจากเซิร์ฟเวอร์</button>
+<div id="response-div" class="mt-3 p-3 border bg-light" style="display: none;"></div>
+
+<script>
+  function callServerFunction() {
+    const responseDiv = document.getElementById('response-div');
+    responseDiv.style.display = 'block';
+    responseDiv.innerHTML = '<em>กำลังร้องขอข้อมูล...</em>';
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        // เมื่อสำเร็จ ให้นำผลลัพธ์มาแสดง
+        responseDiv.innerText = response;
+      })
+      .withFailureHandler(function(error) {
+        // หากเกิดข้อผิดพลาด
+        responseDiv.innerText = 'เกิดข้อผิดพลาด: ' + error.message;
+      })
+      .getServerTimestamp(); // ชื่อฟังก์ชันใน Code.gs ที่เราจะเรียก
+
+  }
+  
+</script>

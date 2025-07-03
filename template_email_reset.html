@@ -1,0 +1,18 @@
+<!-- template_email_reset.html -->
+
+
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; text-align: center; color: #333;">
+    <div style="width: 90%; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; padding: 30px; border-radius: 8px;">
+      <h2>คำขอรีเซ็ตรหัสผ่านสำหรับ <?= appName ?></h2>
+      <p>เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีของคุณ</p>
+      <p>กรุณาคลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่:</p>
+      <a href="<?= resetLink ?>" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+        ตั้งรหัสผ่านใหม่
+      </a>
+      <p>หากคุณไม่ได้เป็นผู้ทำรายการนี้ กรุณาเพิกเฉยต่ออีเมลฉบับนี้</p>
+      <p style="font-size: 0.9em; color: #777;">ลิงก์นี้จะหมดอายุใน 1 ชั่วโมง</p>
+    </div>
+  </body>
+</html>

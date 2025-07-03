@@ -1,0 +1,66 @@
+<!-- partials_header_script.html -->
+
+
+<script>
+  window.updateHeaderProfilePic = function(newImageUrl) {
+      const picElement = document.getElementById('header-profile-pic');
+      if (picElement) {
+          picElement.src = newImageUrl;
+      }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    google.script.run
+      .withSuccessHandler(function(session) {
+        if (session.isLoggedIn) {
+          document.getElementById('user-menu').style.display = 'block';
+          document.getElementById('guest-menu').style.display = 'none';
+
+          // --- ตรรกะการแสดงรูปหรือข้อความ ---
+          const emailDisplay = document.getElementById('email-display');
+          if (session.profilePicId) {
+                // NEW: เปลี่ยนมาใช้ /thumbnail ที่นี่ด้วย
+                emailDisplay.innerHTML = `<img id="header-profile-pic" src="https://drive.google.com/thumbnail?id=${session.profilePicId}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 5px;"> ${session.email}`;
+            } else {
+                emailDisplay.innerText = `${session.email} (${session.role})`;
+            }
+
+          // ตรวจสอบถ้าเป็น Admin ให้แสดงเมนูของ Admin
+          if (session.role === 'Admin') {
+            document.getElementById('admin-menu-items').style.display = 'block';
+          }
+        } else {
+          document.getElementById('user-menu').style.display = 'none';
+          document.getElementById('guest-menu').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error){
+        console.error("Failed to check user session:", error);
+      })
+      .checkUserSession();
+  });
+
+  function handleLogout(event) {
+    // 1. ป้องกันไม่ให้ลิงก์ทำงานตามปกติ (คือการเปลี่ยนหน้า)
+    event.preventDefault();
+
+    // (ทางเลือก) คุณอาจจะแสดงข้อความว่า "กำลังออกจากระบบ..." ที่นี่
+
+    // 2. เรียกใช้ฟังก์ชัน processLogout() ที่ Server ผ่าน google.script.run
+    google.script.run
+      .withSuccessHandler(function(response) {
+        // 3. เมื่อ Server ทำงานสำเร็จและตอบกลับมา
+        if (response.success) {
+          // 4. สั่ง redirect ไปยังหน้าแรก
+          // คำสั่งนี้จะทำงานได้เพราะเกิดจากการคลิกของผู้ใช้โดยตรง
+          window.top.location.href = "<?= data.baseUrl ?>";
+        } else {
+          alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + response.message);
+        }
+      })
+      .withFailureHandler(function(error) {
+        alert('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว: ' + error.message);
+      })
+      .processLogout(); // ชื่อฟังก์ชันในไฟล์ .gs ที่เราสร้างในขั้นตอนที่ 1
+  }
+</script>

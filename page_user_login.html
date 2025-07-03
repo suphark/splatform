@@ -1,0 +1,179 @@
+<!-- page_user_login.html -->
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card mt-5">
+            <div class="card-body">
+                
+                <div id="login-form-container">
+                    <h3 class="card-title text-center mb-4">เข้าสู่ระบบ</h3>
+                    <? if (data.alert) { ?><div class="alert alert-<?= data.alert.type ?>"><?= data.alert.message ?></div><? } ?>
+                    <form id="loginForm">
+                        <div class="form-group"><label for="email">อีเมล</label><input type="email" class="form-control" id="email" required autofocus></div>
+                        <div class="form-group"><label for="password">รหัสผ่าน</label><input type="password" class="form-control" id="password" required></div>
+                        <button type="submit" id="loginButton" class="btn btn-primary btn-block">เข้าสู่ระบบ</button>
+                    </form>
+                    <div class="text-center mt-2"><a href="<?= data.baseUrl ?>?page=forgot-password">ลืมรหัสผ่าน?</a></div>
+                    <div class="text-center mt-3"><a href="<?= data.baseUrl ?>?page=register">ยังไม่มีบัญชี? ลงทะเบียนที่นี่</a></div>
+                </div>
+
+                <div id="otp-form-container" style="display:none;">
+                    <h3 id="otp-form-title" class="card-title text-center mb-4">ยืนยันตัวตน</h3>
+                    <p class="text-center text-muted">เราได้ส่งรหัส 6 หลักไปที่อีเมล <strong id="otpEmailDisplay"></strong></p>
+                    
+                    <form id="otpForm">
+                        <input type="hidden" id="otpEmail">
+                        <div class="form-group">
+                            <label for="inputOtp">รหัส OTP</label>
+                            <input type="text" id="inputOtp" class="form-control" required pattern="\d{6}" maxlength="6" inputmode="numeric" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5em;">
+                        </div>
+                        <button id="otpButton" class="btn btn-primary btn-block" type="submit">ยืนยันรหัส OTP</button>
+                    </form>
+                    
+                    <div class="text-center mt-3"><a href="#" id="resendOtpLink">ส่งรหัส OTP อีกครั้ง</a></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- STATE ---
+    let nextOtpAction = ''; 
+
+    // --- ELEMENTS ---
+    const loginForm = document.getElementById('loginForm');
+    const otpForm = document.getElementById('otpForm');
+    const loginButton = document.getElementById('loginButton');
+    const otpButton = document.getElementById('otpButton');
+    const resendOtpLink = document.getElementById('resendOtpLink');
+    const loginContainer = document.getElementById('login-form-container');
+    const otpContainer = document.getElementById('otp-form-container');
+    const otpEmailInput = document.getElementById('otpEmail');
+
+    // --- EVENT LISTENERS ---
+
+    // 1. Listener สำหรับฟอร์ม Login
+    loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        setLoading(loginButton, true, 'กำลังตรวจสอบ...');
+        const credentials = {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        };
+        try {
+            const response = await serverCall('processLogin', credentials);
+            if (response.success) {
+                if (response.login_otp_required) {
+                    nextOtpAction = 'verifyLoginOtp';
+                    showOtpForm(response.email, 'ยืนยันตัวตนเพื่อเข้าสู่ระบบ');
+                } else if (response.registration_otp_required) {
+                    nextOtpAction = 'verifyRegistrationOtp';
+                    showToast(response.message, true);
+                    showOtpForm(response.email, 'ยืนยันการลงทะเบียนให้เสร็จสิ้น');
+                }
+            } else {
+                showToast(response.message, false);
+            }
+        } catch (err) {
+            showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+        } finally {
+            setLoading(loginButton, false, 'เข้าสู่ระบบ');
+        }
+    });
+
+    // 2. Listener สำหรับฟอร์ม OTP
+    otpForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!nextOtpAction) return;
+
+        setLoading(otpButton, true);
+        const data = {
+            email: otpEmailInput.value,
+            otp: document.getElementById('inputOtp').value
+        };
+
+        try {
+            // เรียกใช้ฟังก์ชันตาม action ที่เก็บไว้
+            const response = await serverCall(nextOtpAction, data);
+            
+            if (response.success) {
+                if (nextOtpAction === 'verifyLoginOtp') {
+                    // **[FIXED]** 2FA สำเร็จ -> redirect ไป dashboard
+                    showToast('เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...', true);
+                    const a = document.createElement('a');
+                    a.href = response.redirectUrl;
+                    a.target = '_top';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                } else if (nextOtpAction === 'verifyRegistrationOtp') {
+                    // **[FIXED]** ยืนยันการลงทะเบียนสำเร็จ -> กลับไปหน้า login
+                    showToast(response.message + ' กรุณาเข้าสู่ระบบอีกครั้ง', true);
+                    setTimeout(() => {
+                        const a = document.createElement('a');
+                        a.href = "<?= data.baseUrl ?>?page=login";
+                        a.target = '_top';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }, 2500);
+                }
+            } else {
+                showToast(response.message, false);
+                setLoading(otpButton, false);
+            }
+        } catch (err) {
+            showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+            setLoading(otpButton, false);
+        }
+    });
+
+    // 3. Listener สำหรับลิงก์ขอ OTP ใหม่
+    resendOtpLink.addEventListener('click', async function(e) {
+        e.preventDefault();
+        this.style.pointerEvents = 'none';
+        const email = otpEmailInput.value;
+        showToast('กำลังส่ง OTP ใหม่...', true);
+        try {
+            const response = await serverCall('resendLoginOtp', email);
+            showToast(response.message, response.success);
+        } catch (err) {
+            showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+        } finally {
+            setTimeout(() => { this.style.pointerEvents = 'auto'; }, 10000);
+        }
+    });
+
+    // --- UTILITY FUNCTIONS ---
+    function showOtpForm(email, title) {
+        loginContainer.style.display = 'none';
+        otpContainer.style.display = 'block';
+        document.getElementById('otp-form-title').textContent = title;
+        document.getElementById('otpEmailDisplay').textContent = email;
+        otpEmailInput.value = email;
+    }
+
+    function serverCall(functionName, ...args) {
+        return new Promise((resolve, reject) => {
+            google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject)[functionName](...args);
+        });
+    }
+
+    function setLoading(button, isLoading, loadingText = 'กำลังดำเนินการ...') {
+        const originalText = button.dataset.originalText || button.innerText;
+        button.disabled = isLoading;
+        if (isLoading) {
+            if (!button.dataset.originalText) button.dataset.originalText = originalText;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${loadingText}`;
+        } else {
+            button.innerHTML = originalText;
+        }
+    }
+});
+</script>
