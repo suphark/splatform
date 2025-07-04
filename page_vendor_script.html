@@ -317,14 +317,7 @@
       selects.forEach(select => { 
         if (select) { select.innerHTML = ''; 
           packages.forEach(pkg => {
-            // สร้างข้อความแสดงผลในรูปแบบ "NameThai | NameEnglish"
-            // และตรวจสอบกรณีที่ NameEnglish ไม่มีข้อมูล
-            const displayText = pkg.NameEnglish 
-                ? `${pkg.NameThai} | ${pkg.NameEnglish}` 
-                : pkg.NameThai;
-
-            // เพิ่ม Option ใหม่ด้วยข้อความที่สร้างขึ้น
-            select.add(new Option(displayText, pkg.Id));
+            select.add(new Option(pkg.DisplayName, pkg.Id));  
           }); 
         } 
       }); 

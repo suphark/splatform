@@ -182,7 +182,7 @@ function getVendorDetailsById(vendorId) {
         }
         // แปลง PackageId ที่เป็น string กลับเป็น array เพื่อให้ง่ายต่อการใช้งานในหน้าเว็บ
         if (vendor.PackageId && typeof vendor.PackageId === 'string') {
-            vendor.PackageId = vendor.PackageId.split(',');
+            vendor.PackageId = vendor.PackageId.split(',').map(id => id.trim());
         } else if (!vendor.PackageId) {
             vendor.PackageId = []; // ทำให้เป็น array ว่างถ้าไม่มีข้อมูล
         }
