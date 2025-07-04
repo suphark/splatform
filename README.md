@@ -5,7 +5,7 @@ Bugs and Errors
 -
 -
 
-
+ data-backdrop="static" data-keyboard="false" 
 
 Wish List
 == Users ==
