@@ -198,8 +198,78 @@
     });
   };
 
-  window.prepareAddProjectModal = function () { const vendorId = document.getElementById('vendorId').value; if (!vendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('projectForm').reset(); document.getElementById('projectId').value = ''; document.getElementById('projectVendorId').value = vendorId; $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง'); toggleProjectOwnerInput(); $('#projectModal').modal('show'); };
-  window.prepareEditProjectModal = function (p) { document.getElementById('projectForm').reset(); $('#projectModalLabel').text('แก้ไขโครงการอ้างอิง'); document.getElementById('projectId').value = p.Id; document.getElementById('projectVendorId').value = p.VendorId; document.getElementById('projectName').value = p.ProjectName; document.getElementById('projectYear').value = p.ProjectYear; document.getElementById('contractValue').value = p.ContractValue; document.getElementById('projectDescription').value = p.ProjectDescription; document.getElementById('projectTypeId').value = p.ProjectTypeId || ''; if (p.ProjectOwnerId && p.ProjectOwnerId !== 'other') { document.getElementById('projectOwnerId').value = p.ProjectOwnerId; } else { document.getElementById('projectOwnerId').value = 'other'; document.getElementById('projectOwnerCustom').value = p.ProjectOwnerCustom || ''; } toggleProjectOwnerInput(); const packageSelect = document.getElementById('projectPackageIds'); if (p.PackageIds && typeof p.PackageIds === 'string') { const selectedIds = p.PackageIds.split(','); Array.from(packageSelect.options).forEach(opt => { opt.selected = selectedIds.includes(opt.value); }); } else { Array.from(packageSelect.options).forEach(opt => { opt.selected = false; }); } $('#projectModal').modal('show'); };
+  window.prepareAddProjectModal = function () { 
+    const vendorId = document.getElementById('vendorId').value; 
+    if (!vendorId) { 
+      showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); 
+      return; 
+    } 
+    document.getElementById('projectForm').reset(); 
+    document.getElementById('projectId').value = ''; 
+    document.getElementById('projectVendorId').value = vendorId; 
+    $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง'); 
+    
+    // 1. ทำลาย Select2 instance เก่า (ถ้ามี) เพื่อป้องกัน error
+    if ($('#projectPackageIds').data('select2')) {
+        $('#projectPackageIds').select2('destroy');
+    }
+    
+    toggleProjectOwnerInput(); 
+    $('#projectModal').modal('show'); 
+    // 2. สร้าง Select2 instance ใหม่
+    $('#projectPackageIds').select2({
+        theme: 'bootstrap4',
+        placeholder: 'ค้นหาและเลือกประเภทงานที่ทำ',
+        allowClear: true,
+        dropdownParent: $('#projectModal') // สำคัญมากสำหรับ Modal
+    });
+
+  };
+
+  window.prepareEditProjectModal = function (p) { 
+    document.getElementById('projectForm').reset(); 
+    $('#projectModalLabel').text('แก้ไขโครงการอ้างอิง'); 
+    document.getElementById('projectId').value = p.Id; 
+    document.getElementById('projectVendorId').value = p.VendorId; 
+    document.getElementById('projectName').value = p.ProjectName; 
+    document.getElementById('projectYear').value = p.ProjectYear; 
+    document.getElementById('contractValue').value = p.ContractValue; 
+    document.getElementById('projectDescription').value = p.ProjectDescription; 
+    document.getElementById('projectTypeId').value = p.ProjectTypeId || ''; 
+    if (p.ProjectOwnerId && p.ProjectOwnerId !== 'other') { 
+      document.getElementById('projectOwnerId').value = p.ProjectOwnerId; 
+    } else { 
+      document.getElementById('projectOwnerId').value = 'other'; 
+      document.getElementById('projectOwnerCustom').value = p.ProjectOwnerCustom || ''; 
+    } 
+    toggleProjectOwnerInput(); 
+    
+    // --- [เพิ่มและแก้ไขส่วนนี้] ---
+    // 1. ทำลาย Select2 instance เก่า (ถ้ามี)
+    if ($('#projectPackageIds').data('select2')) {
+        $('#projectPackageIds').select2('destroy');
+    }
+
+    $('#projectModal').modal('show'); 
+
+    // 2. สร้าง Select2 instance ใหม่
+    $('#projectPackageIds').select2({
+        theme: 'bootstrap4',
+        placeholder: 'ค้นหาและเลือกประเภทงานที่ทำ',
+        allowClear: true,
+        dropdownParent: $('#projectModal')
+    });
+
+    // 3. ใช้วิธีของ jQuery ในการตั้งค่ารายการที่เลือกไว้
+    if (p.PackageIds && typeof p.PackageIds === 'string') { 
+        const selectedIds = p.PackageIds.split(',').map(id => id.trim()); 
+        $('#projectPackageIds').val(selectedIds).trigger('change'); 
+    }
+    // --- จบส่วนที่แก้ไข ---
+
+
+  };
+
   window.handleDeleteProject = function (projectId, vendorId) {
     Swal.fire({
       title: 'ยืนยันการลบ',
@@ -349,7 +419,7 @@
         ProjectTypeId: document.getElementById('projectTypeId').value,
         ProjectOwnerId: document.getElementById('projectOwnerId').value,
         ProjectOwnerCustom: document.getElementById('projectOwnerCustom').value,
-        PackageIds: Array.from(document.getElementById('projectPackageIds').selectedOptions).map(opt => opt.value),
+        PackageIds: $('#projectPackageIds').val(),
       };
 
       // ลบส่วนของการจัดการไฟล์ออกทั้งหมด
