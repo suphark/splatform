@@ -41,11 +41,13 @@ function uploadAndOrganizeVendorFiles(vendorFolderId, vendorName, fileData) {
      
       const subFolder = getOrCreateFolder(vendorFolder, subFolderName);
 
-      // [NEW] ลบไฟล์เก่าทั้งหมดในโฟลเดอร์ย่อยก่อนอัปโหลดไฟล์ใหม่
-      const existingFiles = subFolder.getFiles();
-      while (existingFiles.hasNext()) {
-        existingFiles.next().setTrashed(true);
-      }
+        const deleteAllExistingFiles = false;
+        if (deleteAllExistingFiles) {
+            const existingFiles = subFolder.getFiles();
+            while (existingFiles.hasNext()) {
+                existingFiles.next().setTrashed(true);
+            }
+        }
 
       const decoded = Utilities.base64Decode(file.base64);
       const blob = Utilities.newBlob(decoded, file.mimeType, file.fileName);
