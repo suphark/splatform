@@ -110,6 +110,7 @@ function processAddOrEditVendor(formData, fileData) {
             vendorFolderId = uploadResult.folderId;
             formData.FolderId = vendorFolderId;
             Object.assign(formData, uploadResult.uploadedFileIds);
+
         }
 
         if (isEditMode) {

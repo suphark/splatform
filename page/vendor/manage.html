@@ -418,52 +418,54 @@
 
 
   function populateForm(data) { 
-    document.getElementById('vendorForm').reset(); 
-    document.getElementById('vendorId').value = data.Id; 
-    document.getElementById('nameThai').value = data.NameThai; 
-    document.getElementById('nameEnglish').value = data.NameEnglish || ''; 
-    document.getElementById('status').value = data.StatusId; 
-    document.getElementById('remark').value = data.Remark || ''; 
-    document.getElementById('companyTypeId').value = data.CompanyTypeId;
-    document.getElementById('registeredCapital').value = data.RegisteredCapital || ''; 
-    document.getElementById('registeredDate').value = data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '';
-    document.getElementById('registeredObject').value = data.RegisteredObject || ''; 
+      document.getElementById('vendorForm').reset(); 
+      document.getElementById('vendorId').value = data.Id; 
+      document.getElementById('folderId').value = data.FolderId || '';
+      document.getElementById('nameThai').value = data.NameThai; 
+      document.getElementById('nameEnglish').value = data.NameEnglish || ''; 
+      document.getElementById('status').value = data.StatusId; 
+      document.getElementById('remark').value = data.Remark || ''; 
+      document.getElementById('companyTypeId').value = data.CompanyTypeId;
+      document.getElementById('registeredCapital').value = data.RegisteredCapital || ''; 
+      document.getElementById('registeredDate').value = data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '';
+      document.getElementById('registeredObject').value = data.RegisteredObject || ''; 
 
-    const folderLink = document.getElementById('vendor-folder-link'); 
-    if (data.FolderId) { 
-      folderLink.href = `https://drive.google.com/drive/folders/${data.FolderId}`; 
-      folderLink.style.display = 'inline-block'; 
-    } else { 
-      folderLink.style.display = 'none'; 
-    } 
+      const folderLink = document.getElementById('vendor-folder-link'); 
+      if (data.FolderId) { 
+          folderLink.href = `https://drive.google.com/drive/folders/${data.FolderId}`; 
+          folderLink.style.display = 'inline-block'; 
+      } else { 
+          folderLink.style.display = 'none'; 
+      } 
 
-    // จัดการการแสดงผลลิงก์ไฟล์แนบ
-    const fileFields = [
-        { key: 'CompanyProfileFileId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
-        { key: 'IdCardFileId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
-        { key: 'CompanyCertFileId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
-        { key: 'VatCertFileId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
-        { key: 'BookBankFileId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
-    ];
+      // --- [REVISED] แก้ไขให้ทำงานกับ FolderId ---
+      const fileFields = [
+          { key: 'CompanyProfileFolderId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
+          { key: 'IdCardFolderId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
+          { key: 'CompanyCertFolderId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
+          { key: 'VatCertFolderId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
+          { key: 'BookBankFolderId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
+      ];
 
-    fileFields.forEach(field => {
-        const fileId = data[field.key];
-        const linkContainer = document.getElementById(field.containerId);
-        const link = document.getElementById(field.linkId);
-        const noFileSpan = document.getElementById(field.noFileId);
+      fileFields.forEach(field => {
+          const folderId = data[field.key]; // เปลี่ยนจาก fileId เป็น folderId
+          const linkContainer = document.getElementById(field.containerId);
+          const link = document.getElementById(field.linkId);
+          const noFileSpan = document.getElementById(field.noFileId);
 
-        if (fileId) {
-            link.href = `https://drive.google.com/file/d/${fileId}/view`;
-            linkContainer.style.display = 'block';
-            noFileSpan.style.display = 'none';
-        } else {
-            linkContainer.style.display = 'none';
-            noFileSpan.style.display = 'inline';
-        }
-    });
+          if (folderId) {
+              // สร้างลิงก์ไปยังโฟลเดอร์
+              link.href = `https://drive.google.com/drive/folders/${folderId}`;
+              linkContainer.style.display = 'block';
+              noFileSpan.style.display = 'none';
+          } else {
+              linkContainer.style.display = 'none';
+              noFileSpan.style.display = 'inline';
+          }
+      });
   }
     
-  async function handleSaveVendor() { 
+async function handleSaveVendor() { 
     const saveButton = document.getElementById('saveVendorButton'); 
     const form = document.getElementById('vendorForm'); 
     
@@ -479,8 +481,10 @@
     setLoading(saveButton, true); 
     
     try { 
+      // [CORRECTED] สร้าง formData ให้ถูกต้องโดยไม่มี Key ซ้ำซ้อน
       const formData = { 
         Id: document.getElementById('vendorId').value, 
+        FolderId: document.getElementById('folderId').value,
         NameThai: document.getElementById('nameThai').value, 
         NameEnglish: document.getElementById('nameEnglish').value, 
         PackageId: $('#packageIds').val(), 
@@ -489,9 +493,8 @@
         CompanyTypeId: document.getElementById('companyTypeId').value,
         RegisteredCapital: document.getElementById('registeredCapital').value,
         RegisteredDate: document.getElementById('registeredDate').value,
-        RegisteredObject: document.getElementById('registeredObject').value,
-        FolderId: document.getElementById('vendorId').value ? (await serverCall('getVendorDetailsById', document.getElementById('vendorId').value)).FolderId : null
-      };
+        RegisteredObject: document.getElementById('registeredObject').value
+      }; 
       
       const fileInputs = form.querySelectorAll('input[type="file"]'); 
       const filePromises = []; 
@@ -528,7 +531,7 @@
     } finally { 
       setLoading(saveButton, false); 
     } 
-  }
+}
   
   
   async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.contacts); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }

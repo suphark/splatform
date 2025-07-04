@@ -11,6 +11,7 @@
             <p class="mt-3">กำลังโหลดข้อมูล...</p>
         </div>
         <form id="vendorForm" style="display: block;">
+          <input type="hidden" id="folderId">
           <input type="hidden" id="vendorId">
 
           <!--  ==========================================  -->
@@ -112,7 +113,7 @@
                             <td>1. เอกสารข้อมูลบริษัท</td>
                             <td>
                                 <div id="companyProfileFileLinkContainer" style="display:none;">
-                                    <a href="#" id="companyProfileFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                    <a href="#" id="companyProfileFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์</a>
                                 </div>
                                 <span id="noCompanyProfileFile" class="text-muted">ยังไม่มีไฟล์</span>
                             </td>
@@ -122,7 +123,7 @@
                             <td>2. บัตรประชาชน</td>
                             <td>
                                 <div id="idCardFileLinkContainer" style="display:none;">
-                                    <a href="#" id="idCardFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                    <a href="#" id="idCardFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์</a>
                                 </div>
                                 <span id="noIdCardFile" class="text-muted">ยังไม่มีไฟล์</span>
                             </td>
@@ -132,7 +133,7 @@
                             <td>3. หนังสือรับรองบริษัท</td>
                             <td>
                                 <div id="companyCertFileLinkContainer" style="display:none;">
-                                    <a href="#" id="companyCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                    <a href="#" id="companyCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์</a>
                                 </div>
                                 <span id="noCompanyCertFile" class="text-muted">ยังไม่มีไฟล์</span>
                             </td>
@@ -142,7 +143,7 @@
                             <td>4. ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)</td>
                             <td>
                                 <div id="vatCertFileLinkContainer" style="display:none;">
-                                    <a href="#" id="vatCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                    <a href="#" id="vatCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์</a>
                                 </div>
                                 <span id="noVatCertFile" class="text-muted">ยังไม่มีไฟล์</span>
                             </td>
@@ -152,7 +153,7 @@
                             <td>5. สมุดบัญชีธนาคาร</td>
                             <td>
                                 <div id="bookBankFileLinkContainer" style="display:none;">
-                                    <a href="#" id="bookBankFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                    <a href="#" id="bookBankFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์</a>
                                 </div>
                                 <span id="noBookBankFile" class="text-muted">ยังไม่มีไฟล์</span>
                             </td>
