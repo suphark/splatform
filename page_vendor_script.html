@@ -28,12 +28,28 @@
 
   // ==================== MODAL PREPARATION (Global Functions) ====================
   window.prepareAddVendorModal = function () {
+    // ทำลาย instance ของ Select2 ที่อาจค้างอยู่ (ป้องกันปัญหาการเปิดซ้ำ)
+    if ($('#packageIds').data('select2')) {
+        $('#packageIds').select2('destroy');
+    }
+
     document.getElementById('vendorForm').reset();
     document.getElementById('vendorId').value = '';
     $('#vendorModalLabel').text('เพิ่มข้อมูล Vendor ใหม่');
     setModalLoading(false);
     toggleFileSections();
+    // โหลดข้อมูลสำหรับ Dropdown ต่างๆ
     loadInitialDataForModal();
+
+    // เริ่มใช้งาน Select2 กับ Dropdown ของเรา
+    $('#packageIds').select2({
+        theme: 'bootstrap4',
+        placeholder: 'ค้นหาและเลือกประเภทพัสดุ',
+        allowClear: true,
+        // บรรทัดนี้สำคัญมาก เพื่อให้ช่องค้นหาใน Select2 ทำงานได้ใน Bootstrap Modal
+        dropdownParent: $('#vendorModal') 
+    });
+
     $('#vendorTab a:first').tab('show');
     document.getElementById('vendor-folder-link').style.display = 'none';
     document.getElementById('addContactBtn').disabled = true;
@@ -44,6 +60,11 @@
   };
 
   window.prepareEditVendorModal = function (vendorId) {
+    // ทำลาย instance ของ Select2 ที่อาจค้างอยู่
+    if ($('#packageIds').data('select2')) {
+        $('#packageIds').select2('destroy');
+    }
+
     document.getElementById('addContactBtn').disabled = false;
     document.getElementById('addBoardMemberBtn').disabled = false;
     document.getElementById('addFinanceBtn').disabled = false;
@@ -62,11 +83,21 @@
       serverCall('getProjectsByVendorId', vendorId)
     ]).then(([, vendorData, contactsData, boardData, financeData, projectsData]) => {
       if (!vendorData) { showToast('ไม่พบข้อมูล Vendor', false); $('#vendorModal').modal('hide'); return; }
-      populateForm(vendorData);
+      
+      populateForm(vendorData); // เติมข้อมูลลงฟอร์ม (รวมถึงค่าที่เคยเลือกไว้)
       renderContactsTable(contactsData);
       renderBoardMembersTable(boardData);
       renderFinanceTable(financeData);
       renderProjectsTable(projectsData);
+
+      // เริ่มใช้งาน Select2 หลังจากเติมข้อมูลเสร็จแล้ว
+      $('#packageIds').select2({
+          theme: 'bootstrap4',
+          placeholder: 'ค้นหาและเลือกประเภทพัสดุ',
+          allowClear: true,
+          dropdownParent: $('#vendorModal')
+      });
+
       setModalLoading(false);
     }).catch(err => {
       handleServerError(err);
