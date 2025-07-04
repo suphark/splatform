@@ -1,5 +1,5 @@
 // =================================================================
-//            file: SheetQuery.gs - Ultimate Final Version
+//            file: SheetQuery.gs
 // =================================================================
 // Description: The most complete and robust version, combining all user-added
 // features with all bug fixes, especially for Date object handling.
