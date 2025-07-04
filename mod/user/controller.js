@@ -445,7 +445,7 @@ function processPasswordResetRequest(email) {
             // [FIXED] เรียกใช้ getLiveSiteConfig() ที่นี่
             const siteConfig = getLiveSiteConfig();
 
-            const emailTemplate = HtmlService.createTemplateFromFile('template_email_reset.html');
+            const emailTemplate = HtmlService.createTemplateFromFile('page/template/email_reset.html');
             emailTemplate.resetLink = resetLink;
             emailTemplate.appName = siteConfig.appName; // ใช้ค่าจาก siteConfig
             const emailBody = emailTemplate.evaluate().getContent();

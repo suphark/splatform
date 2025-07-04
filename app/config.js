@@ -57,9 +57,9 @@ const ROUTING_CONFIG = {
     'forgot-password': 'page/user/forgot_password',
     'reset-password': 'page/user/reset_password',
     // ====== Package ======
-    'package/manage': 'page_package_manage',
+    'package/manage': 'page/package/manage',
     // ====== Vendor ======
-    'vendor/manage': 'page_vendor_manage',
+    'vendor/manage': 'page/vendor/manage',
     // 
   },
   permissions: {

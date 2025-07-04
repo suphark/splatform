@@ -40,7 +40,7 @@ function doGet(e) {
       });
     }
     if (!requiredRoles.includes(session.role)) {
-      return render('page/access_denied.html', {
+      return render('page/general/access_denied.html', {
         title: APP_CONFIG.routing.titles.accessDenied
       });
     }
@@ -155,7 +155,7 @@ function handleHomePage(session, params) {
 }
 
 function handleAboutPage(session, params) {
-  return render('page/about.html', { title: "About" });
+  return render('page/general/about.html', { title: "About" });
 }
 
 function handleDebugPage(session, params) {
@@ -163,7 +163,7 @@ function handleDebugPage(session, params) {
 }
 
 function handleNotFoundPage(session, params) {
-  return render('page/404.html', { title: '404 - ไม่พบหน้า' });
+  return render('page/general/404.html', { title: '404 - ไม่พบหน้า' });
 }
 
 function handleForgotPasswordPage(session, params) {

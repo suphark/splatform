@@ -1,6 +1,3 @@
-<!-- template_layout.html -->
-
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -51,10 +48,6 @@
     
     <?!= include('page/partials/utility_scripts.html', data) ?>
     <?!= include('page/partials/header_script.html', data) ?>
-
-    <? if (data.title === APP_CONFIG.routing.titles['vendor/manage']) { ?>
-      <?!= include('page_vendor_script.html', data) ?>
-    <? } ?>
 
   </body>
 </html>

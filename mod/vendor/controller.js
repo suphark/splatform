@@ -63,7 +63,10 @@ function getPaginatedVendors(options = {}) {
         const config = {
             dataSource: joinedVendors,
             pagination: options,
-            sort: { column: options.sortColumn || 'Id', direction: 'asc' },
+            sort: { 
+                column: options.sortColumn || 'Id', 
+                direction: options.direction || 'desc', 
+            },
             filters: filters // <-- ส่งเงื่อนไขการกรองเข้าไป
         };
 

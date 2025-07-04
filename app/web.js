@@ -4,7 +4,7 @@
 
 function render(filePath, data = {}) {
   const pageTemplate = HtmlService.createTemplateFromFile(filePath);
-  const layoutTemplate = HtmlService.createTemplateFromFile('template_layout.html');
+  const layoutTemplate = HtmlService.createTemplateFromFile('page/template/layout.html');
   data.baseUrl = ScriptApp.getService().getUrl();
 
   // [FIXED] เปลี่ยนจากการเรียกใช้ค่าคงที่ มาเรียกใช้ฟังก์ชันแทน
