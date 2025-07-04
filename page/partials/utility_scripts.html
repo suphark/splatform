@@ -21,17 +21,32 @@
     }
 
     /**
-     * [UTILITY] เรียกใช้ฟังก์ชันฝั่ง Server และคืนค่าเป็น Promise
+     * [REVISED] ปรับกลับมาเป็น Generic พร้อมการดักจับ Error ที่ละเอียดขึ้น
+     * เรียกใช้ฟังก์ชันฝั่ง Server และคืนค่าเป็น Promise
      * @param {string} functionName - ชื่อฟังก์ชันใน .gs ที่จะเรียก
      * @param {...any} args - Arguments ที่จะส่งไปให้ฟังก์ชัน
      * @returns {Promise<any>}
      */
     function serverCall(functionName, ...args) {
         return new Promise((resolve, reject) => {
-            google.script.run
+            const runner = google.script.run
                 .withSuccessHandler(resolve)
-                .withFailureHandler(reject)
-                [functionName](...args);
+                .withFailureHandler(reject);
+
+            // ตรวจสอบว่าฟังก์ชันที่ต้องการเรียก มีอยู่จริงบน runner object หรือไม่
+            if (runner[functionName] && typeof runner[functionName] === 'function') {
+                // ถ้ามี ให้เรียกใช้งานตามปกติ
+                runner[functionName](...args);
+            } else {
+                // ถ้าไม่มี ให้ reject promise พร้อมข้อความ error ที่ชัดเจน
+                const errorMessage = `Server function "${functionName}" does not exist or is not callable. Please check if the function is defined globally in your .gs files.`;
+                
+                // แสดงข้อผิดพลาดใน Console ของเบราว์เซอร์เพื่อให้ Debug ง่ายขึ้น
+                console.error(errorMessage); 
+                
+                // ส่ง Error กลับไปให้ .catch() หรือ handleServerError() ทำงาน
+                reject(new Error(errorMessage));
+            }
         });
     }
 

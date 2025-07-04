@@ -22,6 +22,7 @@ const SHEET_DEFINITIONS = [
   { name: "VendorProjects", db: "main" },
   { name: "ProjectTypes", db: "main" },
   { name: "ProjectOwners", db: "main" },
+  { name: "CompanyTypes", db: "main" },
 ];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
