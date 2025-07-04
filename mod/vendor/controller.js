@@ -104,7 +104,6 @@ function processAddOrEditVendor(formData, fileData) {
             writeAuditLog('Vendor: Edit', `ID: ${formData.Id}, Name: ${formData.NameThai}`);
 
         } else {
-            // --- โหมดเพิ่มใหม่ (ทำงานถูกต้องอยู่แล้ว) ---
             let folderId = null;
             const fileUploadResult = uploadVendorFiles(null, formData.NameThai, fileData);
             folderId = fileUploadResult.folderId;
