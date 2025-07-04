@@ -113,9 +113,7 @@
                     alertDiv.className = 'alert alert-success';
                     alertDiv.style.display = 'block';
                     window.top.location.href = "<?= data.baseUrl ?>?page=login";
-                    // setTimeout(function() {
-                    //     window.top.location.href = "<?= data.baseUrl ?>?page=login";
-                    // }, 2000);
+
                 } else {
                     alertDiv.textContent = response.message;
                     alertDiv.className = 'alert alert-danger';
