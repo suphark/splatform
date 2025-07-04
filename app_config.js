@@ -129,7 +129,7 @@ function buildSheetsData(sheetDefs, databases) {
     const key = def.name.charAt(0).toLowerCase() + def.name.slice(1);
     dataLayer[key] = {
       name: def.name,
-      getTable: () => SheetQueryLib.sheetQuery(dbId).from(def.name),
+      getTable: () => sheetQuery(dbId).from(def.name),
       getRawSheet: () => SpreadsheetApp.openById(dbId).getSheetByName(def.name)
     };
   });
