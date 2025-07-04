@@ -86,52 +86,48 @@ function getPaginatedVendors(options = {}) {
 }
 
 /**
- * [UPDATED] ประมวลผลการเพิ่มหรือแก้ไข Vendor พร้อมการแก้ไข Bug FolderId
+ * [REVISED] ปรับปรุงการประมวลผลการเพิ่ม/แก้ไข Vendor ทั้งหมด
+ * ให้เรียกใช้ Drive Service ตัวใหม่เพื่อจัดการไฟล์และโฟลเดอร์ย่อย
  */
 function processAddOrEditVendor(formData, fileData) {
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
 
     try {
-        // --- Validation Step ---
         if (isVendorNameExists(formData.NameThai, formData.NameEnglish, formData.Id)) {
             return { success: false, message: 'ชื่อภาษาไทยหรือภาษาอังกฤษนี้มีอยู่ในระบบแล้ว' };
         }
 
         const isEditMode = !!formData.Id;
+        let vendorFolderId = formData.FolderId || null;
+
+        // --- [CRITICAL CHANGE] จุดเปลี่ยนสำคัญ ---
+        // 1. ตรวจสอบว่ามีไฟล์แนบมาหรือไม่ และเรียกใช้ Service ใหม่เพื่ออัปโหลดและจัดระเบียบไฟล์
+        if (fileData && Object.keys(fileData).length > 0) {
+            const uploadResult = uploadAndOrganizeVendorFiles(vendorFolderId, formData.NameThai, fileData);
+            
+            // 2. อัปเดต FolderId และ File Ids ที่ได้จากการอัปโหลดกลับเข้าไปใน formData
+            vendorFolderId = uploadResult.folderId;
+            formData.FolderId = vendorFolderId;
+            Object.assign(formData, uploadResult.uploadedFileIds);
+        }
 
         if (isEditMode) {
             // --- โหมดแก้ไข ---
             const oldVendorData = findVendorById(formData.Id);
             if (!oldVendorData) throw new Error("ไม่พบข้อมูล Vendor ที่จะแก้ไข");
 
-            let currentFolderId = oldVendorData.FolderId;
-
-            // 1. อัปโหลดไฟล์ (ถ้ามี)
-            if (fileData && Object.keys(fileData).length > 0) {
-                const result = uploadVendorFiles(currentFolderId, formData.NameThai, fileData);
-
-                // [CRITICAL FIX] อัปเดต FolderId ที่ได้มาใหม่ และเพิ่ม File Ids เข้าไปในข้อมูลที่จะบันทึก
-                currentFolderId = result.folderId;
-                formData.FolderId = currentFolderId;
-                Object.assign(formData, result.uploadedFileIds);
+            // เปลี่ยนชื่อโฟลเดอร์หลักถ้าชื่อ Vendor ถูกแก้ไข และมี FolderId อยู่แล้ว
+            if (oldVendorData.NameThai !== formData.NameThai && vendorFolderId) {
+                // ฟังก์ชันนี้ควรจะอยู่ใน drive_storage.js หรือ mod_vendor_drive_service.gs
+                renameVendorFolder(vendorFolderId, formData.NameThai); 
             }
 
-            // 2. เปลี่ยนชื่อโฟลเดอร์ถ้าชื่อไม่ตรงกัน
-            if (oldVendorData.NameThai !== formData.NameThai && currentFolderId) {
-                renameVendorFolder(currentFolderId, formData.NameThai);
-            }
-
-            // 3. อัปเดตข้อมูลในชีต
             updateVendorById(formData.Id, formData);
             writeAuditLog('Vendor: Edit', `ID: ${formData.Id}, Name: ${formData.NameThai}`);
-
         } else {
-            let folderId = null;
-            const fileUploadResult = uploadVendorFiles(null, formData.NameThai, fileData);
-            folderId = fileUploadResult.folderId;
-            formData.FolderId = folderId;
-            Object.assign(formData, fileUploadResult.uploadedFileIds);
+            // --- โหมดเพิ่มใหม่ ---
+            // formData มี FolderId และ File Ids จากขั้นตอนข้างบนอยู่แล้ว
             const newVendorId = addNewVendorAndGetId(formData);
             writeAuditLog('Vendor: Create', `ID: ${newVendorId}, Name: ${formData.NameThai}`);
         }
