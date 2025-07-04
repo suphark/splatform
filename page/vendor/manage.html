@@ -16,7 +16,7 @@
   let availablePackages = [], availableStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [];
   let currentPage = 1, totalPages = 1;
   let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
-  let sortState = { column: 'Id', direction: 'asc' };
+  let sortState = { column: 'Id', direction: 'desc' }; // << ตั้งค่าเริ่มต้นให้เรียงจากมากไปน้อย
   let debounceTimer;
 
   // ==================== INITIALIZATION (Entry Point) ====================
@@ -30,7 +30,6 @@
     document.getElementById('saveBoardMemberButton').addEventListener('click', handleSaveBoardMember);
     document.getElementById('saveFinanceButton').addEventListener('click', handleSaveFinanceRecord);
     document.getElementById('saveProjectButton').addEventListener('click', handleSaveProject);
-    document.getElementById('companyTypeId').addEventListener('change', toggleFileSections);
     document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
     document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
     document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
@@ -44,12 +43,9 @@
     document.querySelectorAll('th[data-column]').forEach(header => { header.addEventListener('click', () => { const column = header.dataset.column; if (sortState.column === column) { sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; } else { sortState.column = column; sortState.direction = 'asc'; } updateSortIcons(); fetchAndRenderVendors(); }); });
   });
 
-  // ==================== MODAL PREPARATION (Global Functions) ====================
+  // ==================== MODAL PREPARATION ====================
   window.prepareAddVendorModal = function () {
-    if ($('#packageIds').data('select2')) {
-        $('#packageIds').select2('destroy');
-    }
-
+    if ($('#packageIds').data('select2')) $('#packageIds').select2('destroy');
     document.getElementById('vendorForm').reset();
     document.getElementById('vendorId').value = '';
     $('#vendorModalLabel').text('เพิ่มข้อมูล Vendor ใหม่');
@@ -58,31 +54,31 @@
     renderBoardMembersTable([]);
     renderFinanceTable([]);
     renderProjectsTable([]);
-
-    loadInitialDataForModal();
-
-    $('#packageIds').select2({
-        theme: 'bootstrap4',
-        placeholder: 'ค้นหาและเลือกประเภทพัสดุ',
-        allowClear: true,
-        dropdownParent: $('#vendorModal') 
+    
+    // รีเซ็ตการแสดงผลไฟล์แนบ
+    const fileFields = ['companyProfileFile', 'idCardFile', 'companyCertFile', 'vatCertFile', 'bookBankFile'];
+    fileFields.forEach(field => {
+        document.getElementById(`${field}LinkContainer`).style.display = 'none';
+        document.getElementById(`no${field.charAt(0).toUpperCase() + field.slice(1)}`).style.display = 'inline';
     });
-
+    
+    loadInitialDataForModal();
+    
+    $('#packageIds').select2({ theme: 'bootstrap4', placeholder: 'ค้นหาและเลือกประเภทพัสดุ', allowClear: true, dropdownParent: $('#vendorModal') });
+    
     $('#vendorTab a:first').tab('show');
     document.getElementById('vendor-folder-link').style.display = 'none';
     document.getElementById('addContactBtn').disabled = true;
     document.getElementById('addBoardMemberBtn').disabled = true;
     document.getElementById('addFinanceBtn').disabled = true;
     document.getElementById('addProjectBtn').disabled = true;
-    setModalLoading(false); // ปิดการโหลดเมื่อทุกอย่างพร้อม
+    setModalLoading(false);
     $('#vendorModal').modal('show');
   };
 
   window.prepareEditVendorModal = function (vendorId) {
-    if ($('#packageIds').data('select2')) {
-        $('#packageIds').select2('destroy');
-    }
-
+    if ($('#packageIds').data('select2')) $('#packageIds').select2('destroy');
+    
     document.getElementById('addContactBtn').disabled = false;
     document.getElementById('addBoardMemberBtn').disabled = false;
     document.getElementById('addFinanceBtn').disabled = false;
@@ -102,26 +98,17 @@
     ]).then(([, vendorData, contactsData, boardData, financeData, projectsData]) => {
       if (!vendorData) { showToast('ไม่พบข้อมูล Vendor', false); $('#vendorModal').modal('hide'); return; }
       
-      // 1. เติมข้อมูลฟิลด์พื้นฐาน
       populateForm(vendorData); 
       renderContactsTable(contactsData);
       renderBoardMembersTable(boardData);
       renderFinanceTable(financeData);
       renderProjectsTable(projectsData);
 
-      // 2. เตรียมการ Select2 ให้เสร็จก่อน
-      $('#packageIds').select2({
-          theme: 'bootstrap4',
-          placeholder: 'ค้นหาและเลือกประเภทพัสดุ',
-          allowClear: true,
-          dropdownParent: $('#vendorModal')
-      });
-
-      // 3. ตั้งค่ารายการที่เลือกไว้ หลังจาก Select2 พร้อมใช้งานแล้ว
+      $('#packageIds').select2({ theme: 'bootstrap4', placeholder: 'ค้นหาและเลือกประเภทพัสดุ', allowClear: true, dropdownParent: $('#vendorModal') });
+      
       if (vendorData.PackageId && Array.isArray(vendorData.PackageId)) {
         $('#packageIds').val(vendorData.PackageId).trigger('change');
       }
-
       setModalLoading(false);
     }).catch(err => {
       handleServerError(err);
@@ -428,6 +415,8 @@
   function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
   function loadProjectOwnersForModal() { return serverCall('getAllProjectOwners').then(data => { availableProjectOwners = data; const select = document.getElementById('projectOwnerId'); while (select.options.length > 2) { select.remove(1); } data.forEach(item => { const option = new Option(item.Name, item.Id); select.insertBefore(option, select.options[select.options.length - 1]); }); }).catch(handleServerError); }
   
+
+
   function populateForm(data) { 
     document.getElementById('vendorForm').reset(); 
     document.getElementById('vendorId').value = data.Id; 
@@ -447,9 +436,33 @@
     } else { 
       folderLink.style.display = 'none'; 
     } 
-    toggleFileSections(); 
-  }
 
+    // จัดการการแสดงผลลิงก์ไฟล์แนบ
+    const fileFields = [
+        { key: 'CompanyProfileFileId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
+        { key: 'IdCardFileId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
+        { key: 'CompanyCertFileId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
+        { key: 'VatCertFileId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
+        { key: 'BookBankFileId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
+    ];
+
+    fileFields.forEach(field => {
+        const fileId = data[field.key];
+        const linkContainer = document.getElementById(field.containerId);
+        const link = document.getElementById(field.linkId);
+        const noFileSpan = document.getElementById(field.noFileId);
+
+        if (fileId) {
+            link.href = `https://drive.google.com/file/d/${fileId}/view`;
+            linkContainer.style.display = 'block';
+            noFileSpan.style.display = 'none';
+        } else {
+            linkContainer.style.display = 'none';
+            noFileSpan.style.display = 'inline';
+        }
+    });
+  }
+    
   async function handleSaveVendor() { 
     const saveButton = document.getElementById('saveVendorButton'); 
     const form = document.getElementById('vendorForm'); 
@@ -463,7 +476,6 @@
       showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', false); 
       return; 
     } 
-    
     setLoading(saveButton, true); 
     
     try { 
@@ -475,10 +487,11 @@
         StatusId: document.getElementById('status').value, 
         Remark: document.getElementById('remark').value, 
         CompanyTypeId: document.getElementById('companyTypeId').value,
-        RegisteredCapital: document.getElementById('registeredCapital').value, 
-        RegisteredDate: document.getElementById('registeredDate').value, 
-        RegisteredObject: document.getElementById('registeredObject').value 
-      }; 
+        RegisteredCapital: document.getElementById('registeredCapital').value,
+        RegisteredDate: document.getElementById('registeredDate').value,
+        RegisteredObject: document.getElementById('registeredObject').value,
+        FolderId: document.getElementById('vendorId').value ? (await serverCall('getVendorDetailsById', document.getElementById('vendorId').value)).FolderId : null
+      };
       
       const fileInputs = form.querySelectorAll('input[type="file"]'); 
       const filePromises = []; 

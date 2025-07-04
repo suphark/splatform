@@ -92,11 +92,77 @@
 
 
             <div class="tab-pane fade" id="files" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3"><p class="text-muted mb-0">อัปโหลดไฟล์ที่เกี่ยวข้อง (PDF หรือรูปภาพ)</p><a id="vendor-folder-link" href="#" target="_blank" class="btn btn-sm btn-info" style="display: none;"><i class="fas fa-folder-open mr-2"></i>เปิดโฟลเดอร์</a></div>
-                <div class="form-group"><label for="companyProfileFile">1. เอกสารข้อมูลบริษัท (Company Profile)</label><input type="file" class="form-control-file" id="companyProfileFile"></div><hr>
-                <div id="individual-files"><div class="form-group"><label for="personalIdCardFile">2. สำเนาบัตรประชาชน</label><input type="file" class="form-control-file" id="personalIdCardFile"></div><div class="form-group"><label for="personalBookBankFile">3. สำเนาสมุดบัญชีธนาคาร</label><input type="file" class="form-control-file" id="personalBookBankFile"></div></div>
-                <div id="juristic-files"><div class="form-group"><label for="companyRegistrationCertificateFile">4. หนังสือรับรองบริษัท</label><input type="file" class="form-control-file" id="companyRegistrationCertificateFile"></div><div class="form-group"><label for="companyPP20File">5. สำเนา ภพ.20</label><input type="file" class="form-control-file" id="companyPP20File"></div><div class="form-group"><label for="companyBookBankFile">6. สำเนาสมุดบัญชีธนาคาร (บริษัท)</label><input type="file" class="form-control-file" id="companyBookBankFile"></div></div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted mb-0">อัปโหลดไฟล์ที่เกี่ยวข้อง (PDF หรือรูปภาพ)</p>
+                    <a id="vendor-folder-link" href="#" target="_blank" class="btn btn-sm btn-info" style="display: none;">
+                        <i class="fas fa-folder-open mr-2"></i>เปิดโฟลเดอร์หลัก
+                    </a>
+                </div>
+
+                <table class="table table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width:40%;">ประเภทเอกสาร</th>
+                            <th style="width:30%;">ไฟล์ที่แนบไว้</th>
+                            <th style="width:30%;">อัปโหลดไฟล์ใหม่</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. เอกสารข้อมูลบริษัท</td>
+                            <td>
+                                <div id="companyProfileFileLinkContainer" style="display:none;">
+                                    <a href="#" id="companyProfileFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                </div>
+                                <span id="noCompanyProfileFile" class="text-muted">ยังไม่มีไฟล์</span>
+                            </td>
+                            <td><input type="file" class="form-control-file form-control-sm" id="companyProfileFile"></td>
+                        </tr>
+                        <tr>
+                            <td>2. บัตรประชาชน</td>
+                            <td>
+                                <div id="idCardFileLinkContainer" style="display:none;">
+                                    <a href="#" id="idCardFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                </div>
+                                <span id="noIdCardFile" class="text-muted">ยังไม่มีไฟล์</span>
+                            </td>
+                            <td><input type="file" class="form-control-file form-control-sm" id="idCardFile"></td>
+                        </tr>
+                        <tr>
+                            <td>3. หนังสือรับรองบริษัท</td>
+                            <td>
+                                <div id="companyCertFileLinkContainer" style="display:none;">
+                                    <a href="#" id="companyCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                </div>
+                                <span id="noCompanyCertFile" class="text-muted">ยังไม่มีไฟล์</span>
+                            </td>
+                            <td><input type="file" class="form-control-file form-control-sm" id="companyCertFile"></td>
+                        </tr>
+                        <tr>
+                            <td>4. ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)</td>
+                            <td>
+                                <div id="vatCertFileLinkContainer" style="display:none;">
+                                    <a href="#" id="vatCertFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                </div>
+                                <span id="noVatCertFile" class="text-muted">ยังไม่มีไฟล์</span>
+                            </td>
+                            <td><input type="file" class="form-control-file form-control-sm" id="vatCertFile"></td>
+                        </tr>
+                        <tr>
+                            <td>5. สมุดบัญชีธนาคาร</td>
+                            <td>
+                                <div id="bookBankFileLinkContainer" style="display:none;">
+                                    <a href="#" id="bookBankFileLink" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-alt mr-2"></i> ดูไฟล์</a>
+                                </div>
+                                <span id="noBookBankFile" class="text-muted">ยังไม่มีไฟล์</span>
+                            </td>
+                            <td><input type="file" class="form-control-file form-control-sm" id="bookBankFile"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+
+
           </div>
         </form>
       </div>
