@@ -188,7 +188,36 @@
 
   // ==================== DATA FETCHING & RENDERING ====================
   function fetchAndRenderVendors() { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`; const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction }; serverCall('getPaginatedVendors', options).then(response => { if (response.success) { renderVendorTable(response.vendors); renderPagination(response); } else { handleServerError({ message: response.message }); } }).catch(handleServerError); }
-  function renderVendorTable(vendors) { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = ''; if (!vendors || vendors.length === 0) { tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`; return; } vendors.forEach(vendor => { const row = tableBody.insertRow(); const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`; const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : []; const packageBadges = packageIds.map(id => `<span class="badge badge-info mr-1">${id.trim()}</span>`).join(' '); row.innerHTML = `<td>${vendor.NameThai}</td><td>${vendor.NameEnglish || '-'}</td><td>${packageBadges || '-'}</td><td>${statusBadge}</td><td>${vendor.Remark || '-'}</td><td><button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+  /**
+   * [UPDATED] ใช้ข้อมูล PackageDisplayNames ที่ได้จาก Server มาแสดงผล
+   */
+  function renderVendorTable(vendors) {
+      const tableBody = document.getElementById('vendor-table-body');
+      tableBody.innerHTML = '';
+      if (!vendors || vendors.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
+          return;
+      }
+      vendors.forEach(vendor => {
+          const row = tableBody.insertRow();
+          const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`;
+          
+          // --- แก้ไขส่วนนี้ ---
+          const packageNames = vendor.PackageDisplayNames || [];
+          const packageBadges = packageNames.map(name => `<span class="badge badge-info mr-1">${name}</span>`).join(' ');
+          // --- จบส่วนแก้ไข ---
+
+          row.innerHTML = `<td>${vendor.NameThai}</td>
+                          <td>${vendor.NameEnglish || '-'}</td>
+                          <td>${packageBadges || '-'}</td>
+                          <td>${statusBadge}</td>
+                          <td>${vendor.Remark || '-'}</td>
+                          <td>
+                              <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> 
+                              <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                          </td>`;
+      });
+  }
   function renderPagination(data) { currentPage = data.currentPage; totalPages = data.totalPages; document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`; const paginationControls = document.getElementById('pagination-controls'); paginationControls.innerHTML = ''; const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderVendors(); } }); paginationControls.appendChild(prevLi); const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderVendors(); } }); paginationControls.appendChild(nextLi); }
   function populateStatusFilter() { serverCall('getAllVendorStatuses').then(statuses => { const select = document.getElementById('statusFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
   function populatePackageFilter() { serverCall('getAllPackagesForSelection').then(packages => { const select = document.getElementById('packageFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } packages.forEach(pkg => select.add(new Option(pkg.NameThai, pkg.Id))); }).catch(handleServerError); }

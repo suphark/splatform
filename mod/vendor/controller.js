@@ -10,18 +10,38 @@ function getPaginatedVendors(options = {}) {
     try {
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
+        const allPackages = getAllPackages();
 
         const statusMap = allStatuses.reduce((map, status) => {
             map[status.Id] = { name: status.Name, color: status.BadgeColor || 'badge-light' };
             return map;
         }, {});
 
+        // สร้าง Map สำหรับค้นหาชื่อ Package จาก ID
+        const packageMap = allPackages.reduce((map, pkg) => {
+            map[pkg.Id] = { nameThai: pkg.NameThai, nameEnglish: pkg.NameEnglish || '' };
+            return map;
+        }, {});
+
         const joinedVendors = allVendors.map(vendor => {
             const statusInfo = statusMap[vendor.StatusId] || { name: 'N/A', color: 'badge-dark' };
+
+            // แปลง PackageId เป็นชื่อที่ต้องการแสดงผล
+            const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
+            const packageDisplayNames = packageIds
+                .map(id => {
+                    const pkg = packageMap[id.trim()];
+                    if (pkg) {
+                        return `${pkg.nameThai}${pkg.nameEnglish ? ' | ' + pkg.nameEnglish : ''}`;
+                    }
+                    return id.trim(); // ถ้าหาไม่เจอ ให้แสดง ID เดิมไปก่อน
+                });
+
             return {
                 ...vendor,
                 StatusName: statusInfo.name,
-                StatusColor: statusInfo.color
+                StatusColor: statusInfo.color,
+                PackageDisplayNames: packageDisplayNames,
             };
         });
 
