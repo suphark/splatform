@@ -22,7 +22,15 @@
     document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
     document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
     document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
-    document.getElementById('packageFilter').addEventListener('change', () => { selectedPackageId = document.getElementById('packageFilter').value; currentPage = 1; fetchAndRenderVendors(); });
+    
+    // ใช้ jQuery ดักจับ 'change' event ของ Select2
+    $('#packageFilter').on('change', function() {
+        // ใช้ $(this).val() เพื่อดึงค่าที่เลือก
+        selectedPackageId = $(this).val(); 
+        currentPage = 1;
+        fetchAndRenderVendors();
+    });
+    
     document.querySelectorAll('th[data-column]').forEach(header => { header.addEventListener('click', () => { const column = header.dataset.column; if (sortState.column === column) { sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; } else { sortState.column = column; sortState.direction = 'asc'; } updateSortIcons(); fetchAndRenderVendors(); }); });
   });
 
@@ -251,7 +259,28 @@
   }
   function renderPagination(data) { currentPage = data.currentPage; totalPages = data.totalPages; document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`; const paginationControls = document.getElementById('pagination-controls'); paginationControls.innerHTML = ''; const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderVendors(); } }); paginationControls.appendChild(prevLi); const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderVendors(); } }); paginationControls.appendChild(nextLi); }
   function populateStatusFilter() { serverCall('getAllVendorStatuses').then(statuses => { const select = document.getElementById('statusFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
-  function populatePackageFilter() { serverCall('getAllPackagesForSelection').then(packages => { const select = document.getElementById('packageFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } packages.forEach(pkg => select.add(new Option(pkg.NameThai, pkg.Id))); }).catch(handleServerError); }
+  
+  function populatePackageFilter() { 
+    serverCall('getAllPackagesForSelection').then(packages => { 
+      const select = document.getElementById('packageFilter'); 
+      for (let i = select.options.length - 1; i > 0; i--) { 
+        select.remove(i); 
+      } 
+
+      // ใช้ DisplayName ที่ได้จาก Server มาเป็น Text ของ Option
+      packages.forEach(pkg => {
+          select.add(new Option(pkg.DisplayName, pkg.Id));
+      });
+
+      // เรียกใช้งาน Select2 กับ Dropdown ของ Filter
+      $('#packageFilter').select2({
+          theme: 'bootstrap4',
+          placeholder: 'เลือกเพื่อกรอง', // ข้อความที่จะแสดงเมื่อยังไม่ได้เลือก
+          allowClear: true // อนุญาตให้ผู้ใช้ลบสิ่งที่เลือก (กลับไปเป็น "ทุกประเภทพัสดุ")
+      });
+
+    }).catch(handleServerError); }
+
   function renderContactsTable(contacts) { const tableBody = document.getElementById('vendor-contacts-table-body'); tableBody.innerHTML = ''; if (!contacts || contacts.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลผู้ติดต่อ</td></tr>`; return; } contacts.forEach(contact => { const row = tableBody.insertRow(); const contactJsonString = JSON.stringify(contact).replace(/"/g, '&quot;'); row.innerHTML = `<td>${contact.Name || '-'}</td><td>${contact.Position || '-'}</td><td>${contact.PhoneNumber || '-'}</td><td>${contact.Email || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditContactModal(${contactJsonString})"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteContact('${contact.Id}', '${contact.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
   function renderBoardMembersTable(members) { const tableBody = document.getElementById('vendor-board-table-body'); tableBody.innerHTML = ''; if (!members || members.length === 0) { tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูลกรรมการ</td></tr>`; return; } members.forEach(member => { const row = tableBody.insertRow(); const memberJsonString = JSON.stringify(member).replace(/"/g, '&quot;'); row.innerHTML = `<td>${member.Name || '-'}</td><td>${member.Surname || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditBoardMemberModal(${memberJsonString})'><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteBoardMember('${member.Id}', '${member.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
   function renderFinanceTable(financeRecords) { const tableBody = document.getElementById('vendor-finance-table-body'); tableBody.innerHTML = ''; if (!financeRecords || financeRecords.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`; return; } financeRecords.forEach(rec => { const row = tableBody.insertRow(); const fileLink = rec.FinancialStatementFileId ? `<a href="https://drive.google.com/file/d/${rec.FinancialStatementFileId}/view" target="_blank"><i class="fas fa-file-alt"></i></a>` : '-'; const recordJsonString = JSON.stringify(rec).replace(/"/g, '&quot;'); row.innerHTML = `<td>${rec.Year || '-'}</td><td>${rec.Revenue ? Number(rec.Revenue).toLocaleString() : '-'}</td><td>${rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : '-'}</td><td>${rec.CurrentLiabilities ? Number(rec.CurrentLiabilities).toLocaleString() : '-'}</td><td>${rec.TotalLiabilities ? Number(rec.TotalLiabilities).toLocaleString() : '-'}</td><td class="text-center">${fileLink}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${rec.Id}')"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${rec.Id}', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }

@@ -178,12 +178,15 @@ function _calculateFullFolderName(formData, allPackages) {
 function getAllPackagesForSelection() {
   try {
     const allPackages = getAllPackages(); // ใช้ฟังก์ชันเดิมที่เรามีอยู่
-    // คัดกรองเอาเฉพาะข้อมูลที่จำเป็นเพื่อลดขนาดข้อมูลที่ส่ง
-    return allPackages.map(pkg => ({
-      Id: pkg.Id,
-      NameThai: pkg.NameThai,
-      NameEnglish: pkg.NameEnglish,
-    }));
+    return allPackages.map(pkg => {
+      const displayText = pkg.NameEnglish
+        ? `${pkg.NameThai} | ${pkg.NameEnglish}`
+        : pkg.NameThai;
+      return {
+        Id: pkg.Id,
+        DisplayName: displayText // เปลี่ยนจาก NameThai เป็น DisplayName
+      };
+    });
   } catch (e) {
     // ในกรณีที่เกิดข้อผิดพลาด ให้โยน error ออกไปเพื่อให้ฝั่ง Client รับรู้
     throw new Error('ไม่สามารถดึงข้อมูลประเภทพัสดุได้: ' + e.message);
