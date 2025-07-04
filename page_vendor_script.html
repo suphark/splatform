@@ -46,6 +46,13 @@
     $('#vendorModalLabel').text('เพิ่มข้อมูล Vendor ใหม่');
     setModalLoading(false);
     toggleFileSections();
+
+    // เคลียร์ข้อมูลในตารางของ Tab อื่นๆ โดยการเรียกใช้ฟังก์ชัน render แต่ส่ง Array ว่างเข้าไป
+    renderContactsTable([]);
+    renderBoardMembersTable([]);
+    renderFinanceTable([]);
+    renderProjectsTable([]);
+
     // โหลดข้อมูลสำหรับ Dropdown ต่างๆ
     loadInitialDataForModal();
 
