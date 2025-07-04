@@ -281,7 +281,25 @@
 
   // ==================== FORM & MODAL LOGIC ====================
   function loadInitialDataForModal() { if (availablePackages.length === 0) loadPackagesIntoSelect(); if (availableStatuses.length === 0) loadStatusesIntoSelect(); if (availableProjectTypes.length === 0) loadProjectTypesForModal(); if (availableProjectOwners.length === 0) loadProjectOwnersForModal(); }
-  function loadPackagesIntoSelect() { return serverCall('getAllPackagesForSelection').then(packages => { availablePackages = packages; const selects = [document.getElementById('packageIds'), document.getElementById('projectPackageIds')]; selects.forEach(select => { if (select) { select.innerHTML = ''; packages.forEach(pkg => select.add(new Option(`${pkg.NameThai} (${pkg.Id})`, pkg.Id))); } }); }).catch(handleServerError); }
+  function loadPackagesIntoSelect() { 
+    return serverCall('getAllPackagesForSelection').then(packages => { 
+      availablePackages = packages; 
+      const selects = [document.getElementById('packageIds'), document.getElementById('projectPackageIds')]; 
+      selects.forEach(select => { 
+        if (select) { select.innerHTML = ''; 
+          packages.forEach(pkg => {
+            // สร้างข้อความแสดงผลในรูปแบบ "NameThai | NameEnglish"
+            // และตรวจสอบกรณีที่ NameEnglish ไม่มีข้อมูล
+            const displayText = pkg.NameEnglish 
+                ? `${pkg.NameThai} | ${pkg.NameEnglish}` 
+                : pkg.NameThai;
+
+            // เพิ่ม Option ใหม่ด้วยข้อความที่สร้างขึ้น
+            select.add(new Option(displayText, pkg.Id));
+          }); 
+        } 
+      }); 
+    }).catch(handleServerError); }
   function loadStatusesIntoSelect() { return serverCall('getAllVendorStatuses').then(statuses => { availableStatuses = statuses; const select = document.getElementById('status'); select.innerHTML = ''; statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
   function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
   function loadProjectOwnersForModal() { return serverCall('getAllProjectOwners').then(data => { availableProjectOwners = data; const select = document.getElementById('projectOwnerId'); while (select.options.length > 2) { select.remove(1); } data.forEach(item => { const option = new Option(item.Name, item.Id); select.insertBefore(option, select.options[select.options.length - 1]); }); }).catch(handleServerError); }

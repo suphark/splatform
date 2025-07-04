@@ -181,7 +181,8 @@ function getAllPackagesForSelection() {
     // คัดกรองเอาเฉพาะข้อมูลที่จำเป็นเพื่อลดขนาดข้อมูลที่ส่ง
     return allPackages.map(pkg => ({
       Id: pkg.Id,
-      NameThai: pkg.NameThai
+      NameThai: pkg.NameThai,
+      NameEnglish: pkg.NameEnglish,
     }));
   } catch (e) {
     // ในกรณีที่เกิดข้อผิดพลาด ให้โยน error ออกไปเพื่อให้ฝั่ง Client รับรู้
