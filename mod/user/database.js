@@ -93,7 +93,7 @@ function getPaginatedUsers(options = {}) {
             filters: filters
         };
 
-        const result = ProjectUtilsLib.getPaginatedData(config);
+        const result = getPaginatedData(config);
 
         // --- 3. ส่วนของการแปลงข้อมูลเพื่อส่งกลับ (Presenter) ---
         const transformedUsers = result.data.map(user => ({

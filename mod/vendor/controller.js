@@ -47,7 +47,7 @@ function getPaginatedVendors(options = {}) {
             filters: filters // <-- ส่งเงื่อนไขการกรองเข้าไป
         };
 
-        const result = ProjectUtilsLib.getPaginatedData(config);
+        const result = getPaginatedData(config);
 
         return {
             vendors: result.data,

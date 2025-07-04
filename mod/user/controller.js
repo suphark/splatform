@@ -25,7 +25,7 @@ function processLogin(credentials) {
         // --- ตรวจสอบสถานะ ---
         if (user.Status === 'Pending') {
             // ส่ง OTP สำหรับการลงทะเบียนไปให้ใหม่
-            const otp = ProjectUtilsLib.generateOtp();
+            const otp = generateOtp();
             const expiryDate = new Date(new Date().getTime() + 10 * 60 * 1000);
             updateUserById(user.Id, { LoginOTP: otp, LoginOTPExpiry: expiryDate });
             sendRegistrationOtpEmail(user.Email, otp);
@@ -38,12 +38,12 @@ function processLogin(credentials) {
         }
         // --- จบการตรวจสอบสถานะ ---
 
-        if (!ProjectUtilsLib.verifyPassword(credentials.password, user.PasswordHash, user.Salt)) {
+        if (!verifyPassword(credentials.password, user.PasswordHash, user.Salt)) {
             return { success: false, message: 'รหัสผ่านไม่ถูกต้อง' };
         }
 
         // สร้างและส่ง 2FA OTP สำหรับ Login (เหมือนเดิม)
-        const otp = ProjectUtilsLib.generateOtp();
+        const otp = generateOtp();
         const expiryDate = new Date(new Date().getTime() + 10 * 60 * 1000);
         updateUserById(user.Id, { LoginOTP: otp, LoginOTPExpiry: expiryDate });
         sendLoginOtpEmail(user.Email, otp);
@@ -98,7 +98,7 @@ function resendLoginOtp(email) {
             return { success: false, message: 'ไม่พบอีเมลนี้ในระบบ' };
         }
 
-        const otp = ProjectUtilsLib.generateOtp();
+        const otp = generateOtp();
         const expiryDate = new Date(new Date().getTime() + 10 * 60 * 1000);
 
         // [FIXED] เรียกใช้ updateUserById เพื่อบันทึก OTP ใหม่
@@ -163,10 +163,10 @@ function processRegistration(formObject) {
     }
 
     // --- 3. สร้างข้อมูลจำเป็น ---
-    const otp = ProjectUtilsLib.generateOtp();
+    const otp = generateOtp();
     const otpExpiry = new Date(new Date().getTime() + 10 * 60 * 1000); // 10 นาที
-    const salt = ProjectUtilsLib.generateSalt();
-    const passwordHash = ProjectUtilsLib.hashPassword(formObject.password, salt);
+    const salt = generateSalt();
+    const passwordHash = hashPassword(formObject.password, salt);
 
     if (existingUser && existingUser.Status === 'Pending') {
       // --- กรณี: ผู้ใช้ Pending กลับมาลงทะเบียนซ้ำ ---
@@ -272,6 +272,7 @@ function getDashboardData(session) {
   return dashboardData;
 }
 
+// Supahrk : add status: "Active"
 function processAddNewUser(formObject) {
   try {
     if (!formObject.email || !formObject.password || !formObject.roleId) {
@@ -280,13 +281,13 @@ function processAddNewUser(formObject) {
     if (findUserByEmail(formObject.email)) {
       return { success: false, message: 'อีเมลนี้มีผู้ใช้งานในระบบแล้ว' };
     }
-    const salt = ProjectUtilsLib.generateSalt();
-    const passwordHash = ProjectUtilsLib.hashPassword(formObject.password, salt);
+    const salt = generateSalt();
+    const passwordHash = hashPassword(formObject.password, salt);
     const newUserPayload = {
       email: formObject.email,
       passwordHash: passwordHash,
       salt: salt,
-      roleId: formObject.roleId
+      roleId: formObject.roleId,
     };
     createNewUser(newUserPayload);
     writeAuditLog('Admin: Create User', formObject.email, `Role ID: ${formObject.roleId}`);
@@ -333,8 +334,8 @@ function processEditUser(formObject) {
     }
     const dataToUpdate = { Email: email, RoleId: roleId };
     if (password && password.length > 0) {
-      dataToUpdate.Salt = ProjectUtilsLib.generateSalt();
-      dataToUpdate.PasswordHash = ProjectUtilsLib.hashPassword(password, dataToUpdate.Salt);
+      dataToUpdate.Salt = generateSalt();
+      dataToUpdate.PasswordHash = hashPassword(password, dataToUpdate.Salt);
     }
     updateUserById(userId, dataToUpdate);
     writeAuditLog('Admin: Edit User', formObject.email, `Role ID: ${formObject.roleId}`);
@@ -402,7 +403,7 @@ function processChangePassword(formObject) {
       return { success: false, message: 'Session หมดอายุ กรุณาล็อกอินใหม่อีกครั้ง' };
     }
     const user = findUserByEmail(session.email);
-    if (!ProjectUtilsLib.verifyPassword(formObject.currentPassword, user.PasswordHash, user.Salt)) {
+    if (!verifyPassword(formObject.currentPassword, user.PasswordHash, user.Salt)) {
       return { success: false, message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง!' };
     }
     if (formObject.newPassword.length < 6) {
@@ -411,11 +412,11 @@ function processChangePassword(formObject) {
     if (formObject.newPassword !== formObject.confirmNewPassword) {
       return { success: false, message: 'รหัสผ่านใหม่และการยืนยันไม่ตรงกัน' };
     }
-    if (ProjectUtilsLib.verifyPassword(formObject.newPassword, user.PasswordHash, user.Salt)) {
+    if (verifyPassword(formObject.newPassword, user.PasswordHash, user.Salt)) {
         return { success: false, message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านปัจจุบัน' };
     }
-    const newSalt = ProjectUtilsLib.generateSalt();
-    const newPasswordHash = ProjectUtilsLib.hashPassword(formObject.newPassword, newSalt);
+    const newSalt = generateSalt();
+    const newPasswordHash = hashPassword(formObject.newPassword, newSalt);
     updateUserById(user.Id, {
       PasswordHash: newPasswordHash,
       Salt: newSalt
@@ -491,8 +492,8 @@ function processPasswordReset(formData) {
         }
         
         // อัปเดตรหัสผ่าน
-        const newSalt = ProjectUtilsLib.generateSalt();
-        const newPasswordHash = ProjectUtilsLib.hashPassword(newPassword, newSalt);
+        const newSalt = generateSalt();
+        const newPasswordHash = hashPassword(newPassword, newSalt);
         updateUserById(user.Id, {
             PasswordHash: newPasswordHash,
             Salt: newSalt
