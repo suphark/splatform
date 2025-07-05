@@ -1,13 +1,11 @@
-/**
- * file : mod_vendor_controller.gs
- */
-
 
 /**
- * [UPDATED] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมการกรอง, ค้นหา, และเรียงลำดับ
+ * [FIXED] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมการกรอง, ค้นหา, และเรียงลำดับ
+ * แก้ไข Logic การกรองให้ทำงานถูกต้อง โดยกรองข้อมูลทั้งหมดก่อนส่งเข้า Pagination Engine
  */
 function getPaginatedVendors(options = {}) {
     try {
+        // 1. ดึงข้อมูลดิบทั้งหมด (เหมือนเดิม)
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
         const allPackages = getAllPackages();
@@ -17,16 +15,14 @@ function getPaginatedVendors(options = {}) {
             return map;
         }, {});
 
-        // สร้าง Map สำหรับค้นหาชื่อ Package จาก ID
         const packageMap = allPackages.reduce((map, pkg) => {
             map[pkg.Id] = { nameThai: pkg.NameThai, nameEnglish: pkg.NameEnglish || '' };
             return map;
         }, {});
 
+        // 2. Join ข้อมูลเพื่อเตรียมสำหรับการกรอง (เหมือนเดิม)
         const joinedVendors = allVendors.map(vendor => {
             const statusInfo = statusMap[vendor.StatusId] || { name: 'N/A', color: 'badge-dark' };
-
-            // แปลง PackageId เป็นชื่อที่ต้องการแสดงผล
             const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
             const packageDisplayNames = packageIds
                 .map(id => {
@@ -34,7 +30,7 @@ function getPaginatedVendors(options = {}) {
                     if (pkg) {
                         return `${pkg.nameThai}${pkg.nameEnglish ? ' | ' + pkg.nameEnglish : ''}`;
                     }
-                    return id.trim(); // ถ้าหาไม่เจอ ให้แสดง ID เดิมไปก่อน
+                    return id.trim();
                 });
 
             return {
@@ -45,33 +41,45 @@ function getPaginatedVendors(options = {}) {
             };
         });
 
-        // --- [NEW] สร้างเงื่อนไขการกรองจาก options ---
-        const filters = [];
+        // --- 3. [ส่วนที่แก้ไข] กรองข้อมูลด้วยตัวเองก่อนส่งไปแบ่งหน้า ---
+        let filteredDataSource = joinedVendors;
+
+        // กรองด้วยคำค้นหา (Search Term)
         if (options.searchTerm) {
-            // ค้นหาจากทั้งชื่อไทยและอังกฤษ
-            filters.push({ field: 'NameThai', operator: 'contains', value: options.searchTerm });
-            filters.push({ field: 'NameEnglish', operator: 'contains', value: options.searchTerm, logic: 'or' });
-        }
-        if (options.statusId) {
-            filters.push({ field: 'StatusId', operator: 'equals', value: options.statusId });
-        }
-        if (options.packageId) {
-            // ค้นหา PackageId ในข้อความที่คั่นด้วย comma
-            filters.push({ field: 'PackageId', operator: 'contains', value: options.packageId });
+            const term = options.searchTerm.toLowerCase();
+            filteredDataSource = filteredDataSource.filter(v => {
+                const nameThai = (v.NameThai || '').toLowerCase();
+                const nameEnglish = (v.NameEnglish || '').toLowerCase();
+                return nameThai.includes(term) || nameEnglish.includes(term);
+            });
         }
 
+        // กรองด้วยสถานะ (Status)
+        if (options.statusId) {
+            filteredDataSource = filteredDataSource.filter(v => v.StatusId === options.statusId);
+        }
+
+        // กรองด้วยประเภทพัสดุ (Package)
+        if (options.packageId) {
+            filteredDataSource = filteredDataSource.filter(v => (v.PackageId || '').includes(options.packageId));
+        }
+
+        // --- จบส่วนที่แก้ไข ---
+
+        // 4. ส่งข้อมูลที่กรองแล้วไปให้ Pagination Engine จัดการแค่การเรียงลำดับและแบ่งหน้า
         const config = {
-            dataSource: joinedVendors,
+            dataSource: filteredDataSource, // << ใช้ข้อมูลที่ผ่านการกรองแล้ว
             pagination: options,
-            sort: { 
-                column: options.sortColumn || 'Id', 
-                direction: options.direction || 'desc', 
+            sort: {
+                column: options.sortColumn || 'Id',
+                direction: options.direction || 'desc',
             },
-            filters: filters // <-- ส่งเงื่อนไขการกรองเข้าไป
+            filters: [] // << ส่ง Array ว่างเข้าไป เพราะเรากรองเองแล้ว
         };
 
         const result = getPaginatedData(config);
 
+        // 5. ส่งผลลัพธ์กลับไป (เหมือนเดิม)
         return {
             vendors: result.data,
             totalRecords: result.totalRecords,

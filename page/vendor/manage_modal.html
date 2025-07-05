@@ -1,4 +1,4 @@
-<div class="modal fade" id="vendorModal" tabindex="-1" aria-labelledby="vendorModalLabel" aria-hidden="true">
+<div class="modal fade" id="vendorModal" tabindex="-1" aria-labelledby="vendorModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -175,7 +175,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="contactModalLabel">ข้อมูลผู้ติดต่อ</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -194,7 +194,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="boardMemberModal" tabindex="-1" aria-labelledby="boardMemberModalLabel" aria-hidden="true">
+<div class="modal fade" id="boardMemberModal" tabindex="-1" aria-labelledby="boardMemberModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="boardMemberModalLabel">ข้อมูลกรรมการ</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -210,7 +210,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="financeModal" tabindex="-1" aria-labelledby="financeModalLabel" aria-hidden="true">
+<div class="modal fade" id="financeModal" tabindex="-1" aria-labelledby="financeModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="financeModalLabel">ข้อมูลงบการเงิน</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -222,7 +222,7 @@
         <form id="financeForm" style="display: block;">
           <input type="hidden" id="financeId"><input type="hidden" id="financeVendorId">
           <div class="row">
-            <div class="col-md-6 form-group"><label for="financeYear">ปีงบประมาณ <span class="text-danger">*</span></label><input type="number" class="form-control" id="financeYear" placeholder="เช่น 2567" required></div>
+            <div class="col-md-6 form-group"><label for="financeYear">ปีงบประมาณ <span class="text-danger">*</span></label><input type="number" class="form-control" id="financeYear" placeholder="ระบุปี ค.ศ. เช่น 2025" required></div>
             <div class="col-md-6 form-group"><label for="financeRevenue">รายได้</label><input type="number" class="form-control" id="financeRevenue" step="0.01"></div>
           </div>
           <div class="row">
@@ -241,7 +241,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="projectModal" tabindex="-1" aria-labelledby="projectModalLabel" aria-hidden="true">
+<div class="modal fade" id="projectModal" tabindex="-1" aria-labelledby="projectModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="projectModalLabel">เพิ่มโครงการอ้างอิง</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
@@ -260,8 +260,8 @@
                 <select class="form-control" id="projectTypeId" required></select>
             </div>
             <div class="col-md-6 form-group">
-                <label for="projectYear">ปีที่ทำโครงการ <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" id="projectYear" required>
+                <label for="projectYear">ปีที่ทำโครงการ</label>
+                <input type="number" class="form-control" id="projectYear" placeholder="ระบุปี ค.ศ. เช่น 2025">
             </div>
           </div>
           <div class="form-group">
@@ -276,8 +276,8 @@
               <input type="text" class="form-control" id="projectOwnerCustom">
           </div>
           <div class="form-group">
-              <label for="projectPackageIds">ประเภทงานที่ทำ (Package)</label>
-              <select multiple class="form-control" id="projectPackageIds"></select>
+              <label for="projectPackageIds">ประเภทงานที่ทำ (Package) <span class="text-danger">*</span></label>
+              <select multiple class="form-control" id="projectPackageIds" required></select>
               <small class="form-text text-muted">กด Ctrl/Cmd ค้างไว้เพื่อเลือกหลายรายการ</small>
           </div>
           <div class="form-group">

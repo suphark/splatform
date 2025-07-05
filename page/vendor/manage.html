@@ -142,7 +142,7 @@
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
-        renderContactsTable(result.value.contacts);
+        renderContactsTable(result.value.data);
       } else if (result.value) {
         showToast(result.value.message, false);
       }
@@ -169,7 +169,7 @@
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
-        renderBoardMembersTable(result.value.members);
+        renderBoardMembersTable(result.value.data);
       } else if (result.value) {
         showToast(result.value.message, false);
       }
@@ -196,7 +196,7 @@
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
-        renderFinanceTable(result.value.financeData); // อัปเดตตาราง
+        renderFinanceTable(result.value.data); // อัปเดตตาราง
       } else if (result.value) {
         showToast(result.value.message, false);
       }
@@ -293,7 +293,7 @@
     }).then((result) => {
       if (result.isConfirmed && result.value.success) {
         showToast(result.value.message, true);
-        renderProjectsTable(result.value.projects); // อัปเดตตารางโครงการ
+        renderProjectsTable(result.value.data); // อัปเดตตารางโครงการ
       } else if (result.value) {
         showToast(result.value.message, false);
       }
@@ -534,9 +534,9 @@ async function handleSaveVendor() {
 }
   
   
-  async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.contacts); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
-  async function handleSaveBoardMember() { const form = document.getElementById('boardMemberForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveBoardMemberButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('boardMemberId').value, VendorId: document.getElementById('boardMemberVendorId').value, Name: document.getElementById('boardMemberName').value, Surname: document.getElementById('boardMemberSurname').value, }; try { const response = await serverCall('processAddOrEditBoardMember', formData); if (response.success) { showToast(response.message, true); renderBoardMembersTable(response.members); $('#boardMemberModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
-  async function handleSaveFinanceRecord() { const form = document.getElementById('financeForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveFinanceButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('financeId').value, VendorId: document.getElementById('financeVendorId').value, Year: document.getElementById('financeYear').value, Revenue: document.getElementById('financeRevenue').value, CurrentAssets: document.getElementById('financeCurrentAssets').value, CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value, TotalLiabilities: document.getElementById('financeTotalLiabilities').value, }; const fileInput = document.getElementById('financialStatementFile'); let fileData = {}; if (fileInput.files.length > 0) { const file = fileInput.files[0]; try { const base64 = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => resolve(e.target.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); }); fileData['financialStatementFile'] = { fileName: file.name, mimeType: file.type, base64: base64 }; } catch (err) { handleServerError({ message: 'ไม่สามารถอ่านไฟล์ได้' }); setLoading(saveButton, false); return; } } try { const response = await serverCall('processAddOrEditFinanceRecord', formData, fileData); if (response.success) { showToast(response.message, true); renderFinanceTable(response.financeData); $('#financeModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.data); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveBoardMember() { const form = document.getElementById('boardMemberForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveBoardMemberButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('boardMemberId').value, VendorId: document.getElementById('boardMemberVendorId').value, Name: document.getElementById('boardMemberName').value, Surname: document.getElementById('boardMemberSurname').value, }; try { const response = await serverCall('processAddOrEditBoardMember', formData); if (response.success) { showToast(response.message, true); renderBoardMembersTable(response.data); $('#boardMemberModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveFinanceRecord() { const form = document.getElementById('financeForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveFinanceButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('financeId').value, VendorId: document.getElementById('financeVendorId').value, Year: document.getElementById('financeYear').value, Revenue: document.getElementById('financeRevenue').value, CurrentAssets: document.getElementById('financeCurrentAssets').value, CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value, TotalLiabilities: document.getElementById('financeTotalLiabilities').value, }; const fileInput = document.getElementById('financialStatementFile'); let fileData = {}; if (fileInput.files.length > 0) { const file = fileInput.files[0]; try { const base64 = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => resolve(e.target.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); }); fileData['financialStatementFile'] = { fileName: file.name, mimeType: file.type, base64: base64 }; } catch (err) { handleServerError({ message: 'ไม่สามารถอ่านไฟล์ได้' }); setLoading(saveButton, false); return; } } try { const response = await serverCall('processAddOrEditFinanceRecord', formData, fileData); if (response.success) { showToast(response.message, true); renderFinanceTable(response.data); $('#financeModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
   async function handleSaveProject() {
     const form = document.getElementById('projectForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -564,7 +564,7 @@ async function handleSaveVendor() {
 
       if (response.success) {
         showToast(response.message, true);
-        renderProjectsTable(response.projects);
+        renderProjectsTable(response.data);
         $('#projectModal').modal('hide');
       } else {
         showToast(response.message, false);
