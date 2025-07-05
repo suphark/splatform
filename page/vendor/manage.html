@@ -364,29 +364,56 @@
 
   function renderContactsTable(contacts) { const tableBody = document.getElementById('vendor-contacts-table-body'); tableBody.innerHTML = ''; if (!contacts || contacts.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลผู้ติดต่อ</td></tr>`; return; } contacts.forEach(contact => { const row = tableBody.insertRow(); const contactJsonString = JSON.stringify(contact).replace(/"/g, '&quot;'); row.innerHTML = `<td>${contact.Name || '-'}</td><td>${contact.Position || '-'}</td><td>${contact.PhoneNumber || '-'}</td><td>${contact.Email || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditContactModal(${contactJsonString})"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteContact('${contact.Id}', '${contact.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
   function renderBoardMembersTable(members) { const tableBody = document.getElementById('vendor-board-table-body'); tableBody.innerHTML = ''; if (!members || members.length === 0) { tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูลกรรมการ</td></tr>`; return; } members.forEach(member => { const row = tableBody.insertRow(); const memberJsonString = JSON.stringify(member).replace(/"/g, '&quot;'); row.innerHTML = `<td>${member.Name || '-'}</td><td>${member.Surname || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditBoardMemberModal(${memberJsonString})'><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteBoardMember('${member.Id}', '${member.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
-  function renderFinanceTable(financeRecords) { const tableBody = document.getElementById('vendor-finance-table-body'); tableBody.innerHTML = ''; if (!financeRecords || financeRecords.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`; return; } financeRecords.forEach(rec => { const row = tableBody.insertRow(); const fileLink = rec.FinancialStatementFileId ? `<a href="https://drive.google.com/file/d/${rec.FinancialStatementFileId}/view" target="_blank"><i class="fas fa-file-alt"></i></a>` : '-'; const recordJsonString = JSON.stringify(rec).replace(/"/g, '&quot;'); row.innerHTML = `<td>${rec.Year || '-'}</td><td>${rec.Revenue ? Number(rec.Revenue).toLocaleString() : '-'}</td><td>${rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : '-'}</td><td>${rec.CurrentLiabilities ? Number(rec.CurrentLiabilities).toLocaleString() : '-'}</td><td>${rec.TotalLiabilities ? Number(rec.TotalLiabilities).toLocaleString() : '-'}</td><td class="text-center">${fileLink}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${rec.Id}')"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${rec.Id}', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+  function renderFinanceTable(financeRecords) {
+      const tableBody = document.getElementById('vendor-finance-table-body');
+      tableBody.innerHTML = '';
+      if (!financeRecords || financeRecords.length === 0) {
+          // [แก้ไข] แก้ colspan เป็น 6
+          tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`;
+          return;
+      }
+      financeRecords.forEach(rec => {
+          const row = tableBody.insertRow();
+          const recordJsonString = JSON.stringify(rec).replace(/"/g, '&quot;');
+          
+          // [แก้ไข] ลบ fileLink และ <td> ที่เกี่ยวข้องออก
+          row.innerHTML = `
+              <td>${rec.Year || '-'}</td>
+              <td>${rec.Revenue ? Number(rec.Revenue).toLocaleString() : '-'}</td>
+              <td>${rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : '-'}</td>
+              <td>${rec.CurrentLiabilities ? Number(rec.CurrentLiabilities).toLocaleString() : '-'}</td>
+              <td>${rec.TotalLiabilities ? Number(rec.TotalLiabilities).toLocaleString() : '-'}</td>
+              <td>
+                  <button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${rec.Id}')"><i class="fas fa-edit"></i></button> 
+                  <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${rec.Id}', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button>
+              </td>
+          `;
+      });
+  }
   function renderProjectsTable(projects) {
-    const tableBody = document.getElementById('vendor-projects-table-body');
-    tableBody.innerHTML = '';
-    if (!projects || projects.length === 0) {
-      // แก้ไข colspan จาก 5 เป็น 4
-      tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ยังไม่มีโครงการอ้างอิง</td></tr>`;
-      return;
-    }
-    projects.forEach(p => {
-      const row = tableBody.insertRow();
-      const projectJsonString = JSON.stringify(p).replace(/"/g, '&quot;');
-      // นำคอลัมน์ไฟล์แนบออก
-      row.innerHTML = `
-                <td>${p.ProjectYear}</td>
-                <td>${p.ProjectName}</td>
-                <td>${p.ContractValue ? Number(p.ContractValue).toLocaleString() : '-'}</td>
-                <td>
-                    <button type="button" class="btn btn-xs btn-outline-warning" onclick='prepareEditProjectModal(${projectJsonString})'><i class="fas fa-edit"></i></button>
-                    <button type="button" class="btn btn-xs btn-outline-danger" onclick="handleDeleteProject('${p.Id}', '${p.VendorId}')"><i class="fas fa-trash-alt"></i></button>
-                </td>
-            `;
-    });
+      const tableBody = document.getElementById('vendor-projects-table-body');
+      tableBody.innerHTML = '';
+      if (!projects || projects.length === 0) {
+          // แก้ไข colspan ให้ตรงกับจำนวนคอลัมน์ใหม่
+          tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีโครงการอ้างอิง</td></tr>`;
+          return;
+      }
+      projects.forEach(p => {
+          const row = tableBody.insertRow();
+          const projectJsonString = JSON.stringify(p).replace(/"/g, '&quot;');
+          
+          // [ส่วนที่แก้ไข] นำข้อมูลใหม่มาแสดงผล
+          row.innerHTML = `
+              <td>${p.ProjectName || '-'}</td>
+              <td>${p.ProjectTypeName || '-'}</td>
+              <td>${p.ProjectOwnerName || '-'}</td>
+              <td>${p.PackageNamesDisplay || '-'}</td>
+              <td>
+                  <button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditProjectModal(${projectJsonString})'><i class="fas fa-edit"></i></button>
+                  <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteProject('${p.Id}', '${p.VendorId}')"><i class="fas fa-trash-alt"></i></button>
+              </td>
+          `;
+      });
   }
 
   // ==================== FORM & MODAL LOGIC ====================
@@ -546,7 +573,42 @@ async function handleSaveVendor() {
   
   async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.data); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
   async function handleSaveBoardMember() { const form = document.getElementById('boardMemberForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveBoardMemberButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('boardMemberId').value, VendorId: document.getElementById('boardMemberVendorId').value, Name: document.getElementById('boardMemberName').value, Surname: document.getElementById('boardMemberSurname').value, }; try { const response = await serverCall('processAddOrEditBoardMember', formData); if (response.success) { showToast(response.message, true); renderBoardMembersTable(response.data); $('#boardMemberModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
-  async function handleSaveFinanceRecord() { const form = document.getElementById('financeForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveFinanceButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('financeId').value, VendorId: document.getElementById('financeVendorId').value, Year: document.getElementById('financeYear').value, Revenue: document.getElementById('financeRevenue').value, CurrentAssets: document.getElementById('financeCurrentAssets').value, CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value, TotalLiabilities: document.getElementById('financeTotalLiabilities').value, }; const fileInput = document.getElementById('financialStatementFile'); let fileData = {}; if (fileInput.files.length > 0) { const file = fileInput.files[0]; try { const base64 = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => resolve(e.target.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); }); fileData['financialStatementFile'] = { fileName: file.name, mimeType: file.type, base64: base64 }; } catch (err) { handleServerError({ message: 'ไม่สามารถอ่านไฟล์ได้' }); setLoading(saveButton, false); return; } } try { const response = await serverCall('processAddOrEditFinanceRecord', formData, fileData); if (response.success) { showToast(response.message, true); renderFinanceTable(response.data); $('#financeModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  async function handleSaveFinanceRecord() {
+    const form = document.getElementById('financeForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    const saveButton = document.getElementById('saveFinanceButton');
+    setLoading(saveButton, true);
+
+    const formData = {
+        Id: document.getElementById('financeId').value,
+        VendorId: document.getElementById('financeVendorId').value,
+        Year: document.getElementById('financeYear').value,
+        Revenue: document.getElementById('financeRevenue').value,
+        CurrentAssets: document.getElementById('financeCurrentAssets').value,
+        CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value,
+        TotalLiabilities: document.getElementById('financeTotalLiabilities').value,
+    };
+
+    // [แก้ไข] ลบ Logic การอ่านไฟล์ทั้งหมด
+    try {
+        // ส่ง formData ไปอย่างเดียว ไม่มี fileData
+        const response = await serverCall('processAddOrEditFinanceRecord', formData); 
+        if (response.success) {
+            showToast(response.message, true);
+            renderFinanceTable(response.data);
+            $('#financeModal').modal('hide');
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+  }
   async function handleSaveProject() {
     const form = document.getElementById('projectForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }

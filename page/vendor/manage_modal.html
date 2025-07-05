@@ -71,9 +71,31 @@
                 <table class="table table-sm table-bordered"><thead class="thead-light"><tr><th>ชื่อ</th><th>นามสกุล</th><th>จัดการ</th></tr></thead><tbody id="vendor-board-table-body"></tbody></table>
             </div>
 
+
+
+            <!--  ==========================================  -->
+            <!--               TAB > FINANCE                  -->
+            <!--  ==========================================  -->   
             <div class="tab-pane fade" id="finance" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">ข้อมูลงบการเงิน</h6><button type="button" id="addFinanceBtn" class="btn btn-sm btn-outline-primary" onclick="prepareAddFinanceModal()"><i class="fas fa-plus"></i> เพิ่มข้อมูลงบการเงิน</button></div>
-                <div class="table-responsive"><table class="table table-sm table-bordered"><thead class="thead-light"><tr><th>ปี</th><th>รายได้</th><th>สินทรัพย์หมุนเวียน</th><th>หนี้สินหมุนเวียน</th><th>หนี้สินรวม</th><th class="text-center">ไฟล์แนบ</th><th>จัดการ</th></tr></thead><tbody id="vendor-finance-table-body"></tbody></table></div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">ข้อมูลงบการเงิน</h6>
+                <button type="button" id="addFinanceBtn" class="btn btn-sm btn-outline-primary" onclick="prepareAddFinanceModal()"><i class="fas fa-plus"></i> เพิ่มข้อมูลงบการเงิน</button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>ปี</th>
+                      <th>รายได้</th>
+                      <th>สินทรัพย์หมุนเวียน</th>
+                      <th>หนี้สินหมุนเวียน</th>
+                      <th>หนี้สินรวม</th>
+                      <th>จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vendor-finance-table-body"></tbody>
+                </table>
+              </div>
             </div>
 
             <div class="tab-pane fade" id="projects" role="tabpanel">
@@ -87,10 +109,10 @@
                   <table class="table table-sm table-bordered">
                       <thead class="thead-light">
                           <tr>
-                              <th>ปี</th>
                               <th>ชื่อโครงการ</th>
-                              <th>มูลค่าสัญญา</th>
-                              <th class="text-center">ไฟล์แนบ</th>
+                              <th>ประเภทโครงการ</th>
+                              <th>เจ้าของโครงการ</th>
+                              <th>ประเภทงาน</th>
                               <th>จัดการ</th>
                           </tr>
                       </thead>
@@ -218,6 +240,8 @@
   </div>
 </div>
 
+
+<!-- Form แก้ไข งบการเงิน -->
 <div class="modal fade" id="financeModal" tabindex="-1" aria-labelledby="financeModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -237,10 +261,6 @@
             <div class="col-md-4 form-group"><label for="financeCurrentAssets">สินทรัพย์หมุนเวียน</label><input type="number" class="form-control" id="financeCurrentAssets" step="0.01"></div>
             <div class="col-md-4 form-group"><label for="financeCurrentLiabilities">หนี้สินหมุนเวียน</label><input type="number" class="form-control" id="financeCurrentLiabilities" step="0.01"></div>
             <div class="col-md-4 form-group"><label for="financeTotalLiabilities">หนี้สินรวม</label><input type="number" class="form-control" id="financeTotalLiabilities" step="0.01"></div>
-          </div>
-          <div class="form-group">
-            <label for="financialStatementFile">ไฟล์งบการเงิน</label>
-            <input type="file" class="form-control-file" id="financialStatementFile">
           </div>
         </form>
       </div>

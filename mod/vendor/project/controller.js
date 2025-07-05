@@ -1,15 +1,35 @@
 /**
- * file: mod_vendor_project_controller.gs
+ * [UPDATE] แก้ไข getProjectsByVendorId ให้ดึงข้อมูลชื่อจากชีตที่เกี่ยวข้องมาด้วย
  */
-
-// ฟังก์ชันนี้ยังคงเดิม
 function getProjectsByVendorId(vendorId) {
+    if (!vendorId) return [];
     try {
-        if (!vendorId) return [];
-        const table = APP_CONFIG.sheetsData.vendorProjects.getTable();
-        const projects = table.where(row => row.VendorId === vendorId).sortBy('ProjectYear', 'desc').getRows();
-        table.clearAll();
-        return projects;
+        // 1. ดึงข้อมูลดิบทั้งหมดที่จำเป็น
+        const projects = APP_CONFIG.sheetsData.vendorProjects.getTable().where(row => row.VendorId === vendorId).sortBy('ProjectYear', 'desc').getRows();
+        const projectTypes = getAllProjectTypes();
+        const projectOwners = getAllProjectOwners();
+        const packages = getAllPackages();
+
+        // 2. สร้าง Map เพื่อให้ค้นหาชื่อได้รวดเร็ว
+        const typeMap = new Map(projectTypes.map(item => [item.Id, item.Name]));
+        const ownerMap = new Map(projectOwners.map(item => [item.Id, item.Name]));
+        const packageMap = new Map(packages.map(item => [item.Id, item.NameThai]));
+
+        // 3. วนลูปเพื่อเพิ่มข้อมูล "ชื่อ" เข้าไปในแต่ละโปรเจกต์
+        const enrichedProjects = projects.map(p => {
+            const packageIds = p.PackageIds ? String(p.PackageIds).split(',') : [];
+            const packageNames = packageIds.map(id => packageMap.get(id.trim()) || id.trim()).join(', ');
+
+            return {
+                ...p, // คงข้อมูลเดิมทั้งหมดไว้สำหรับฟอร์มแก้ไข
+                ProjectTypeName: typeMap.get(p.ProjectTypeId) || '-',
+                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || p.ProjectOwnerCustom || '-',
+                PackageNamesDisplay: packageNames || '-',
+            };
+        });
+        
+        return enrichedProjects;
+
     } catch (e) {
         Logger.log(`Error in getProjectsByVendorId: ${e.message}`);
         return [];
