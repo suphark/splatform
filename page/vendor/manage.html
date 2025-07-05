@@ -68,10 +68,13 @@
     
     $('#vendorTab a:first').tab('show');
     document.getElementById('vendor-folder-link').style.display = 'none';
+
+    document.querySelectorAll('.related-data-tab').forEach(el => el.style.display = 'none');
     document.getElementById('addContactBtn').disabled = true;
     document.getElementById('addBoardMemberBtn').disabled = true;
     document.getElementById('addFinanceBtn').disabled = true;
     document.getElementById('addProjectBtn').disabled = true;
+
     setModalLoading(false);
     $('#vendorModal').modal('show');
   };
@@ -79,10 +82,12 @@
   window.prepareEditVendorModal = function (vendorId) {
     if ($('#packageIds').data('select2')) $('#packageIds').select2('destroy');
     
+    document.querySelectorAll('.related-data-tab').forEach(el => el.style.display = 'block');
     document.getElementById('addContactBtn').disabled = false;
     document.getElementById('addBoardMemberBtn').disabled = false;
     document.getElementById('addFinanceBtn').disabled = false;
     document.getElementById('addProjectBtn').disabled = false;
+
     $('#vendorModalLabel').text('แก้ไขข้อมูล Vendor');
     setModalLoading(true);
     $('#vendorTab a:first').tab('show');

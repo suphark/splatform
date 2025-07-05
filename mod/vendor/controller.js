@@ -1,11 +1,15 @@
 
 /**
- * [FIXED] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมการกรอง, ค้นหา, และเรียงลำดับ
- * แก้ไข Logic การกรองให้ทำงานถูกต้อง โดยกรองข้อมูลทั้งหมดก่อนส่งเข้า Pagination Engine
+ * [FINAL & STABLE] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมการกรอง, ค้นหา, และเรียงลำดับ
+ * - กลับมาใช้ Logic การกรองด้วยตัวเองก่อนส่งเข้า Pagination Engine ซึ่งเป็นวิธีที่เสถียรที่สุด
+ * และแก้ปัญหาการเรียงลำดับข้อมูล (sort) ได้อย่างถาวร
  */
 function getPaginatedVendors(options = {}) {
     try {
-        // 1. ดึงข้อมูลดิบทั้งหมด (เหมือนเดิม)
+
+        console.log('start getPaginatedVendors');
+
+        // 1. ดึงข้อมูลดิบและ Join ข้อมูล (เหมือนเดิม)
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
         const allPackages = getAllPackages();
@@ -20,31 +24,23 @@ function getPaginatedVendors(options = {}) {
             return map;
         }, {});
 
-        // 2. Join ข้อมูลเพื่อเตรียมสำหรับการกรอง (เหมือนเดิม)
         const joinedVendors = allVendors.map(vendor => {
             const statusInfo = statusMap[vendor.StatusId] || { name: 'N/A', color: 'badge-dark' };
             const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
             const packageDisplayNames = packageIds
                 .map(id => {
                     const pkg = packageMap[id.trim()];
-                    if (pkg) {
-                        return `${pkg.nameThai}${pkg.nameEnglish ? ' | ' + pkg.nameEnglish : ''}`;
-                    }
+                    if (pkg) { return `${pkg.nameThai}${pkg.nameEnglish ? ' | ' + pkg.nameEnglish : ''}`; }
                     return id.trim();
                 });
 
-            return {
-                ...vendor,
-                StatusName: statusInfo.name,
-                StatusColor: statusInfo.color,
-                PackageDisplayNames: packageDisplayNames,
-            };
+            return { ...vendor, StatusName: statusInfo.name, StatusColor: statusInfo.color, PackageDisplayNames: packageDisplayNames };
         });
 
-        // --- 3. [ส่วนที่แก้ไข] กรองข้อมูลด้วยตัวเองก่อนส่งไปแบ่งหน้า ---
+        // --- 2. [ส่วนที่แก้ไข] กรองข้อมูลด้วยตัวเองก่อนส่งไปแบ่งหน้า (Manual Filtering) ---
         let filteredDataSource = joinedVendors;
 
-        // กรองด้วยคำค้นหา (Search Term)
+        // กรองด้วยคำค้นหา (Search Term) แบบ OR
         if (options.searchTerm) {
             const term = options.searchTerm.toLowerCase();
             filteredDataSource = filteredDataSource.filter(v => {
@@ -63,23 +59,25 @@ function getPaginatedVendors(options = {}) {
         if (options.packageId) {
             filteredDataSource = filteredDataSource.filter(v => (v.PackageId || '').includes(options.packageId));
         }
+        // --- สิ้นสุดส่วนที่แก้ไข ---
 
-        // --- จบส่วนที่แก้ไข ---
 
-        // 4. ส่งข้อมูลที่กรองแล้วไปให้ Pagination Engine จัดการแค่การเรียงลำดับและแบ่งหน้า
+        // 3. ส่งข้อมูลที่กรองแล้วไปให้ Pagination Engine จัดการแค่การเรียงลำดับและแบ่งหน้า
         const config = {
             dataSource: filteredDataSource, // << ใช้ข้อมูลที่ผ่านการกรองแล้ว
             pagination: options,
             sort: {
                 column: options.sortColumn || 'Id',
-                direction: options.direction || 'desc',
+                direction: options.sortDirection || 'desc',
             },
-            filters: [] // << ส่ง Array ว่างเข้าไป เพราะเรากรองเองแล้ว
+            filters: [] // << ส่ง Array ว่างเข้าไปเสมอ
         };
+
+        console.log('Config for Pagination:', JSON.stringify(config, null, 2));
 
         const result = getPaginatedData(config);
 
-        // 5. ส่งผลลัพธ์กลับไป (เหมือนเดิม)
+        // 4. ส่งผลลัพธ์กลับ (เหมือนเดิม)
         return {
             vendors: result.data,
             totalRecords: result.totalRecords,

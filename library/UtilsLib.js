@@ -51,15 +51,15 @@ function generateOtp(length = 6) {
 }
 
 /**
- * [UPGRADED] ฟังก์ชันกลางสำหรับจัดการข้อมูลแบบแบ่งหน้าจาก Array โดยตรง
- * ทำให้สามารถใช้กับข้อมูลที่ซับซ้อน (เช่น ผ่านการ Join) ได้
+ * [FINAL UPGRADE] ฟังก์ชันกลางสำหรับจัดการข้อมูลแบบแบ่งหน้าจาก Array โดยตรง
+ * - อัปเกรด: ปรับปรุง Filter Engine ให้รองรับการกรองแบบผสม (AND/OR) ที่ซับซ้อนได้อย่างถูกต้อง
+ * - คงเดิม: การเรียงลำดับข้อมูล (sort) แบบข้อความเป็น case-insensitive
  *
  * @param {object} config - Object สำหรับการตั้งค่า
  * @param {Array<object>} config.dataSource - Array ของข้อมูลดิบที่ต้องการนำมาแบ่งหน้า
  * @param {object} [config.pagination] - การตั้งค่าการแบ่งหน้า { page: number, limit: number }
  * @param {object} [config.sort] - การตั้งค่าการเรียงลำดับ { column: string, direction: 'asc'|'desc' }
  * @param {Array<object>} [config.filters] - Array ของเงื่อนไขการกรอง
- *
  * @returns {object} ผลลัพธ์พร้อมข้อมูลการแบ่งหน้า { data: Array, totalRecords: number, ... }
  */
 function getPaginatedData(config) {
@@ -68,25 +68,46 @@ function getPaginatedData(config) {
 
     let processedData = [...dataSource];
 
+    // --- [ส่วนที่แก้ไข] อัปเกรด Filter Engine ---
     if (filters.length > 0) {
         processedData = processedData.filter(row => {
-            // Group filters by their logic ('and' is default, 'or' is for specific cases)
-            const orFilters = filters.filter(f => f.logic === 'or');
+            // แยกเงื่อนไข 'AND' (ที่ไม่มี logic: 'or')
             const andFilters = filters.filter(f => f.logic !== 'or');
+            // แยกเงื่อนไข 'OR' (ที่มี logic: 'or')
+            const orFilters = filters.filter(f => f.logic === 'or');
 
+            // 1. ตรวจสอบเงื่อนไข AND ทั้งหมดก่อน
+            // ถ้าเงื่อนไข AND ข้อใดข้อหนึ่งเป็นเท็จ ให้ข้ามแถวนี้ไปเลย (return false)
             const andResult = andFilters.every(filter => evaluateFilter(row, filter));
-            // If there are 'or' filters, at least one must be true, along with all 'and' filters
-            const orResult = orFilters.length > 0 ? orFilters.some(filter => evaluateFilter(row, filter)) : true;
+            if (!andResult) {
+                return false;
+            }
 
-            return andResult && orResult;
+            // 2. ตรวจสอบเงื่อนไข OR (ถ้ามี)
+            // ถ้ามีเงื่อนไข OR จะต้องมีอย่างน้อยหนึ่งข้อที่เป็นจริง
+            // ถ้าไม่มีเงื่อนไข OR เลย ให้ถือว่าเป็นจริง (true)
+            const orResult = orFilters.length > 0 ? orFilters.some(filter => evaluateFilter(row, filter)) : true;
+            
+            // ผลลัพธ์สุดท้ายคือ AND ต้องเป็นจริงทั้งหมด และ OR ต้องมีจริงอย่างน้อยหนึ่งข้อ (ถ้ามี OR)
+            return orResult;
         });
     }
+    // --- สิ้นสุดส่วนที่แก้ไข ---
 
+    // ส่วนของการ Sort ยังคงเดิม
     if (sort.column) {
         processedData.sort((a, b) => {
-            const valA = a[sort.column] || '';
-            const valB = b[sort.column] || '';
+            let valA = a[sort.column];
+            let valB = b[sort.column];
             const direction = sort.direction === 'desc' ? -1 : 1;
+
+            if (valA == null) valA = '';
+            if (valB == null) valB = '';
+            
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                valA = valA.toLowerCase();
+                valB = valB.toLowerCase();
+            }
 
             if (valA < valB) return -1 * direction;
             if (valA > valB) return 1 * direction;
@@ -94,6 +115,7 @@ function getPaginatedData(config) {
         });
     }
 
+    // ส่วนของการแบ่งหน้ายังคงเหมือนเดิม
     const totalRecords = processedData.length;
     const limit = parseInt(pagination.limit) || 10;
     const page = parseInt(pagination.page) || 1;
