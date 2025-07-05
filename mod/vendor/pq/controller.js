@@ -1,7 +1,3 @@
-/**
- * file: mod_pq_controller.gs
- * Controller สำหรับจัดการ Pre-qualification Form
- */
 
 /**
  * [SERVER-CALL] ดึงข้อมูลทั้งหมดที่จำเป็นสำหรับสร้างฟอร์ม PQ
@@ -18,8 +14,7 @@ function getPreQualificationData(vendorId) {
 
 /**
  * [SERVER-CALL] บันทึกผลการประเมินลงในชีต PQForms
- * @param {object} pqResultData Object ข้อมูลผลลัพธ์ที่ได้จากการประเมิน
- * @returns {object} ผลการบันทึก
+ * [UPDATE] เพิ่มการคืนค่า ID ที่สร้างใหม่กลับไปให้ Client
  */
 function savePreQualificationResult(pqResultData) {
     try {
@@ -31,16 +26,22 @@ function savePreQualificationResult(pqResultData) {
             TotalScore: pqResultData.totalScore,
             Grade: pqResultData.grade,
             ReliabilityScore: pqResultData.reliabilityScore,
-            FinancialScore: pqResultData.financialScore,
-            // สามารถเพิ่ม Field อื่นๆ ที่ต้องการเก็บได้ตามต้องการ
+            FinancialScore: pqResultData.financialScore
         };
 
-        APP_CONFIG.sheetsData.pQForms.getTable()
-            .withUniqueId('Id', { strategy: 'increment', padding: 6, prefix: 'PQF-' })
-            .insertRows([payload]);
+        const table = APP_CONFIG.sheetsData.pQForms.getTable();
+        
+        table.withUniqueId('Id', { strategy: 'increment', padding: 6, prefix: 'PQF-' })
+             .insertRows([payload]);
+        
+        // ดึง ID ของแถวที่เพิ่งสร้างล่าสุด
+        const newRecord = table.clearDataCache().sortBy('Id', 'desc').first();
+        const newId = newRecord ? newRecord.Id : null;
         
         writeAuditLog('PQ Form: Save', `VendorId: ${payload.VendorId}`, `Grade: ${payload.Grade}`);
-        return { success: true, message: "บันทึกผลการประเมินสำเร็จ!" };
+        
+        // ส่ง ID ใหม่กลับไปด้วย
+        return { success: true, message: "บันทึกผลการประเมินสำเร็จ!", newId: newId };
 
     } catch (e) {
         Logger.log("Error saving PQ result: " + e.message);

@@ -1,14 +1,14 @@
 <style>
-  /* --- General & Print Setup --- */
   @page { size: A4 portrait; margin: 15mm; }
   body { background-color: #f0f2f5; font-family: 'Sarabun', sans-serif; }
   .pq-container { max-width: 900px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   .pq-header { border-bottom: 2px solid #dee2e6; padding-bottom: 15px; margin-bottom: 20px; }
   .pq-section-title { font-size: 1.2rem; font-weight: bold; color: #fff; background-color: #495057; padding: 10px; border-radius: 4px; margin-top: 25px; margin-bottom: 15px; }
   .criteria-table { font-size: 0.9rem; }
-  .criteria-table th { background-color: #f8f9fa; }
-  .criteria-table .check-col { width: 40px; text-align: center; }
-  .criteria-table .score-col { width: 60px; text-align: center; }
+  .criteria-table th { background-color: #f8f9fa; text-align: center; }
+  .criteria-table .check-col { width: 40px; }
+  .criteria-table .score-col { width: 60px; }
+  .criteria-table .w-score-col { width: 80px; }
   .data-label { font-weight: 600; color: #6c757d; }
   .vendor-info-box p { margin-bottom: 0.5rem; }
   .check-icon { color: #28a745; font-size: 1.2em; }
@@ -20,13 +20,13 @@
   .grade-D { background-color: #dc3545; }
   #loader { text-align: center; padding: 50px; }
   
-  /* --- Print Specific Styles --- */
   @media print {
     body { background-color: white; font-size: 10pt; }
-    .pq-header .btn, #saveButton, #printButton { display: none; }
+    /* [แก้ไข] ซ่อนปุ่ม #printButton เพิ่มเข้ามา */
+    .pq-header .btn, #saveButton, #printButton { display: none !important; } 
+    #pq-id-container { display: block !important; }
     .pq-container { box-shadow: none; border: none; margin: 0; padding: 0; max-width: 100%; border-radius: 0; }
-    h3 { font-size: 1.5rem; } h5 { font-size: 1.1rem; }
-    th, td { color: black !important; }
+    h3, h5, p, span, td, th { color: black !important; }
     .grade-box { border: 2px solid #6c757d; background-color: #e9ecef !important; }
     a { text-decoration: none; color: inherit; }
   }
@@ -37,10 +37,10 @@
     <div class="d-flex justify-content-between align-items-center pq-header">
       <div>
         <h3 class="mb-0">ประเมินคู่ค้าก่อนใช้บริการ (Pre-Qualification)</h3>
-        <p class="text-muted mb-0">FM-PRC-P101</p>
+        <p class="mb-0" id="pq-id-container" style="display:none;"><span class="data-label">PQ ID:</span> <span class="data-value" id="pqId"></span></p>
       </div>
       <div class="text-right">
-        <button id="printButton" class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print mr-2"></i>พิมพ์ / PDF</button>
+        <button id="printButton" class="btn btn-secondary" onclick="window.print()" style="display: none;"><i class="fas fa-print mr-2"></i>พิมพ์ / PDF</button>
         <button id="saveButton" class="btn btn-success"><i class="fas fa-save mr-2"></i>บันทึกผลการประเมิน</button>
       </div>
     </div>
@@ -50,8 +50,8 @@
         <p><span class="data-label">บริษัท:</span> <span class="data-value" id="vendorName"></span></p>
         <p><span class="data-label">ประเภทบริษัท:</span> <span class="data-value" id="companyType"></span></p>
         <p><span class="data-label">ทุนจดทะเบียน:</span> <span class="data-value" id="regCapital"></span></p>
-        <p><span class="data-label">Website:</span> <a href="#" target="_blank" id="websiteUrl"></a></p>
-        <p><span class="data-label">Social:</span> <a href="#" target="_blank" id="socialUrl"></a></p>
+        <p><span class="data-label">Website:</span> <span id="websiteUrlContainer"></span></p>
+        <p><span class="data-label">Social:</span> <span id="socialUrlContainer"></span></p>
       </div>
       <div class="col-md-4 text-md-right">
         <p><span class="data-label">วันที่ประเมิน:</span> <span class="data-value" id="evalDate"></span></p>
@@ -76,96 +76,105 @@
       </div>
       <div class="col-md-4"><div class="grade-box" id="grade-box"><span id="final-grade"></span></div></div>
     </div>
-
   </div>
 </div>
 
 <div id="loader"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><p class="mt-3">กำลังคำนวณคะแนน...</p></div>
 
 <script>
-  let pqData = {}; // Global variable to store the PQ data
-  let criteriaData = {}; // Global variable to store criteria
+  let pqData = {}; 
 
   document.addEventListener('DOMContentLoaded', function() {
     const vendorId = '<?= data.vendorId ?>';
-    
-    // [แก้ไข] เรียกข้อมูล 2 ส่วนพร้อมกัน
     Promise.all([
       serverCall('getPreQualificationData', vendorId),
       serverCall('getPQCriteriaForClient')
-    ]).then(([pqResponse, criteriaResponse]) => {
-      
+    ]).then(([pqResponse, criteriaData]) => {
       if (pqResponse.success) {
         pqData = pqResponse.data;
-        criteriaData = criteriaResponse; // เก็บข้อมูลเกณฑ์ไว้ในตัวแปร
-        
-        populateView(pqData, criteriaData); // ส่งข้อมูลเกณฑ์ไปให้ฟังก์ชันแสดงผล
-        
+        populateView(pqData, criteriaData); 
         document.getElementById('loader').style.display = 'none';
         document.getElementById('pq-view-container').style.display = 'block';
       } else {
-        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${pqResponse.message}</div>`;
+        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${pqResponse.message}</div>`;
       }
-
     }).catch(err => {
-      document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</div>`;
+      document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
       handleServerError(err);
     });
       
     document.getElementById('saveButton').addEventListener('click', handleSaveResult);
   });
 
-  // [แก้ไข] ให้ฟังก์ชันรับ criteriaData เข้ามาด้วย
   function populateView(data, criteria) {
-    // --- Populate Header Info ---
     document.getElementById('vendorName').textContent = data.vendorData.NameThai;
-    document.getElementById('companyType').textContent = data.vendorData.CompanyTypeId;
+    document.getElementById('companyType').textContent = data.vendorData.CompanyTypeName || '-';
     document.getElementById('regCapital').textContent = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()} บาท`;
     document.getElementById('evalDate').textContent = new Date(data.calculated.evaluationDate).toLocaleDateString('th-TH');
     document.getElementById('regDate').textContent = data.vendorData.RegisteredDate ? new Date(data.vendorData.RegisteredDate).toLocaleDateString('th-TH') : '-';
     document.getElementById('opDuration').textContent = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`;
     
-    const website = document.getElementById('websiteUrl');
-    const social = document.getElementById('socialUrl');
-    website.href = data.vendorData.WebsiteUrl || '#';
-    website.textContent = data.vendorData.WebsiteUrl || 'N/A';
-    social.href = data.vendorData.SocialUrl || '#';
-    social.textContent = data.vendorData.SocialUrl || 'N/A';
+    // [แก้ไข] ตรวจสอบค่าก่อนแสดงผล ถ้าไม่มีให้แสดงคำว่า "ไม่มี"
+    const websiteContainer = document.getElementById('websiteUrlContainer');
+    const socialContainer = document.getElementById('socialUrlContainer');
+    
+    if (data.vendorData.WebsiteUrl) {
+        websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
+    } else {
+        websiteContainer.textContent = 'ไม่มี';
+    }
 
-    // --- Build Criteria Sections ---
+    if (data.vendorData.SocialUrl) {
+        socialContainer.innerHTML = `<a href="${data.vendorData.SocialUrl}" target="_blank">${data.vendorData.SocialUrl}</a>`;
+    } else {
+        socialContainer.textContent = 'ไม่มี';
+    }
+    
+    // ... โค้ดส่วนที่เหลือของ populateView เหมือนเดิม ...
     const sectionsContainer = document.getElementById('criteria-sections');
     sectionsContainer.innerHTML = '';
     
-    // [แก้ไข] ใช้ criteria ที่รับเข้ามาแทนการเรียก object ที่ฝังไว้
     for(const sectionKey in criteria) {
       const section = criteria[sectionKey];
+      const sectionResult = data.results[sectionKey + 'WeightedScore'];
+      const sectionGrade = data.results[sectionKey + 'Grade'];
+
       let sectionHtml = `<h5 class="pq-section-title">${section.title} (${section.weight * 100}%)</h5>`;
       sectionHtml += `<table class="table table-bordered criteria-table">
-                        <thead class="thead-light"><tr><th>เกณฑ์การพิจารณา</th><th class="check-col">เลือก</th><th class="score-col">คะแนน</th></tr></thead><tbody>`;
+                        <thead class="thead-light"><tr>
+                          <th>เกณฑ์การพิจารณา</th>
+                          <th class="check-col">เลือก</th>
+                          <th class="score-col">คะแนน</th>
+                          <th class="w-score-col">คะแนนรวม</th>
+                        </tr></thead><tbody>`;
       
       for(const itemKey in section.items) {
         const item = section.items[itemKey];
         const actualScore = data.scores[sectionKey][itemKey];
-        
-        sectionHtml += `<tr><td colspan="3" class="table-secondary"><strong>${item.title} (น้ำหนัก ${item.weight * 100}%)</strong></td></tr>`;
-        
+        const weightedScore = data.weightedScores[sectionKey][itemKey];
+        sectionHtml += `<tr><td colspan="4" class="table-secondary"><strong>${item.title} (น้ำหนัก ${item.weight * 100}%)</strong></td></tr>`;
         let vendorValueHtml = getVendorValueHtml(itemKey, data);
-
         item.levels.forEach(level => {
           const isChecked = level.score === actualScore;
           sectionHtml += `<tr>
                             <td>${level.text} ${isChecked ? vendorValueHtml : ''}</td>
-                            <td class="check-col">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td>
-                            <td class="score-col">${level.score}</td>
+                            <td class="text-center">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td>
+                            <td class="text-center">${level.score}</td>
+                            <td class="text-center">${isChecked ? weightedScore : ''}</td>
                           </tr>`;
           if(isChecked) vendorValueHtml = '';
         });
       }
+      sectionHtml += `<tfoot class="font-weight-bold">
+                        <tr>
+                          <td colspan="2" class="text-right">คะแนนรวมหมวดนี้</td>
+                          <td class="text-center" colspan="2">${sectionResult} (เกรด ${sectionGrade})</td>
+                        </tr>
+                      </tfoot>`;
       sectionHtml += `</tbody></table>`;
       sectionsContainer.innerHTML += sectionHtml;
     }
 
-    // --- Populate Summary ---
     document.getElementById('overall-score').textContent = data.results.totalWeightedScore;
     document.getElementById('overall-percent').textContent = `${Math.round(data.results.overallPercentage)}%`;
     const gradeBox = document.getElementById('grade-box');
@@ -175,15 +184,13 @@
     gradeBox.classList.add(`grade-${data.results.grade.replace('+', '')}`);
   }
 
-  // ... ฟังก์ชัน getVendorValueHtml และ handleSaveResult เหมือนเดิม ...
-
   function getVendorValueHtml(itemKey, data) {
     let value = '';
     switch(itemKey) {
-        case 'operatingDuration': value = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`; break;
+        case 'operatingDuration': value = `${Math.floor(data.calculated.operatingYears)} ปี`; break;
         case 'registeredCapital': value = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()}`; break;
         case 'averageRevenue': value = `${Number(data.calculated.avgRevenue || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`; break;
-        case 'financialReadiness': value = `${Number(data.calculated.financialReadiness || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`; break;
+        case 'workingCapital': value = `${Number(data.calculated.workingCapital || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`; break;
         case 'currentRatio': value = `${Number(data.calculated.currentRatio || 0).toFixed(2)}`; break;
         default: return '';
     }
@@ -205,7 +212,15 @@
       const response = await serverCall('savePreQualificationResult', payload);
       if(response.success){
         Swal.fire('บันทึกสำเร็จ!', response.message, 'success');
-        saveButton.disabled = true;
+        
+        // [แก้ไข] ซ่อนปุ่มบันทึก และแสดงปุ่มพิมพ์
+        saveButton.style.display = 'none';
+        document.getElementById('printButton').style.display = 'inline-block';
+
+        if(response.newId) {
+          document.getElementById('pqId').textContent = response.newId;
+          document.getElementById('pq-id-container').style.display = 'block';
+        }
       } else {
         Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
       }
@@ -215,5 +230,4 @@
       setLoading(saveButton, false, 'บันทึกผลการประเมิน');
     }
   }
-
 </script>
