@@ -1,17 +1,15 @@
 /**
  * file: PQ_Service.gs
- * [FINAL] บริการสำหรับคำนวณและสร้างข้อมูล Pre-qualification Form
- * - อัปเดตการคำนวณ averageRevenue และการส่งข้อมูลให้ pastPerformance
+ * [FIXED] แก้ไข Path ในการเรียกใช้เกณฑ์และน้ำหนักจาก PQ_CRITERIA ให้ถูกต้อง
  */
-
 function generatePQData(vendorId) {
     try {
-        // --- 1. ดึงข้อมูลที่จำเป็นทั้งหมด ---
+        // --- 1. ดึงข้อมูล (ส่วนนี้ถูกต้องแล้ว) ---
         const vendor = findVendorById(vendorId);
         if (!vendor) throw new Error("ไม่พบข้อมูล Vendor");
 
-        const allFinances = getFinanceByVendorId(vendorId); // ปีล่าสุดจะอยู่บนสุด
-        const allProjects = getProjectsByVendorId(vendorId); // getProjectsByVendorId
+        const allFinances = getFinanceByVendorId(vendorId);
+        const allProjects = getProjectsByVendorId(vendorId);
         const allProjectOwners = getAllProjectOwners();
         const projectOwnerMap = new Map(allProjectOwners.map(o => [o.Id, o.Name]));
 
@@ -20,68 +18,60 @@ function generatePQData(vendorId) {
             ProjectOwnerName: projectOwnerMap.get(p.ProjectOwnerId) || ''
         }));
 
-        // --- 2. คำนวณค่าพื้นฐาน ---
+        // --- 2. คำนวณค่าพื้นฐาน (ส่วนนี้ถูกต้องแล้ว) ---
         const evaluationDate = new Date();
         const currentYear = evaluationDate.getFullYear();
         const registeredDate = vendor.RegisteredDate ? new Date(vendor.RegisteredDate) : null;
         const operatingYears = registeredDate ? (evaluationDate.getTime() - registeredDate.getTime()) / (1000 * 60 * 60 * 24 * 365) : 0;
         
-        // --- [ส่วนที่แก้ไข] การคำนวณทางการเงิน ---
-        // 2.1 กรองข้อมูลงบการเงินที่ใช้ได้ (ไม่เกิน 5 ปี)
         const recentFinances = allFinances.filter(f => f.Year >= currentYear - 5);
-        
-        // 2.2 หาข้อมูลงบการเงินปีล่าสุด
         const latestFinance = allFinances.length > 0 ? allFinances[0] : {};
-        
-        // 2.3 คำนวณรายได้เฉลี่ยจากข้อมูลงบการเงินย้อนหลัง 3 ปีล่าสุด (ที่ผ่านการกรองแล้ว)
         const relevantRevenueData = recentFinances.slice(0, 3);
         const avgRevenue = relevantRevenueData.reduce((sum, f) => sum + Number(f.Revenue || 0), 0) / (relevantRevenueData.length || 1);
-        
-        // 2.4 คำนวณค่าอื่นๆ จากงบปีล่าสุด
-        const financialReadiness = Number(latestFinance.CurrentAssets || 0) - Number(latestFinance.CurrentLiabilities || 0);
-    
+        const financialReadiness = Number(latestFinance.CurrentAssets || 0) - Number(latestFinance.TotalLiabilities || 0);
         const currentRatio = Number(latestFinance.CurrentLiabilities || 0) > 0 ? Number(latestFinance.CurrentAssets || 0) / Number(latestFinance.CurrentLiabilities) : 0;
-        // --- จบส่วนที่แก้ไข ---
 
-        // --- 3. ประมวลผลคะแนนแต่ละหัวข้อ ---
+        // --- 3. ประมวลผลคะแนนแต่ละหัวข้อ (แก้ไข path) ---
         const scores = { reliability: {}, financial: {} };
-        
-        scores.reliability.companyProfile = PQ_CRITERIA.companyProfile.getScore(vendor);
-        scores.reliability.companyType = PQ_CRITERIA.companyType.getScore(vendor);
-        scores.reliability.operatingDuration = PQ_CRITERIA.operatingDuration.getScore(operatingYears);
-        scores.reliability.pastPerformance = PQ_CRITERIA.pastPerformance.getScore(allProjects, allProjectOwners); // ส่งข้อมูลที่จำเป็นไปให้ครบ
+        const relItems = PQ_CRITERIA.reliability.items;
+        const finItems = PQ_CRITERIA.financial.items;
 
-        scores.financial.registeredCapital = PQ_CRITERIA.registeredCapital.getScore(Number(vendor.RegisteredCapital || 0));
-        scores.financial.averageRevenue = PQ_CRITERIA.averageRevenue.getScore(avgRevenue);
-        scores.financial.financialReadiness = PQ_CRITERIA.financialReadiness.getScore(financialReadiness);
-        scores.financial.currentRatio = PQ_CRITERIA.currentRatio.getScore(currentRatio);
+        scores.reliability.companyProfile = relItems.companyProfile.getScore(vendor);
+        scores.reliability.companyType = relItems.companyType.getScore(vendor);
+        scores.reliability.operatingDuration = relItems.operatingDuration.getScore(operatingYears);
+        scores.reliability.pastPerformance = relItems.pastPerformance.getScore(allProjects, allProjectOwners);
+
+        scores.financial.registeredCapital = finItems.registeredCapital.getScore(Number(vendor.RegisteredCapital || 0));
+        scores.financial.averageRevenue = finItems.averageRevenue.getScore(avgRevenue);
+        scores.financial.financialReadiness = finItems.financialReadiness.getScore(financialReadiness);
+        scores.financial.currentRatio = finItems.currentRatio.getScore(currentRatio);
         
-        // --- 4. คำนวณคะแนนรวมและเกรด (เหมือนเดิม) ---
+        // --- 4. คำนวณคะแนนรวมและเกรด (แก้ไข path) ---
         const reliabilityWeightedScore = 
-            (scores.reliability.companyProfile * PQ_CRITERIA.companyProfile.weight) +
-            (scores.reliability.companyType * PQ_CRITERIA.companyType.weight) +
-            (scores.reliability.operatingDuration * PQ_CRITERIA.operatingDuration.weight) +
-            (scores.reliability.pastPerformance * PQ_CRITERIA.pastPerformance.weight);
+            (scores.reliability.companyProfile * relItems.companyProfile.weight) +
+            (scores.reliability.companyType * relItems.companyType.weight) +
+            (scores.reliability.operatingDuration * relItems.operatingDuration.weight) +
+            (scores.reliability.pastPerformance * relItems.pastPerformance.weight);
 
         const financialWeightedScore = 
-            (scores.financial.registeredCapital * PQ_CRITERIA.registeredCapital.weight) +
-            (scores.financial.averageRevenue * PQ_CRITERIA.averageRevenue.weight) +
-            (scores.financial.financialReadiness * PQ_CRITERIA.financialReadiness.weight) +
-            (scores.financial.currentRatio * PQ_CRITERIA.currentRatio.weight);
+            (scores.financial.registeredCapital * finItems.registeredCapital.weight) +
+            (scores.financial.averageRevenue * finItems.averageRevenue.weight) +
+            (scores.financial.financialReadiness * finItems.financialReadiness.weight) +
+            (scores.financial.currentRatio * finItems.currentRatio.weight);
 
         const totalWeightedScore = reliabilityWeightedScore + financialWeightedScore;
         const reliabilityPercentage = (reliabilityWeightedScore / 2.5) * 100;
         const financialPercentage = (financialWeightedScore / 2.5) * 100;
         const overallPercentage = (totalWeightedScore / 5) * 100;
         
-        // --- 5. สร้าง Object ผลลัพธ์สำหรับส่งกลับ ---
+        // --- 5. สร้าง Object ผลลัพธ์สำหรับส่งกลับ (เหมือนเดิม) ---
         return {
             success: true,
             data: {
                 vendorData: vendor,
-                boardMembers: getBoardMembersByVendorId(vendorId), // ดึงข้อมูลกรรมการมาด้วย
-                financeData: allFinances, // ส่งข้อมูลการเงินทั้งหมดไปแสดง
-                projectData: projectsWithNames, // ส่งข้อมูลโครงการทั้งหมดไปแสดง
+                boardMembers: getBoardMembersByVendorId(vendorId),
+                financeData: allFinances,
+                projectData: projectsWithNames,
                 calculated: {
                     evaluationDate: evaluationDate.toISOString(),
                     operatingYears: operatingYears.toFixed(2),

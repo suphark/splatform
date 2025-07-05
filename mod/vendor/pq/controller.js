@@ -47,3 +47,11 @@ function savePreQualificationResult(pqResultData) {
         return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกผล: " + e.message };
     }
 }
+
+/**
+ * [SERVER-CALL] ดึงข้อมูลเกณฑ์การให้คะแนนทั้งหมด
+ * @returns {object} Object ของ PQ_CRITERIA
+ */
+function getPQCriteriaForClient() {
+  return PQ_CRITERIA;
+}

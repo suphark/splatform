@@ -1,62 +1,35 @@
 <style>
-  /* --- [ เพิ่มส่วนนี้ ] การตั้งค่าหน้ากระดาษ --- */
-  @page {
-    size: A4 portrait; /* แนะนำให้ใช้กระดาษ A4 ในแนวตั้ง size: A4 portrait/landscape*/ 
-    margin: 0;      /* แนะนำให้มีขอบกระดาษ 20mm (ปรับได้ตามต้องการ) */
-  }
-  /* --- จบส่วนที่เพิ่ม --- */
-
-
-  body { background-color: #f0f2f5; }
+  /* --- General & Print Setup --- */
+  @page { size: A4 portrait; margin: 15mm; }
+  body { background-color: #f0f2f5; font-family: 'Sarabun', sans-serif; }
   .pq-container { max-width: 900px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   .pq-header { border-bottom: 2px solid #dee2e6; padding-bottom: 15px; margin-bottom: 20px; }
-  .pq-section-title { font-weight: bold; color: #495057; background-color: #e9ecef; padding: 10px; border-radius: 4px; margin-top: 20px; }
+  .pq-section-title { font-size: 1.2rem; font-weight: bold; color: #fff; background-color: #495057; padding: 10px; border-radius: 4px; margin-top: 25px; margin-bottom: 15px; }
+  .criteria-table { font-size: 0.9rem; }
+  .criteria-table th { background-color: #f8f9fa; }
+  .criteria-table .check-col { width: 40px; text-align: center; }
+  .criteria-table .score-col { width: 60px; text-align: center; }
   .data-label { font-weight: 600; color: #6c757d; }
-  .data-value { font-weight: 500; color: #212529; }
-  .score-box { text-align: center; font-weight: bold; font-size: 1.2rem; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-  .score-final { font-size: 1.5rem; }
-  .grade-box { 
-    padding: 10px; 
-    border-radius: 5px; 
-    color: white; 
-    text-align: center; 
-    font-size: 2rem; 
-    font-weight: bold; 
-    /* --- [เพิ่มส่วนนี้] ทำให้เบราว์เซอร์พิมพ์สีพื้นหลังด้วย --- */
-    /* -webkit-print-color-adjust: exact;
-    print-color-adjust: exact; */
-  }
+  .vendor-info-box p { margin-bottom: 0.5rem; }
+  .check-icon { color: #28a745; font-size: 1.2em; }
+  .vendor-data { font-style: italic; color: #007bff; }
+  .grade-box { padding: 10px; border-radius: 5px; color: white; text-align: center; font-size: 2.2rem; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .grade-A { background-color: #28a745; }
   .grade-B { background-color: #17a2b8; }
   .grade-C { background-color: #ffc107; color: #212529 !important; }
   .grade-D { background-color: #dc3545; }
   #loader { text-align: center; padding: 50px; }
-
-  /* --- [ เพิ่มส่วนนี้ ] CSS สำหรับการพิมพ์ --- */
+  
+  /* --- Print Specific Styles --- */
   @media print {
-    body {
-      background-color: white;
-    }
-    .pq-header .btn, #saveButton, #printButton {
-      display: none; /* ซ่อนปุ่มทั้งหมดตอนพิมพ์ */
-    }
-    .pq-container {
-      box-shadow: none;
-      border: none;
-      margin: 0;
-      padding: 0;
-      max-width: 100%;
-    }
-    h3, h5, p, span, td, th {
-      color: black !important; /* ทำให้ตัวหนังสือเป็นสีดำทั้งหมด */
-    }
-    .grade-box {
-      border: 2px solid #6c757d;
-      background-color: #e9ecef !important; /* ทำให้พื้นหลังเกรดเป็นสีเทาอ่อนๆ */
-    }
+    body { background-color: white; font-size: 10pt; }
+    .pq-header .btn, #saveButton, #printButton { display: none; }
+    .pq-container { box-shadow: none; border: none; margin: 0; padding: 0; max-width: 100%; border-radius: 0; }
+    h3 { font-size: 1.5rem; } h5 { font-size: 1.1rem; }
+    th, td { color: black !important; }
+    .grade-box { border: 2px solid #6c757d; background-color: #e9ecef !important; }
+    a { text-decoration: none; color: inherit; }
   }
-  /* --- จบส่วนที่เพิ่ม --- */
-
 </style>
 
 <div id="pq-view-container" style="display: none;">
@@ -72,43 +45,25 @@
       </div>
     </div>
     
-    <h5>ข้อมูลทั่วไปของคู่ค้า</h5>
-    <div class="row mb-3">
+    <div class="row mb-3 vendor-info-box">
       <div class="col-md-8">
-        <p class="mb-1"><span class="data-label">บริษัท:</span> <span class="data-value" id="vendorName"></span></p>
-        <p class="mb-1"><span class="data-label">ประเภทบริษัท:</span> <span class="data-value" id="companyType"></span></p>
-        <p class="mb-1"><span class="data-label">ทุนจดทะเบียน:</span> <span class="data-value" id="regCapital"></span> บาท</p>
+        <p><span class="data-label">บริษัท:</span> <span class="data-value" id="vendorName"></span></p>
+        <p><span class="data-label">ประเภทบริษัท:</span> <span class="data-value" id="companyType"></span></p>
+        <p><span class="data-label">ทุนจดทะเบียน:</span> <span class="data-value" id="regCapital"></span></p>
+        <p><span class="data-label">Website:</span> <a href="#" target="_blank" id="websiteUrl"></a></p>
+        <p><span class="data-label">Social:</span> <a href="#" target="_blank" id="socialUrl"></a></p>
       </div>
       <div class="col-md-4 text-md-right">
-        <p class="mb-1"><span class="data-label">วันที่ประเมิน:</span> <span class="data-value" id="evalDate"></span></p>
-        <p class="mb-1"><span class="data-label">วันที่จดทะเบียน:</span> <span class="data-value" id="regDate"></span></p>
-        <p class="mb-1"><span class="data-label">อายุบริษัท:</span> <span class="data-value" id="opDuration"></span></p>
+        <p><span class="data-label">วันที่ประเมิน:</span> <span class="data-value" id="evalDate"></span></p>
+        <p><span class="data-label">วันที่จดทะเบียน:</span> <span class="data-value" id="regDate"></span></p>
+        <p><span class="data-label">อายุบริษัท:</span> <span class="data-value" id="opDuration"></span></p>
       </div>
     </div>
-    <hr>
     
-    <div class="row">
-      <div class="col-md-6">
-        <h5 class="pq-section-title">ความน่าเชื่อถือ | RELIABILITY (50%)</h5>
-        <table class="table table-sm table-bordered">
-          <tbody id="reliability-table"></tbody>
-          <tfoot class="font-weight-bold">
-            <tr><td colspan="2">คะแนนรวม (ถ่วงน้ำหนัก)</td><td class="text-center" id="reliability-total-score"></td></tr>
-          </tfoot>
-        </table>
-      </div>
-      <div class="col-md-6">
-        <h5 class="pq-section-title">ด้านการเงิน | FINANCIAL STATUS (50%)</h5>
-        <table class="table table-sm table-bordered">
-           <tbody id="financial-table"></tbody>
-           <tfoot class="font-weight-bold">
-            <tr><td colspan="2">คะแนนรวม (ถ่วงน้ำหนัก)</td><td class="text-center" id="financial-total-score"></td></tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
+    <div id="criteria-sections"></div>
 
-    <div class="row mt-4 align-items-center">
+    <h5 class="pq-section-title">สรุปผลการประเมิน</h5>
+    <div class="row mt-3 align-items-center">
       <div class="col-md-8">
         <table class="table table-bordered">
           <thead class="thead-light"><tr><th>ภาพรวม</th><th>คะแนนรวม (เต็ม 5)</th><th>% รวม</th></tr></thead>
@@ -119,75 +74,100 @@
           </tr></tbody>
         </table>
       </div>
-      <div class="col-md-4">
-        <div class="grade-box" id="grade-box">
-          <span id="final-grade"></span>
-        </div>
-      </div>
+      <div class="col-md-4"><div class="grade-box" id="grade-box"><span id="final-grade"></span></div></div>
     </div>
 
   </div>
 </div>
 
-<div id="loader">
-  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-  <p class="mt-3">กำลังดึงข้อมูลและคำนวณคะแนน...</p>
-</div>
+<div id="loader"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><p class="mt-3">กำลังคำนวณคะแนน...</p></div>
 
 <script>
-  let pqData = {};
+  let pqData = {}; // Global variable to store the PQ data
+  let criteriaData = {}; // Global variable to store criteria
 
   document.addEventListener('DOMContentLoaded', function() {
     const vendorId = '<?= data.vendorId ?>';
     
-    serverCall('getPreQualificationData', vendorId)
-      .then(response => {
-        if (response.success) {
-          pqData = response.data;
-          populateView(pqData);
-          document.getElementById('loader').style.display = 'none';
-          document.getElementById('pq-view-container').style.display = 'block';
-        } else {
-          document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${response.message}</div>`;
-        }
-      })
-      .catch(err => {
-        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${err.message}</div>`;
-        handleServerError(err);
-      });
+    // [แก้ไข] เรียกข้อมูล 2 ส่วนพร้อมกัน
+    Promise.all([
+      serverCall('getPreQualificationData', vendorId),
+      serverCall('getPQCriteriaForClient')
+    ]).then(([pqResponse, criteriaResponse]) => {
+      
+      if (pqResponse.success) {
+        pqData = pqResponse.data;
+        criteriaData = criteriaResponse; // เก็บข้อมูลเกณฑ์ไว้ในตัวแปร
+        
+        populateView(pqData, criteriaData); // ส่งข้อมูลเกณฑ์ไปให้ฟังก์ชันแสดงผล
+        
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('pq-view-container').style.display = 'block';
+      } else {
+        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${pqResponse.message}</div>`;
+      }
+
+    }).catch(err => {
+      document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</div>`;
+      handleServerError(err);
+    });
       
     document.getElementById('saveButton').addEventListener('click', handleSaveResult);
   });
 
-  function populateView(data) {
+  // [แก้ไข] ให้ฟังก์ชันรับ criteriaData เข้ามาด้วย
+  function populateView(data, criteria) {
+    // --- Populate Header Info ---
     document.getElementById('vendorName').textContent = data.vendorData.NameThai;
     document.getElementById('companyType').textContent = data.vendorData.CompanyTypeId;
-    document.getElementById('regCapital').textContent = Number(data.vendorData.RegisteredCapital || 0).toLocaleString();
+    document.getElementById('regCapital').textContent = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()} บาท`;
     document.getElementById('evalDate').textContent = new Date(data.calculated.evaluationDate).toLocaleDateString('th-TH');
     document.getElementById('regDate').textContent = data.vendorData.RegisteredDate ? new Date(data.vendorData.RegisteredDate).toLocaleDateString('th-TH') : '-';
     document.getElementById('opDuration').textContent = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`;
+    
+    const website = document.getElementById('websiteUrl');
+    const social = document.getElementById('socialUrl');
+    website.href = data.vendorData.WebsiteUrl || '#';
+    website.textContent = data.vendorData.WebsiteUrl || 'N/A';
+    social.href = data.vendorData.SocialUrl || '#';
+    social.textContent = data.vendorData.SocialUrl || 'N/A';
 
-    const relTable = document.getElementById('reliability-table');
-    relTable.innerHTML = `
-      <tr><td>ข้อมูลบริษัท</td><td class="text-center">${data.scores.reliability.companyProfile}</td></tr>
-      <tr><td>ประเภทบริษัท</td><td class="text-center">${data.scores.reliability.companyType}</td></tr>
-      <tr><td>ระยะเวลาดำเนินงาน</td><td class="text-center">${data.scores.reliability.operatingDuration}</td></tr>
-      <tr><td>ผลงานที่ผ่านมา</td><td class="text-center">${data.scores.reliability.pastPerformance}</td></tr>
-    `;
+    // --- Build Criteria Sections ---
+    const sectionsContainer = document.getElementById('criteria-sections');
+    sectionsContainer.innerHTML = '';
+    
+    // [แก้ไข] ใช้ criteria ที่รับเข้ามาแทนการเรียก object ที่ฝังไว้
+    for(const sectionKey in criteria) {
+      const section = criteria[sectionKey];
+      let sectionHtml = `<h5 class="pq-section-title">${section.title} (${section.weight * 100}%)</h5>`;
+      sectionHtml += `<table class="table table-bordered criteria-table">
+                        <thead class="thead-light"><tr><th>เกณฑ์การพิจารณา</th><th class="check-col">เลือก</th><th class="score-col">คะแนน</th></tr></thead><tbody>`;
+      
+      for(const itemKey in section.items) {
+        const item = section.items[itemKey];
+        const actualScore = data.scores[sectionKey][itemKey];
+        
+        sectionHtml += `<tr><td colspan="3" class="table-secondary"><strong>${item.title} (น้ำหนัก ${item.weight * 100}%)</strong></td></tr>`;
+        
+        let vendorValueHtml = getVendorValueHtml(itemKey, data);
 
-    const finTable = document.getElementById('financial-table');
-    finTable.innerHTML = `
-      <tr><td>ทุนจดทะเบียน</td><td class="text-center">${data.scores.financial.registeredCapital}</td></tr>
-      <tr><td>รายได้เฉลี่ยย้อนหลัง 3 ปี</td><td class="text-center">${data.scores.financial.averageRevenue}</td></tr>
-      <tr><td>ความพร้อมด้านการเงิน</td><td class="text-center">${data.scores.financial.financialReadiness}</td></tr>
-      <tr><td>Current Ratio</td><td class="text-center">${data.scores.financial.currentRatio}</td></tr>
-    `;
+        item.levels.forEach(level => {
+          const isChecked = level.score === actualScore;
+          sectionHtml += `<tr>
+                            <td>${level.text} ${isChecked ? vendorValueHtml : ''}</td>
+                            <td class="check-col">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td>
+                            <td class="score-col">${level.score}</td>
+                          </tr>`;
+          if(isChecked) vendorValueHtml = '';
+        });
+      }
+      sectionHtml += `</tbody></table>`;
+      sectionsContainer.innerHTML += sectionHtml;
+    }
 
-    document.getElementById('reliability-total-score').textContent = data.results.reliabilityWeightedScore;
-    document.getElementById('financial-total-score').textContent = data.results.financialWeightedScore;
+    // --- Populate Summary ---
     document.getElementById('overall-score').textContent = data.results.totalWeightedScore;
     document.getElementById('overall-percent').textContent = `${Math.round(data.results.overallPercentage)}%`;
-    
     const gradeBox = document.getElementById('grade-box');
     const finalGrade = document.getElementById('final-grade');
     finalGrade.textContent = data.results.grade;
@@ -195,10 +175,24 @@
     gradeBox.classList.add(`grade-${data.results.grade.replace('+', '')}`);
   }
 
+  // ... ฟังก์ชัน getVendorValueHtml และ handleSaveResult เหมือนเดิม ...
+
+  function getVendorValueHtml(itemKey, data) {
+    let value = '';
+    switch(itemKey) {
+        case 'operatingDuration': value = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`; break;
+        case 'registeredCapital': value = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()}`; break;
+        case 'averageRevenue': value = `${Number(data.calculated.avgRevenue || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`; break;
+        case 'financialReadiness': value = `${Number(data.calculated.financialReadiness || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`; break;
+        case 'currentRatio': value = `${Number(data.calculated.currentRatio || 0).toFixed(2)}`; break;
+        default: return '';
+    }
+    return `<span class="vendor-data ml-2">(${value})</span>`;
+  }
+
   async function handleSaveResult() {
     const saveButton = document.getElementById('saveButton');
     setLoading(saveButton, true, 'กำลังบันทึก...');
-
     const payload = {
       vendorId: pqData.vendorData.Id,
       evaluationDate: pqData.calculated.evaluationDate,
@@ -207,7 +201,6 @@
       reliabilityScore: pqData.results.reliabilityWeightedScore,
       financialScore: pqData.results.financialWeightedScore
     };
-    
     try {
       const response = await serverCall('savePreQualificationResult', payload);
       if(response.success){
@@ -222,4 +215,5 @@
       setLoading(saveButton, false, 'บันทึกผลการประเมิน');
     }
   }
+
 </script>
