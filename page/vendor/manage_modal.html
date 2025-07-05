@@ -37,6 +37,14 @@
             <div class="tab-pane fade show active" id="general" role="tabpanel">
               <div class="form-group"><label for="nameThai">ชื่อ (ไทย) <span class="text-danger">*</span></label><input type="text" class="form-control" id="nameThai" required></div>
               <div class="form-group"><label for="nameEnglish">ชื่อ (อังกฤษ)</label><input type="text" class="form-control" id="nameEnglish"></div>
+              <div class="form-group">
+                <label for="websiteUrl">Website URL</label>
+                <input type="url" class="form-control" id="websiteUrl" placeholder="https://example.com">
+              </div>
+              <div class="form-group">
+                <label for="socialUrl">Social URL</label>
+                <input type="url" class="form-control" id="socialUrl" placeholder="https://facebook.com/example">
+              </div>
               <div class="form-group"><label for="packageIds">ประเภทพัสดุที่เกี่ยวข้อง (Package) <span class="text-danger">*</span></label><select multiple class="form-control" id="packageIds" required></select><small class="form-text text-muted">กด Ctrl/Cmd ค้างไว้เพื่อเลือกหลายรายการ</small></div>
               <div class="form-group"><label for="status">สถานะ</label><select class="form-control" id="status"></select></div>
               <div class="form-group"><label for="remark">หมายเหตุ</label><textarea class="form-control" id="remark" rows="3"></textarea></div>

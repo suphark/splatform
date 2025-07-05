@@ -23,6 +23,8 @@ const routeMap = {
   // Vendors
   'vendor/manage': handleManageVendorsPage,
   // Vendor Statuses
+  'vendor/pq': handleVendorPQPage,
+  
 
 
 };
@@ -195,3 +197,15 @@ function handleManageVendorsPage(session, params) {
     title: APP_CONFIG.routing.titles['vendor/manage']
   });
 }
+
+function handleVendorPQPage(session, params) {
+  const vendorId = params.vendorId;
+  if (!vendorId) {
+    return handleNotFoundPage(session, params);
+  }
+  return render('page/vendor/pq_view.html', {
+    title: `Pre-Qualification Form for Vendor: ${vendorId}`,
+    vendorId: vendorId // ส่ง vendorId ไปให้หน้าเว็บ
+  });
+}
+

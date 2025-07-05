@@ -1,0 +1,190 @@
+<style>
+  body { background-color: #f0f2f5; }
+  .pq-container { max-width: 900px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  .pq-header { border-bottom: 2px solid #dee2e6; padding-bottom: 15px; margin-bottom: 20px; }
+  .pq-section-title { font-weight: bold; color: #495057; background-color: #e9ecef; padding: 10px; border-radius: 4px; margin-top: 20px; }
+  .data-label { font-weight: 600; color: #6c757d; }
+  .data-value { font-weight: 500; color: #212529; }
+  .score-box { text-align: center; font-weight: bold; font-size: 1.2rem; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+  .score-final { font-size: 1.5rem; }
+  .grade-box { padding: 10px; border-radius: 5px; color: white; text-align: center; font-size: 2rem; font-weight: bold; }
+  .grade-A { background-color: #28a745; }
+  .grade-B { background-color: #17a2b8; }
+  .grade-C { background-color: #ffc107; color: #212529 !important; }
+  .grade-D { background-color: #dc3545; }
+  #loader { text-align: center; padding: 50px; }
+</style>
+
+<div id="pq-view-container" style="display: none;">
+  <div class="pq-container">
+    <div class="d-flex justify-content-between align-items-center pq-header">
+      <div>
+        <h3 class="mb-0">ประเมินคู่ค้าก่อนใช้บริการ (Pre-Qualification)</h3>
+        <p class="text-muted mb-0">FM-PRC-P101</p>
+      </div>
+      <div class="text-right">
+        <button id="saveButton" class="btn btn-success"><i class="fas fa-save mr-2"></i>บันทึกผลการประเมิน</button>
+      </div>
+    </div>
+    
+    <h5>ข้อมูลทั่วไปของคู่ค้า</h5>
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <p class="mb-1"><span class="data-label">บริษัท:</span> <span class="data-value" id="vendorName"></span></p>
+        <p class="mb-1"><span class="data-label">ประเภทบริษัท:</span> <span class="data-value" id="companyType"></span></p>
+        <p class="mb-1"><span class="data-label">ทุนจดทะเบียน:</span> <span class="data-value" id="regCapital"></span> บาท</p>
+      </div>
+      <div class="col-md-4 text-md-right">
+        <p class="mb-1"><span class="data-label">วันที่ประเมิน:</span> <span class="data-value" id="evalDate"></span></p>
+        <p class="mb-1"><span class="data-label">วันที่จดทะเบียน:</span> <span class="data-value" id="regDate"></span></p>
+        <p class="mb-1"><span class="data-label">อายุบริษัท:</span> <span class="data-value" id="opDuration"></span></p>
+      </div>
+    </div>
+    <hr>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <h5 class="pq-section-title">ความน่าเชื่อถือ | RELIABILITY (50%)</h5>
+        <table class="table table-sm table-bordered">
+          <tbody id="reliability-table"></tbody>
+          <tfoot class="font-weight-bold">
+            <tr>
+              <td colspan="2">คะแนนรวม (ถ่วงน้ำหนัก)</td>
+              <td class="text-center" id="reliability-total-score"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h5 class="pq-section-title">ด้านการเงิน | FINANCIAL STATUS (50%)</h5>
+        <table class="table table-sm table-bordered">
+            <tbody id="financial-table"></tbody>
+           <tfoot class="font-weight-bold">
+            <tr>
+              <td colspan="2">คะแนนรวม (ถ่วงน้ำหนัก)</td>
+              <td class="text-center" id="financial-total-score"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="row mt-4 align-items-center">
+      <div class="col-md-8">
+        <table class="table table-bordered">
+          <thead class="thead-light"><tr><th>ภาพรวม</th><th>คะแนนรวม (เต็ม 5)</th><th>% รวม</th></tr></thead>
+          <tbody><tr>
+            <td class="data-label">ผลการประเมิน</td>
+            <td class="score-box score-final" id="overall-score"></td>
+            <td class="score-box score-final" id="overall-percent"></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div class="col-md-4">
+        <div class="grade-box" id="grade-box">
+          <span id="final-grade"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="loader">
+  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+  <p class="mt-3">กำลังดึงข้อมูลและคำนวณคะแนน...</p>
+</div>
+
+
+<script>
+  let pqData = {}; // Global variable to store the PQ data
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const vendorId = '<?= data.vendorId ?>';
+    
+    serverCall('getPreQualificationData', vendorId)
+      .then(response => {
+        if (response.success) {
+          pqData = response.data; // Store data globally
+          populateView(pqData);
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('pq-view-container').style.display = 'block';
+        } else {
+          document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${response.message}</div>`;
+        }
+      })
+      .catch(err => {
+        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">เกิดข้อผิดพลาด: ${err.message}</div>`;
+      });
+      
+    document.getElementById('saveButton').addEventListener('click', handleSaveResult);
+  });
+
+  function populateView(data) {
+    // Populate header info
+    document.getElementById('vendorName').textContent = data.vendorData.NameThai;
+    document.getElementById('companyType').textContent = data.vendorData.CompanyTypeId; // You can map this to a display name if needed
+    document.getElementById('regCapital').textContent = Number(data.vendorData.RegisteredCapital || 0).toLocaleString();
+    document.getElementById('evalDate').textContent = new Date(data.calculated.evaluationDate).toLocaleDateString('th-TH');
+    document.getElementById('regDate').textContent = data.vendorData.RegisteredDate ? new Date(data.vendorData.RegisteredDate).toLocaleDateString('th-TH') : '-';
+    document.getElementById('opDuration').textContent = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`;
+
+    // Populate tables
+    const relTable = document.getElementById('reliability-table');
+    relTable.innerHTML = `
+      <tr><td>ข้อมูลบริษัท</td><td class="text-center">${data.scores.reliability.companyProfile}</td></tr>
+      <tr><td>ประเภทบริษัท</td><td class="text-center">${data.scores.reliability.companyType}</td></tr>
+      <tr><td>ระยะเวลาดำเนินงาน</td><td class="text-center">${data.scores.reliability.operatingDuration}</td></tr>
+      <tr><td>ผลงานที่ผ่านมา</td><td class="text-center">${data.scores.reliability.pastPerformance}</td></tr>
+    `;
+
+    const finTable = document.getElementById('financial-table');
+    finTable.innerHTML = `
+      <tr><td>ทุนจดทะเบียน</td><td class="text-center">${data.scores.financial.registeredCapital}</td></tr>
+      <tr><td>รายได้เฉลี่ยย้อนหลัง 3 ปี</td><td class="text-center">${data.scores.financial.averageRevenue}</td></tr>
+      <tr><td>ความพร้อมด้านการเงิน</td><td class="text-center">${data.scores.financial.financialReadiness}</td></tr>
+      <tr><td>Current Ratio</td><td class="text-center">${data.scores.financial.currentRatio}</td></tr>
+    `;
+
+    // Populate results
+    document.getElementById('reliability-total-score').textContent = data.results.reliabilityWeightedScore;
+    document.getElementById('financial-total-score').textContent = data.results.financialWeightedScore;
+    document.getElementById('overall-score').textContent = data.results.totalWeightedScore;
+    document.getElementById('overall-percent').textContent = `${Math.round(data.results.overallPercentage)}%`;
+    
+    const gradeBox = document.getElementById('grade-box');
+    const finalGrade = document.getElementById('final-grade');
+    finalGrade.textContent = data.results.grade;
+    gradeBox.className = 'grade-box'; // reset
+    gradeBox.classList.add(`grade-${data.results.grade.replace('+', '')}`);
+  }
+
+  async function handleSaveResult() {
+    const saveButton = document.getElementById('saveButton');
+    setLoading(saveButton, true, 'กำลังบันทึก...');
+
+    const payload = {
+      vendorId: pqData.vendorData.Id,
+      evaluationDate: pqData.calculated.evaluationDate,
+      totalScore: pqData.results.totalWeightedScore,
+      grade: pqData.results.grade,
+      reliabilityScore: pqData.results.reliabilityWeightedScore,
+      financialScore: pqData.results.financialWeightedScore
+    };
+    
+    try {
+      const response = await serverCall('savePreQualificationResult', payload);
+      if(response.success){
+        Swal.fire('บันทึกสำเร็จ!', response.message, 'success');
+        saveButton.disabled = true;
+      } else {
+        Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
+      }
+    } catch (err) {
+      handleServerError(err);
+    } finally {
+      setLoading(saveButton, false, 'บันทึกผลการประเมิน');
+    }
+  }
+
+</script>

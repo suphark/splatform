@@ -7,8 +7,6 @@
 function getPaginatedVendors(options = {}) {
     try {
 
-        console.log('start getPaginatedVendors');
-
         // 1. ดึงข้อมูลดิบและ Join ข้อมูล (เหมือนเดิม)
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
@@ -72,8 +70,6 @@ function getPaginatedVendors(options = {}) {
             },
             filters: [] // << ส่ง Array ว่างเข้าไปเสมอ
         };
-
-        console.log('Config for Pagination:', JSON.stringify(config, null, 2));
 
         const result = getPaginatedData(config);
 

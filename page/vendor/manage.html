@@ -332,8 +332,9 @@
                           <td>${statusBadge}</td>
                           <td>${vendor.Remark || '-'}</td>
                           <td>
-                              <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> 
-                              <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                            <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-info" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
+                            <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> 
+                            <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                           </td>`;
       });
   }
@@ -428,6 +429,8 @@
       document.getElementById('folderId').value = data.FolderId || '';
       document.getElementById('nameThai').value = data.NameThai; 
       document.getElementById('nameEnglish').value = data.NameEnglish || ''; 
+      document.getElementById('websiteUrl').value = data.WebsiteUrl || '';
+      document.getElementById('socialUrl').value = data.SocialUrl || '';
       document.getElementById('status').value = data.StatusId; 
       document.getElementById('remark').value = data.Remark || ''; 
       document.getElementById('companyTypeId').value = data.CompanyTypeId;
@@ -492,6 +495,8 @@ async function handleSaveVendor() {
         FolderId: document.getElementById('folderId').value,
         NameThai: document.getElementById('nameThai').value, 
         NameEnglish: document.getElementById('nameEnglish').value, 
+        WebsiteUrl: document.getElementById('websiteUrl').value,
+        SocialUrl: document.getElementById('socialUrl').value,
         PackageId: $('#packageIds').val(), 
         StatusId: document.getElementById('status').value, 
         Remark: document.getElementById('remark').value, 
