@@ -1,5 +1,5 @@
 /**
-* file : mod_role_controller.gs
+* @file mod/role/controller.js
 */ 
 
 

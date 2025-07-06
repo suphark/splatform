@@ -1,5 +1,5 @@
 /**
- * file : mod_user_controller.gs
+ * file : mod/user/controller.js
  * ประมวลผลคำสั่งที่เกี่ยวกับ User, มีความรับผิดชอบน้อยลง, เรียกใช้ Service แทน
  */
 

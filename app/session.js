@@ -1,5 +1,5 @@
 /**
-* file: app_session.gs
+* @file app/session.js
 */
 
 /**

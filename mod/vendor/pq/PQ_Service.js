@@ -1,8 +1,8 @@
 /**
- * file: PQ_Service.gs
- * [UPDATE]
- * - เปลี่ยนชื่อ financialReadiness เป็น workingCapital
- */
+ * @file mod/vendor/pq/PQ_Service.js
+*/
+
+
 function generatePQData(vendorId) {
     try {
         const vendor = findVendorById(vendorId);

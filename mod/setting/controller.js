@@ -1,5 +1,5 @@
 /**
- * file : mod_setting_controller.gs
+ *   @file mod/setting/controller.js
  * ประมวลผลคำสั่งที่เกี่ยวข้องกับการตั้งค่าเว็บไซต์
  */
 

@@ -1,5 +1,8 @@
-// =================================================================
-//            file: SheetQuery.gs
+/**
+ * @file library/SheetQuery.js
+ * @description A powerful and flexible library for querying and manipulating Google Sheets data. 
+ */
+
 // =================================================================
 // Description: The most complete and robust version, combining all user-added
 // features with all bug fixes, especially for Date object handling.

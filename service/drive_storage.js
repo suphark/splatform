@@ -1,5 +1,5 @@
 /**
- * svc_drive_storage.gs
+ * @file service/drive_storage.js
  * ให้บริการฟังก์ชันเฉพาะทางที่เกี่ยวกับการจัดการไฟล์ใน Google Drive
  */
 

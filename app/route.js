@@ -1,5 +1,5 @@
 /**
- * file: app_route.gs
+ *  @file app/route.js
  * ใช้ Map-based routing ทั้ง doGet และ doPost
  */
 

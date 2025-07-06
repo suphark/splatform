@@ -1,4 +1,9 @@
 /**
+ * @file mod/vendor/contact/controller.js
+ * @description ประมวลผลคำสั่งที่เกี่ยวกับผู้ติดต่อของ Vendor
+*/
+
+/**
  * [SERVER-CALL] ดึงข้อมูลผู้ติดต่อทั้งหมดของ Vendor รายเดียว
  * @param {string} vendorId - ID ของ Vendor
  * @returns {Array<RowObject>} รายชื่อผู้ติดต่อ

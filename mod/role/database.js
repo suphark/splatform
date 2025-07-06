@@ -1,5 +1,5 @@
 /**
- * file : mod_role_database.gs
+ *  @file mod/user/database.js
  */
 
 function findRoleById(roleId) {

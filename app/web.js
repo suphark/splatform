@@ -1,5 +1,5 @@
 /**
-* file: app_web.gs
+* @file app/web.js
 */
 
 function render(filePath, data = {}) {

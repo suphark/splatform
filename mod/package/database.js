@@ -1,4 +1,6 @@
-// file: mod_package_database.gs
+/**
+ * @file mod/package/controller.js
+ */
 
 
 /**

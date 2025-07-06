@@ -1,5 +1,5 @@
 /**
- * file: mod_vendor_board_controller.gs
+ * file: mod/vendor/board/controller.js
  */
 
 // ฟังก์ชันนี้ยังคงเดิม

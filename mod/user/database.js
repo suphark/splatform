@@ -1,5 +1,5 @@
 /**
- * file : mod_user_database.gs
+ * file : mod/user/database.js
  * แก้ไขให้เรียกใช้ Data Access Layer จาก APP_CONFIG โดยตรง
  */
 

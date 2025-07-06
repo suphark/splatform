@@ -1,5 +1,5 @@
 /**
- * file : mod_setting_database.gs
+ *  @file mod/setting/database.js
  */
 
 

@@ -1,8 +1,9 @@
 /**
- * file: PQCriteria.gs
- * [FINAL V2] เก็บค่าคงที่และ Logic การให้คะแนน PQ Form ทั้งหมดในรูปแบบ Structure
+ * @file mod/vendor/pq/PQ_Criteria.js
+ * @description เก็บค่าคงที่และ Logic การให้คะแนน PQ Form ทั้งหมดในรูปแบบ Structure
  * เพื่อให้ง่ายต่อการนำไปแสดงผลใน Frontend
- */
+*/
+
 
 const PQ_CRITERIA = {
     reliability: {

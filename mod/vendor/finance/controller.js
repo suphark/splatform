@@ -1,5 +1,5 @@
 /**
- * file: mod_vendor_finance_controller.gs
+ * file: mod/vendor/finance/controller.js
  */
 
 // ฟังก์ชันนี้ยังคงเดิม

@@ -1,5 +1,5 @@
 /**
- * svc_logger.gs
+ * @file  service/logger.js
  * ทำหน้าที่จัดการการบันทึก Audit Log ทั้งหมด
  */
 

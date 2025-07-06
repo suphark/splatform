@@ -1,5 +1,6 @@
-// file: mod_package_controller.gs
-
+/**
+ * @file mod/package/controller.js
+ */
 
 /**
  * [SERVER-CALL] ดึงรายชื่อ Owner ที่ไม่ซ้ำกันจากชีต Packages

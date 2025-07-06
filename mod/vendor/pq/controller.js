@@ -1,3 +1,7 @@
+/**
+ * @file mod/vendor/pq/controller.js
+*/
+
 
 /**
  * [SERVER-CALL] ดึงข้อมูลทั้งหมดที่จำเป็นสำหรับสร้างฟอร์ม PQ
