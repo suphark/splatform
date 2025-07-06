@@ -22,9 +22,8 @@ const routeMap = {
   'package/manage': handleManagePackagesPage,
   // Vendors
   'vendor/manage': handleManageVendorsPage,
-  // Vendor Statuses
   'vendor/pq': handleVendorPQPage,
-  
+  'vendor/history': handleVendorHistoryPage,
 
 
 };
@@ -33,8 +32,9 @@ function doGet(e) {
   const session = checkUserSession();
   const page = e.parameter.page || (session.isLoggedIn ? 'dashboard' : 'home');
 
-  const requiredRoles = APP_CONFIG.routing.permissions[page];
-  if (requiredRoles) {
+  // [NEW] เพิ่ม permission check สำหรับหน้า history
+  const requiredRoles = APP_CONFIG.routing.permissions[page] || [];
+  if (requiredRoles.length > 0) { // แก้ไขเงื่อนไข
     if (!session.isLoggedIn) {
       return render(APP_CONFIG.routing.files.login, {
         title: APP_CONFIG.routing.titles.login,
@@ -58,6 +58,8 @@ function doGet(e) {
 
   const handler = routeMap[page] || handleNotFoundPage;
   return handler(session, e.parameter);
+
+
 }
 
 // ================== POST ACTION MAP & HANDLERS ==================
@@ -200,12 +202,33 @@ function handleManageVendorsPage(session, params) {
 
 function handleVendorPQPage(session, params) {
   const vendorId = params.vendorId;
-  if (!vendorId) {
+  const pqFormId = params.pqFormId;
+
+  // [UPDATED] ปรับปรุง Logic ให้ยืดหยุ่น
+  if (!vendorId && !pqFormId) {
     return handleNotFoundPage(session, params);
   }
+  
   return render('page/vendor/pq_view.html', {
-    title: `Pre-Qualification Form for Vendor: ${vendorId}`,
-    vendorId: vendorId // ส่ง vendorId ไปให้หน้าเว็บ
+    title: `Pre-Qualification Form`,
+    vendorId: vendorId,
+    pqFormId: pqFormId
   });
 }
 
+/** [NEW] Handler สำหรับหน้าประวัติ PQ */
+function handleVendorHistoryPage(session, params) {
+  const vendorId = params.vendorId;
+  if (!vendorId) {
+    return handleNotFoundPage(session, params);
+  }
+  // เราจะดึงชื่อ Vendor มาแสดงบน Title ด้วย
+  const vendor = findVendorById(vendorId);
+  const vendorName = vendor ? vendor.NameThai : `ID: ${vendorId}`;
+  
+  return render('page/vendor/history.html', {
+    title: `ประวัติการประเมิน: ${vendorName}`,
+    vendorId: vendorId,
+    vendorName: vendorName
+  });
+}

@@ -323,11 +323,8 @@
       vendors.forEach(vendor => {
           const row = tableBody.insertRow();
           const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`;
-          
-          // --- แก้ไขส่วนนี้ ---
           const packageNames = vendor.PackageDisplayNames || [];
           const packageBadges = packageNames.map(name => `<span class="badge badge-info mr-1">${name}</span>`).join(' ');
-          // --- จบส่วนแก้ไข ---
 
           row.innerHTML = `<td>${vendor.NameThai}</td>
                           <td>${vendor.NameEnglish || '-'}</td>
@@ -335,9 +332,12 @@
                           <td>${statusBadge}</td>
                           <td>${vendor.Remark || '-'}</td>
                           <td>
-                            <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-info" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
-                            <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button> 
-                            <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไขข้อมูลหลัก"><i class="fas fa-edit"></i></button>
+                                <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
+                                <a href="<?= data.baseUrl ?>?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ดูประวัติการประเมิน"><i class="fas fa-history"></i></a>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                            </div>
                           </td>`;
       });
   }

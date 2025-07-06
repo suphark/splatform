@@ -25,8 +25,7 @@
   
   @media print {
     body { background-color: white; font-size: 10pt; }
-    /* [แก้ไข] ซ่อนปุ่ม #printButton เพิ่มเข้ามา */
-    .pq-header .btn, #saveButton, #printButton { display: none !important; } 
+    .pq-header .btn, #saveButton, #printButton, #historyButton { display: none !important; } 
     #pq-id-container { display: block !important; }
     .pq-container { box-shadow: none; border: none; margin: 0; padding: 0; max-width: 100%; border-radius: 0; }
     h3, h5, p, span, td, th { color: black !important; }
@@ -43,6 +42,7 @@
         <p class="mb-0" id="pq-id-container" style="display:none;"><span class="data-label">PQ ID:</span> <span class="data-value" id="pqId"></span></p>
       </div>
       <div class="text-right">
+        <a id="historyButton" href="#" class="btn btn-info"><i class="fas fa-history mr-2"></i>ดูประวัติ</a>
         <button id="printButton" class="btn btn-secondary" onclick="window.print()" style="display: none;"><i class="fas fa-print mr-2"></i>พิมพ์ / PDF</button>
         <button id="saveButton" class="btn btn-success"><i class="fas fa-save mr-2"></i>บันทึกผลการประเมิน</button>
       </div>
@@ -86,28 +86,70 @@
 
 <script>
   let pqData = {}; 
+  let criteriaData = {};
 
   document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
     const vendorId = '<?= data.vendorId ?>';
-    Promise.all([
-      serverCall('getPreQualificationData', vendorId),
-      serverCall('getPQCriteriaForClient')
-    ]).then(([pqResponse, criteriaData]) => {
-      if (pqResponse.success) {
-        pqData = pqResponse.data;
-        populateView(pqData, criteriaData); 
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('pq-view-container').style.display = 'block';
-      } else {
-        document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${pqResponse.message}</div>`;
-      }
-    }).catch(err => {
-      document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
-      handleServerError(err);
-    });
+    const pqFormId = '<?= data.pqFormId ?>';
+
+    serverCall('getPQCriteriaForClient').then(criteria => {
+        criteriaData = criteria; // เก็บเกณฑ์ไว้ในตัวแปร global
+        
+        if (pqFormId) {
+            loadSavedForm(pqFormId);
+        } else if (vendorId) {
+            loadNewForm(vendorId);
+        } else {
+            showError("ไม่พบ Vendor ID หรือ PQ Form ID ใน URL");
+        }
+    }).catch(err => showError(err.message));
       
     document.getElementById('saveButton').addEventListener('click', handleSaveResult);
   });
+  
+  function loadNewForm(vendorId) {
+      serverCall('getPreQualificationData', vendorId).then(pqResponse => {
+          if (pqResponse.success) {
+            pqData = pqResponse.data;
+            populateView(pqData, criteriaData);
+            document.getElementById('historyButton').href = `<?= data.baseUrl ?>?page=vendor/history&vendorId=${vendorId}`;
+            finishLoading();
+          } else {
+            showError(pqResponse.message);
+          }
+        }).catch(err => showError(err.message));
+  }
+
+  function loadSavedForm(pqFormId) {
+      serverCall('getSavedPqFormById', pqFormId)
+        .then(response => {
+            if (response.success) {
+                pqData = response.data;
+                populateView(pqData, criteriaData);
+                
+                document.getElementById('saveButton').style.display = 'none';
+                document.getElementById('printButton').style.display = 'inline-block';
+                document.getElementById('pqId').textContent = pqFormId;
+                document.getElementById('pq-id-container').style.display = 'block';
+                document.getElementById('historyButton').href = `<?= data.baseUrl ?>?page=vendor/history&vendorId=${pqData.vendorData.Id}`;
+
+                finishLoading();
+            } else {
+                showError(response.message);
+            }
+        }).catch(err => showError(err.message));
+  }
+
+
+  function finishLoading() {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('pq-view-container').style.display = 'block';
+  }
+  
+  function showError(message) {
+      document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${message}</div>`;
+  }
 
   function populateView(data, criteria) {
     document.getElementById('vendorName').textContent = data.vendorData.NameThai;
@@ -117,23 +159,17 @@
     document.getElementById('regDate').textContent = data.vendorData.RegisteredDate ? new Date(data.vendorData.RegisteredDate).toLocaleDateString('th-TH') : '-';
     document.getElementById('opDuration').textContent = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`;
     
-    // [แก้ไข] ตรวจสอบค่าก่อนแสดงผล ถ้าไม่มีให้แสดงคำว่า "ไม่มี"
     const websiteContainer = document.getElementById('websiteUrlContainer');
     const socialContainer = document.getElementById('socialUrlContainer');
     
     if (data.vendorData.WebsiteUrl) {
         websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
-    } else {
-        websiteContainer.textContent = 'ไม่มี';
-    }
+    } else { websiteContainer.textContent = 'ไม่มี'; }
 
     if (data.vendorData.SocialUrl) {
         socialContainer.innerHTML = `<a href="${data.vendorData.SocialUrl}" target="_blank">${data.vendorData.SocialUrl}</a>`;
-    } else {
-        socialContainer.textContent = 'ไม่มี';
-    }
+    } else { socialContainer.textContent = 'ไม่มี'; }
     
-    // ... โค้ดส่วนที่เหลือของ populateView เหมือนเดิม ...
     const sectionsContainer = document.getElementById('criteria-sections');
     sectionsContainer.innerHTML = '';
     
@@ -143,13 +179,7 @@
       const sectionGrade = data.results[sectionKey + 'Grade'];
 
       let sectionHtml = `<h5 class="pq-section-title">${section.title} (${section.weight * 100}%)</h5>`;
-      sectionHtml += `<table class="table table-bordered criteria-table">
-                        <thead class="thead-light"><tr>
-                          <th>เกณฑ์การพิจารณา</th>
-                          <th class="check-col">เลือก</th>
-                          <th class="score-col">คะแนน</th>
-                          <th class="w-score-col">คะแนนรวม</th>
-                        </tr></thead><tbody>`;
+      sectionHtml += `<table class="table table-bordered criteria-table"><thead class="thead-light"><tr><th>เกณฑ์การพิจารณา</th><th class="check-col">เลือก</th><th class="score-col">คะแนน</th><th class="w-score-col">คะแนนรวม</th></tr></thead><tbody>`;
       
       for(const itemKey in section.items) {
         const item = section.items[itemKey];
@@ -159,25 +189,18 @@
         let vendorValueHtml = getVendorValueHtml(itemKey, data);
         item.levels.forEach(level => {
           const isChecked = level.score === actualScore;
-          sectionHtml += `<tr>
-                            <td>${level.text} ${isChecked ? vendorValueHtml : ''}</td>
-                            <td class="text-center">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td>
-                            <td class="text-center">${level.score}</td>
-                            <td class="text-center">${isChecked ? weightedScore : ''}</td>
-                          </tr>`;
+          // [CRITICAL FIX] แก้ไขบรรทัดนี้: ลบ .toFixed(2) ออก
+          sectionHtml += `<tr><td>${level.text} ${isChecked ? vendorValueHtml : ''}</td><td class="text-center">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td><td class="text-center">${level.score}</td><td class="text-center">${isChecked ? weightedScore : ''}</td></tr>`;
           if(isChecked) vendorValueHtml = '';
         });
       }
-      sectionHtml += `<tfoot class="font-weight-bold">
-                        <tr>
-                          <td colspan="2" class="text-right">คะแนนรวมหมวดนี้</td>
-                          <td class="text-center" colspan="2">${sectionResult} (เกรด ${sectionGrade})</td>
-                        </tr>
-                      </tfoot>`;
+      // [FIX] แก้ไขการแสดงผลรวมของหมวด
+      sectionHtml += `<tfoot class="font-weight-bold"><tr><td colspan="2" class="text-right">คะแนนรวมหมวดนี้</td><td class="text-center" colspan="2">${sectionResult} (เกรด ${sectionGrade})</td></tr></tfoot>`;
       sectionHtml += `</tbody></table>`;
       sectionsContainer.innerHTML += sectionHtml;
     }
 
+    // [FIX] แก้ไขการแสดงผลสรุป
     document.getElementById('overall-score').textContent = data.results.totalWeightedScore;
     document.getElementById('overall-percent').textContent = `${Math.round(data.results.overallPercentage)}%`;
     const gradeBox = document.getElementById('grade-box');
@@ -203,20 +226,12 @@
   async function handleSaveResult() {
     const saveButton = document.getElementById('saveButton');
     setLoading(saveButton, true, 'กำลังบันทึก...');
-    const payload = {
-      vendorId: pqData.vendorData.Id,
-      evaluationDate: pqData.calculated.evaluationDate,
-      totalScore: pqData.results.totalWeightedScore,
-      grade: pqData.results.grade,
-      reliabilityScore: pqData.results.reliabilityWeightedScore,
-      financialScore: pqData.results.financialWeightedScore
-    };
+    
     try {
-      const response = await serverCall('savePreQualificationResult', payload);
+      const response = await serverCall('savePreQualificationResult', pqData);
       if(response.success){
         Swal.fire('บันทึกสำเร็จ!', response.message, 'success');
         
-        // [แก้ไข] ซ่อนปุ่มบันทึก และแสดงปุ่มพิมพ์
         saveButton.style.display = 'none';
         document.getElementById('printButton').style.display = 'inline-block';
 

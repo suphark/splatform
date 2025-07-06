@@ -63,7 +63,8 @@ const ROUTING_CONFIG = {
     'package/manage': 'page/package/manage',
     // ====== Vendor ======
     'vendor/manage': 'page/vendor/manage',
-    // 
+    'vendor/pq': 'page/vendor/pq_view',
+    'vendor/history': 'page/vendor/history',
   },
   permissions: {
     'admin/dashboard': ['Admin'],
@@ -72,6 +73,8 @@ const ROUTING_CONFIG = {
     'admin/role/manage': ['Admin'],
     'package/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/manage': ['Admin', 'PRC', 'CC_PRC'],
+    'vendor/pq': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
+    'vendor/history': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
   },
   titles: {
     'admin/dashboard': "แผงควบคุมผู้ดูแลระบบ",
@@ -88,7 +91,10 @@ const ROUTING_CONFIG = {
     'accessDenied': "ไม่มีสิทธิ์เข้าถึง",
     // ====== Package ======
     'package/manage': "จัดการประเภทพัสดุ",
+    // ====== Vendor ======
     'vendor/manage': "จัดการข้อมูลคู่ค้า (Vendor)",
+    'vendor/pq': "แบบประเมินคู่ค้า",
+    'vendor/history': "ประวัติการประเมินคู่ค้า",
   }
 };
 
