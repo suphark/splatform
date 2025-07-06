@@ -18,6 +18,8 @@ v.2
 
 >> Vendors
  - PJM Code & PJM Link
+ - view only mode
+ - print data
 
 
 =======================================

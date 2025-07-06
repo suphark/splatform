@@ -1,4 +1,9 @@
 /**
+ * @file mod/vendor/status/controller.js
+ */
+
+
+/**
  * [SERVER-CALL] ดึงข้อมูล Vendor Status ทั้งหมดเพื่อใช้สร้างตัวเลือก
  * @returns {Array<RowObject>}
  */

@@ -1,6 +1,5 @@
 /**
- * file: GenericCrudService.gs
- * [NEW ARCHITECTURE]
+ * @file mod/vendor/GenericCrudService.js
  * บริการกลางสำหรับจัดการ CRUD (Create, Read, Update, Delete) ของข้อมูลย่อย
  * ที่มีความคล้ายคลึงกัน เช่น ผู้ติดต่อ, กรรมการ, การเงิน, โครงการ
  * เพื่อลดความซ้ำซ้อนของโค้ดและทำให้ง่ายต่อการเพิ่มส่วนใหม่ๆ ในอนาคต

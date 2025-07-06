@@ -1,5 +1,5 @@
 /**
- * file : mod_vendor_database.gs
+ * @file mod/vendor/database.js
  */
 
 
