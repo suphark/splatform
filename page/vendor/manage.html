@@ -310,6 +310,7 @@
 
   // ==================== DATA FETCHING & RENDERING ====================
   function fetchAndRenderVendors() { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`; const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction }; serverCall('getPaginatedVendors', options).then(response => { if (response.success) { renderVendorTable(response.vendors); renderPagination(response); } else { handleServerError({ message: response.message }); } }).catch(handleServerError); }
+  
   /**
    * [UPDATED] ใช้ข้อมูล PackageDisplayNames ที่ได้จาก Server มาแสดงผล
    */
@@ -317,30 +318,46 @@
       const tableBody = document.getElementById('vendor-table-body');
       tableBody.innerHTML = '';
       if (!vendors || vendors.length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
+          // [FIX] แก้ไข colspan เป็น 7 เพื่อให้ครอบคลุมคอลัมน์ใหม่
+          tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
           return;
       }
       vendors.forEach(vendor => {
           const row = tableBody.insertRow();
           const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`;
-          const packageNames = vendor.PackageDisplayNames || [];
-          const packageBadges = packageNames.map(name => `<span class="badge badge-info mr-1">${name}</span>`).join(' ');
+          const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${name}</span>`).join(' ');
 
-          row.innerHTML = `<td>${vendor.NameThai}</td>
-                          <td>${vendor.NameEnglish || '-'}</td>
-                          <td>${packageBadges || '-'}</td>
-                          <td>${statusBadge}</td>
-                          <td>${vendor.Remark || '-'}</td>
-                          <td>
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไขข้อมูลหลัก"><i class="fas fa-edit"></i></button>
-                                <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
-                                <a href="<?= data.baseUrl ?>?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ดูประวัติการประเมิน"><i class="fas fa-history"></i></a>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
-                            </div>
-                          </td>`;
+          // [NEW] สร้าง Cell สำหรับไอคอนแจ้งเตือน
+          const relationshipCell = vendor.RelationshipInfo 
+              ? `<td>
+                  <span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}">
+                    <i class="fas fa-exclamation-triangle"></i>
+                  </span>
+                </td>` 
+              : '<td></td>';
+
+          // [REVISED] เพิ่ม relationshipCell เข้าไปใน row.innerHTML
+          row.innerHTML = `
+              ${relationshipCell}
+              <td>${vendor.NameThai}</td>
+              <td>${vendor.NameEnglish || '-'}</td>
+              <td>${packageBadges || '-'}</td>
+              <td>${statusBadge}</td>
+              <td>${vendor.Remark || '-'}</td>
+              <td>
+                  <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไขข้อมูลหลัก"><i class="fas fa-edit"></i></button>
+                      <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
+                      <a href="<?= data.baseUrl ?>?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ดูประวัติการประเมิน"><i class="fas fa-history"></i></a>
+                      <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+              </td>`;
       });
+
+      // [NEW] สั่งให้ Bootstrap สร้าง Tooltip ทุกครั้งที่ render ตารางใหม่
+      $('[data-toggle="tooltip"]').tooltip();
   }
+
   function renderPagination(data) { currentPage = data.currentPage; totalPages = data.totalPages; document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`; const paginationControls = document.getElementById('pagination-controls'); paginationControls.innerHTML = ''; const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderVendors(); } }); paginationControls.appendChild(prevLi); const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderVendors(); } }); paginationControls.appendChild(nextLi); }
   function populateStatusFilter() { serverCall('getAllVendorStatuses').then(statuses => { const select = document.getElementById('statusFilter'); for (let i = select.options.length - 1; i > 0; i--) { select.remove(i); } statuses.forEach(stat => select.add(new Option(stat.Name, stat.Id))); }).catch(handleServerError); }
   
@@ -575,7 +592,50 @@ async function handleSaveVendor() {
   
   
   async function handleSaveContact() { const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('contactId').value, VendorId: document.getElementById('contactVendorId').value, Name: document.getElementById('contactName').value, Position: document.getElementById('contactPosition').value, Email: document.getElementById('contactEmail').value, PhoneNumber: "'" + document.getElementById('contactPhoneNumber').value, LineId: document.getElementById('contactLineId').value, }; try { const response = await serverCall('processAddOrEditContact', formData); if (response.success) { showToast(response.message, true); renderContactsTable(response.data); $('#contactModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
-  async function handleSaveBoardMember() { const form = document.getElementById('boardMemberForm'); if (!form.checkValidity()) { form.reportValidity(); return; } const saveButton = document.getElementById('saveBoardMemberButton'); setLoading(saveButton, true); const formData = { Id: document.getElementById('boardMemberId').value, VendorId: document.getElementById('boardMemberVendorId').value, Name: document.getElementById('boardMemberName').value, Surname: document.getElementById('boardMemberSurname').value, }; try { const response = await serverCall('processAddOrEditBoardMember', formData); if (response.success) { showToast(response.message, true); renderBoardMembersTable(response.data); $('#boardMemberModal').modal('hide'); } else { showToast(response.message, false); } } catch (err) { handleServerError(err); } finally { setLoading(saveButton, false); } }
+  
+  async function handleSaveBoardMember() {
+    const form = document.getElementById('boardMemberForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    
+    const saveButton = document.getElementById('saveBoardMemberButton');
+    setLoading(saveButton, true);
+    
+    const formData = {
+        Id: document.getElementById('boardMemberId').value,
+        VendorId: document.getElementById('boardMemberVendorId').value,
+        Name: document.getElementById('boardMemberName').value,
+        Surname: document.getElementById('boardMemberSurname').value,
+    };
+    
+    try {
+        const response = await serverCall('processAddOrEditBoardMember', formData);
+        if (response.success) {
+            renderBoardMembersTable(response.data);
+            $('#boardMemberModal').modal('hide');
+
+            // [NEW] ตรวจสอบและแสดงการแจ้งเตือนความสัมพันธ์
+            if (response.relationshipWarning) {
+                // ใช้ Swal.fire เพื่อให้ผู้ใช้เห็นการแจ้งเตือนที่ชัดเจน
+                Swal.fire({
+                    title: 'บันทึกสำเร็จ!',
+                    text: response.relationshipWarning, // ข้อความแจ้งเตือนจาก Server
+                    icon: 'warning' // ใช้ไอคอนสีเหลืองเพื่อเน้นความสำคัญ
+                });
+            } else {
+                showToast(response.message, true); // หากไม่มีอะไรพิเศษ ก็แสดง Toast ปกติ
+            }
+            // รีเฟรชตาราง Vendor หลักเพื่อให้ไอคอนอัปเดต
+            fetchAndRenderVendors(); 
+
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+  }
   async function handleSaveFinanceRecord() {
     const form = document.getElementById('financeForm');
     if (!form.checkValidity()) {

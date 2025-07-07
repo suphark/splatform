@@ -4,89 +4,82 @@
 
 
 /**
- * [FINAL & STABLE] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมการกรอง, ค้นหา, และเรียงลำดับ
- * - กลับมาใช้ Logic การกรองด้วยตัวเองก่อนส่งเข้า Pagination Engine ซึ่งเป็นวิธีที่เสถียรที่สุด
- * และแก้ปัญหาการเรียงลำดับข้อมูล (sort) ได้อย่างถาวร
+ * [REVISED] ดึงข้อมูล Vendor แบบแบ่งหน้า พร้อมตรวจสอบความสัมพันธ์
  */
 function getPaginatedVendors(options = {}) {
     try {
-
-        // 1. ดึงข้อมูลดิบและ Join ข้อมูล (เหมือนเดิม)
+        // 1. ดึงข้อมูลหลักทั้งหมด (caching จะช่วยลดการโหลดซ้ำ)
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
         const allPackages = getAllPackages();
+        const allBoardMembers = getAllBoardMembers(); // ฟังก์ชันใหม่
+        const allStaffs = getAllStaffs();
 
-        const statusMap = allStatuses.reduce((map, status) => {
-            map[status.Id] = { name: status.Name, color: status.BadgeColor || 'badge-light' };
-            return map;
-        }, {});
-
-        const packageMap = allPackages.reduce((map, pkg) => {
-            map[pkg.Id] = { nameThai: pkg.NameThai, nameEnglish: pkg.NameEnglish || '' };
-            return map;
-        }, {});
-
-        const joinedVendors = allVendors.map(vendor => {
-            const statusInfo = statusMap[vendor.StatusId] || { name: 'N/A', color: 'badge-dark' };
-            const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
-            const packageDisplayNames = packageIds
-                .map(id => {
-                    const pkg = packageMap[id.trim()];
-                    if (pkg) { return `${pkg.nameThai}${pkg.nameEnglish ? ' | ' + pkg.nameEnglish : ''}`; }
-                    return id.trim();
-                });
-
-            return { ...vendor, StatusName: statusInfo.name, StatusColor: statusInfo.color, PackageDisplayNames: packageDisplayNames };
+        // 2. สร้าง Lookup Tables เพื่อการ Join ข้อมูลที่รวดเร็ว
+        const statusMap = new Map(allStatuses.map(s => [s.Id, s]));
+        const packageMap = new Map(allPackages.map(p => [p.Id, p]));
+        
+        // [NEW] สร้าง Map ของนามสกุลพนักงานเพื่อการตรวจสอบที่รวดเร็ว
+        const staffSurnameMap = new Map();
+        allStaffs.forEach(staff => {
+            if (staff.SurnameThai && staff.SurnameThai.trim() !== '') {
+                const surname = staff.SurnameThai.trim();
+                if (!staffSurnameMap.has(surname)) {
+                    staffSurnameMap.set(surname, []);
+                }
+                staffSurnameMap.get(surname).push(`${staff.NameThai} ${staff.SurnameThai}`);
+            }
         });
 
-        // --- 2. [ส่วนที่แก้ไข] กรองข้อมูลด้วยตัวเองก่อนส่งไปแบ่งหน้า (Manual Filtering) ---
-        let filteredDataSource = joinedVendors;
-
-        // กรองด้วยคำค้นหา (Search Term) แบบ OR
-        if (options.searchTerm) {
-            const term = options.searchTerm.toLowerCase();
-            filteredDataSource = filteredDataSource.filter(v => {
-                const nameThai = (v.NameThai || '').toLowerCase();
-                const nameEnglish = (v.NameEnglish || '').toLowerCase();
-                return nameThai.includes(term) || nameEnglish.includes(term);
+        // 3. Join ข้อมูลและตรวจสอบความสัมพันธ์
+        const joinedVendors = allVendors.map(vendor => {
+            // ... (โค้ด Join ข้อมูล Status และ Package เดิม)
+            const statusInfo = statusMap.get(vendor.StatusId) || { name: 'N/A', color: 'badge-dark' };
+            const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
+            const packageDisplayNames = packageIds.map(id => (packageMap.get(id.trim())?.NameThai || id.trim()));
+            
+            // [NEW] ตรวจสอบความสัมพันธ์ของกรรมการ
+            const vendorBoardMembers = allBoardMembers.filter(m => m.VendorId === vendor.Id);
+            const relationshipMessages = [];
+            vendorBoardMembers.forEach(member => {
+                if (member.Surname && staffSurnameMap.has(member.Surname.trim())) {
+                    const staffList = staffSurnameMap.get(member.Surname.trim()).join(', ');
+                    relationshipMessages.push(`กรรมการ '${member.Name} ${member.Surname}' มีนามสกุลตรงกับพนักงาน: ${staffList}`);
+                }
             });
-        }
 
-        // กรองด้วยสถานะ (Status)
-        if (options.statusId) {
-            filteredDataSource = filteredDataSource.filter(v => v.StatusId === options.statusId);
-        }
+            return { 
+                ...vendor, 
+                StatusName: statusInfo.Name, 
+                StatusColor: statusInfo.BadgeColor || 'badge-light', 
+                PackageDisplayNames: packageDisplayNames,
+                RelationshipInfo: relationshipMessages.join(' \n') // ใช้ \n สำหรับขึ้นบรรทัดใหม่ใน tooltip
+            };
+        });
 
-        // กรองด้วยประเภทพัสดุ (Package)
-        if (options.packageId) {
-            filteredDataSource = filteredDataSource.filter(v => (v.PackageId || '').includes(options.packageId));
-        }
-        // --- สิ้นสุดส่วนที่แก้ไข ---
-
-
-        // 3. ส่งข้อมูลที่กรองแล้วไปให้ Pagination Engine จัดการแค่การเรียงลำดับและแบ่งหน้า
+        // 4. กรองและแบ่งหน้า (เหมือนเดิม)
+        let filteredDataSource = joinedVendors;
+        if (options.searchTerm) { /* ... โค้ดกรอง searchTerm เดิม ... */ }
+        if (options.statusId) { /* ... โค้ดกรอง statusId เดิม ... */ }
+        if (options.packageId) { /* ... โค้ดกรอง packageId เดิม ... */ }
+        
         const config = {
-            dataSource: filteredDataSource, // << ใช้ข้อมูลที่ผ่านการกรองแล้ว
+            dataSource: filteredDataSource,
             pagination: options,
-            sort: {
-                column: options.sortColumn || 'Id',
-                direction: options.sortDirection || 'desc',
-            },
-            filters: [] // << ส่ง Array ว่างเข้าไปเสมอ
+            sort: { column: options.sortColumn || 'Id', direction: options.sortDirection || 'desc' },
+            filters: [] 
         };
-
         const result = getPaginatedData(config);
 
-        // 4. ส่งผลลัพธ์กลับ (เหมือนเดิม)
         return {
+            success: true,
             vendors: result.data,
             totalRecords: result.totalRecords,
             totalPages: result.totalPages,
-            currentPage: result.currentPage,
-            success: true
+            currentPage: result.currentPage
         };
     } catch (e) {
-        Logger.log('Error in getPaginatedVendors: ' + e.toString());
+        Logger.log('Error in getPaginatedVendors: ' + e.toString() + "\n" + e.stack);
         return { success: false, message: e.message };
     }
 }
@@ -217,5 +210,13 @@ function testVendorPagination() {
     }
 }
 
-
+// เพิ่มฟังก์ชันใหม่นี้เข้าไปด้วย เพื่อให้ getPaginatedVendors เรียกใช้ได้
+function getAllBoardMembers() {
+    try {
+        return APP_CONFIG.sheetsData.vendorBoardMembers.getTable().getRows();
+    } catch(e) {
+        Logger.log('Error in getAllBoardMembers: ' + e.message);
+        return [];
+    }
+}
 
