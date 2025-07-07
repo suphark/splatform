@@ -4,31 +4,48 @@
  * @description ประมวลผลคำสั่งที่เกี่ยวกับข้อมูลพนักงาน
  */
 
+
 /**
- * [SERVER-CALL] ดึงข้อมูลพนักงานแบบแบ่งหน้า พร้อมกรองและค้นหา
+ * [SERVER-CALL] [REVISED] ดึงข้อมูลพนักงานแบบแบ่งหน้า
  */
 function getPaginatedStaffs(options = {}) {
   try {
     const allStaffs = getAllStaffs();
-    const allDepartments = getAllDepartments();
-    const allSections = getAllSections();
+    const allOrgUnits = getAllDepartments(); // ใช้ฟังก์ชันจาก department/database.js
 
-    const departmentMap = new Map(allDepartments.map(d => [d.Id, d.Name]));
-    const sectionMap = new Map(allSections.map(s => [s.Id, s.Name]));
-    const staffNameMap = new Map(allStaffs.map(s => [s.Id, `${s.NameThai} ${s.SurnameThai}`]));
+    // สร้าง Map สำหรับค้นหาชื่อหน่วยงาน และ Map สำหรับหา Parent
+    const orgUnitMap = new Map(allOrgUnits.map(unit => [unit.Id, unit]));
 
-    // Join data for display and filtering
-    const joinedStaffs = allStaffs.map(staff => ({
-      ...staff,
-      DepartmentName: departmentMap.get(staff.Department) || staff.Department,
-      SectionName: sectionMap.get(staff.Section) || staff.Section,
-      SupervisorName: staffNameMap.get(staff.SupervisorId) || '-',
-    }));
+    // Join data for display
+    const joinedStaffs = allStaffs.map(staff => {
+      const unit = orgUnitMap.get(staff.OrgUnitId);
+      let departmentName = '-';
+      let sectionName = '';
 
+      if (unit) {
+        if (unit.ParentId && orgUnitMap.has(unit.ParentId)) {
+          // This is a Section
+          const parentDept = orgUnitMap.get(unit.ParentId);
+          departmentName = parentDept.Name;
+          sectionName = unit.Name;
+        } else {
+          // This is a Department
+          departmentName = unit.Name;
+        }
+      }
+      
+      return {
+        ...staff,
+        DepartmentName: departmentName,
+        SectionName: sectionName,
+        SupervisorName: allStaffs.find(s => s.Id === staff.SupervisorId)?.NameThai || '-',
+      };
+    });
+
+    // Filtering logic
     const filters = [];
     if (options.searchTerm) {
       const term = options.searchTerm.toLowerCase();
-      // สร้างเงื่อนไขการค้นหาแบบ OR
       filters.push(
         { field: 'NameThai', operator: 'contains', value: term, logic: 'or' },
         { field: 'SurnameThai', operator: 'contains', value: term, logic: 'or' },
@@ -36,39 +53,53 @@ function getPaginatedStaffs(options = {}) {
         { field: 'Email', operator: 'contains', value: term, logic: 'or' }
       );
     }
-    if (options.department) {
-      filters.push({ field: 'Department', operator: 'equals', value: options.department });
-    }
-    if (options.section) {
-      filters.push({ field: 'Section', operator: 'equals', value: options.section });
+    // [REVISED] Filter by a single OrgUnitId
+    if (options.orgUnitId) {
+        // Find all children of the selected unit
+        const selectedUnitId = options.orgUnitId;
+        const childIds = new Set([selectedUnitId]);
+        const findChildrenRecursive = (parentId) => {
+            allOrgUnits.forEach(unit => {
+                if(unit.ParentId === parentId) {
+                    childIds.add(unit.Id);
+                    findChildrenRecursive(unit.Id);
+                }
+            });
+        };
+        findChildrenRecursive(selectedUnitId);
+
+        filters.push({
+            field: 'OrgUnitId',
+            operator: (rowValue) => childIds.has(rowValue) // Custom filter function
+        });
     }
     if (options.status) {
       filters.push({ field: 'Status', operator: 'equals', value: options.status });
     }
 
+    // Custom operator for the filter engine
+    const customOperators = {
+        'equals': (a, b) => String(a).toLowerCase() === String(b).toLowerCase(),
+        'contains': (a, b) => String(a).toLowerCase().includes(String(b).toLowerCase())
+    };
+
     const config = {
       dataSource: joinedStaffs,
       pagination: options,
-      sort: {
-        column: options.sortColumn || 'CreateDate',
-        direction: options.sortDirection || 'desc'
-      },
-      filters: filters
+      sort: { column: options.sortColumn || 'CreateDate', direction: options.sortDirection || 'desc' },
+      filters: filters,
+      customOperators: customOperators
     };
     
     const result = getPaginatedData(config);
 
-    // ส่งข้อมูลกลับไปให้ Client
     return {
-      success: true,
-      data: result.data,
-      totalRecords: result.totalRecords,
-      totalPages: result.totalPages,
-      currentPage: result.currentPage
+      success: true, data: result.data, totalRecords: result.totalRecords,
+      totalPages: result.totalPages, currentPage: result.currentPage
     };
 
   } catch (e) {
-    Logger.log(`Error in getPaginatedStaffs: ${e.message}`);
+    Logger.log(`Error in getPaginatedStaffs: ${e.message}\n${e.stack}`);
     return { success: false, message: e.message };
   }
 }

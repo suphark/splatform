@@ -65,6 +65,46 @@ function getHierarchicalDepartments(options = {}) {
 }
 
 /**
+ * [SERVER-CALL] [HELPER] ดึงรายชื่อฝ่าย/แผนกทั้งหมดในรูปแบบ List ที่มีลำดับชั้น
+ * สำหรับใช้สร้าง Dropdown
+ * @returns {Array<{Id: string, DisplayName: string}>}
+ */
+function getHierarchicalDepartmentsList() {
+    try {
+        const allDepts = getAllDepartments();
+        const deptMap = new Map(allDepts.map(d => [d.Id, { ...d, children: [] }]));
+
+        const tree = [];
+        allDepts.forEach(dept => {
+            if (dept.ParentId && deptMap.has(dept.ParentId)) {
+                deptMap.get(dept.ParentId).children.push(deptMap.get(dept.Id));
+            } else {
+                tree.push(deptMap.get(dept.Id));
+            }
+        });
+
+        const flatList = [];
+        const generateFlatList = (nodes, level = 0) => {
+            nodes.sort((a,b) => a.Name.localeCompare(b.Name)).forEach(node => {
+                flatList.push({
+                    Id: node.Id,
+                    DisplayName: '— '.repeat(level) + node.Name
+                });
+                if (node.children.length > 0) {
+                    generateFlatList(node.children, level + 1);
+                }
+            });
+        };
+
+        generateFlatList(tree);
+        return flatList;
+    } catch (e) {
+        Logger.log("Error in getHierarchicalDepartmentsList: " + e.message);
+        return [];
+    }
+}
+
+/**
  * [SERVER-CALL] ประมวลผลการเพิ่มข้อมูลใหม่
  */
 function processAddNewDepartment(formData) {

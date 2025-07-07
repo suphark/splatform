@@ -47,11 +47,8 @@
   <div class="col-md-4">
     <input type="text" id="searchInput" class="form-control" placeholder="ค้นหา (ชื่อ, นามสกุล, ชื่อเล่น, อีเมล)...">
   </div>
-  <div class="col-md-2">
-    <select id="departmentFilter" class="form-control"><option value="">ทุกฝ่าย</option></select>
-  </div>
-  <div class="col-md-2">
-    <select id="sectionFilter" class="form-control"><option value="">ทุกแผนก</option></select>
+  <div class="col-md-5">
+    <select id="orgUnitFilter" class="form-control" style="width: 100%;"><option value="">ทุกฝ่าย / ทุกแผนก</option></select>
   </div>
   <div class="col-md-2">
     <select id="statusFilter" class="form-control">
@@ -105,7 +102,8 @@
             <p class="mt-3">กำลังโหลดข้อมูล...</p>
         </div>
 
-        <form id="staffForm">
+        <form id="staffForm" style="display: none;">
+          
           <input type="hidden" id="staffId">
 
           <input type="hidden" id="profileImageURL">
@@ -140,8 +138,10 @@
              </div>
           </div>
            <div class="row">
-             <div class="col-md-6 form-group"><label>ฝ่าย</label><select id="department" class="form-control"></select></div>
-             <div class="col-md-6 form-group"><label>แผนก</label><select id="section" class="form-control"></select></div>
+            <div class="col-md-12 form-group">
+                <label>ฝ่าย / แผนก*</label>
+                <select id="orgUnitId" class="form-control" style="width: 100%;" required></select>
+            </div>
           </div>
           <div class="row">
              <div class="col-md-6 form-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="telephone" class="form-control"></div>
@@ -169,14 +169,12 @@
   function fetchAndRenderStaffs() {
     const tableBody = document.getElementById('staff-table-body');
     tableBody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary"></div></td></tr>`;
-
     const options = {
       page: currentPage,
       limit: 10,
       searchTerm: document.getElementById('searchInput').value,
-      department: document.getElementById('departmentFilter').value,
-      section: document.getElementById('sectionFilter').value,
-      status: document.getElementById('statusFilter').value,
+      orgUnitId: $('#orgUnitFilter').val(), // [REVISED]
+      status: $('#statusFilter').val(), // [REVISED] ใช้ jQuery เพื่อความแน่นอน
     };
 
     serverCall('getPaginatedStaffs', options)
@@ -247,26 +245,27 @@
     controls.appendChild(nextLi);
   }
 
-  function populateFilterDropdowns() {
-      const select2Options = {
-          theme: 'bootstrap4',
-          allowClear: true // อนุญาตให้มีปุ่ม (x) เพื่อล้างค่า
-      };
-
-      // ดึงข้อมูลและสร้าง Dropdown สำหรับ "ฝ่าย"
-      serverCall('getAllDepartments').then(data => {
-          populateSelect('departmentFilter', data, 'Id', 'Name', 'ทุกฝ่าย');
-          // แปลงให้เป็น Select2
-          $('#departmentFilter').select2({ ...select2Options, placeholder: 'ทุกฝ่าย' });
-      });
-
-      // ดึงข้อมูลและสร้าง Dropdown สำหรับ "แผนก"
-      serverCall('getAllSections').then(data => {
-          populateSelect('sectionFilter', data, 'Id', 'Name', 'ทุกแผนก');
-          // แปลงให้เป็น Select2
-          $('#sectionFilter').select2({ ...select2Options, placeholder: 'ทุกแผนก' });
-      });
-  }
+    function populateOrgUnitDropdowns() {
+        serverCall('getHierarchicalDepartmentsList').then(data => {
+            // Populate Filter Dropdown
+            const filterSelect = document.getElementById('orgUnitFilter');
+            let filterOptionsHtml = `<option value="">ทุกฝ่าย / ทุกแผนก</option>`;
+            data.forEach(item => {
+                filterOptionsHtml += `<option value="${escapeHtml(item.Id)}">${escapeHtml(item.DisplayName)}</option>`;
+            });
+            filterSelect.innerHTML = filterOptionsHtml;
+            $('#orgUnitFilter').select2({ theme: 'bootstrap4', placeholder: 'ทุกฝ่าย / ทุกแผนก', allowClear: true });
+            
+            // Populate Modal Dropdown
+            const modalSelect = document.getElementById('orgUnitId');
+            let modalOptionsHtml = `<option value="" disabled>--- กรุณาเลือก ---</option>`;
+            data.forEach(item => {
+                modalOptionsHtml += `<option value="${escapeHtml(item.Id)}">${escapeHtml(item.DisplayName)}</option>`;
+            });
+            modalSelect.innerHTML = modalOptionsHtml;
+            // การ initialize ของ modal จะทำใน loadModalDropdowns
+        });
+    }
 
     function populateSelect(selectId, data, valueField, textField, placeholderText) {
         const select = document.getElementById(selectId);
@@ -352,37 +351,25 @@
     }
 
   async function loadModalDropdowns(staffToEdit = null) {
-      // 1. ดึงข้อมูลทั้งหมดสำหรับ Dropdowns
-      const [departments, sections, supervisors] = await Promise.all([
-          serverCall('getAllDepartments'),
-          serverCall('getAllSections'),
-          serverCall('getAllStaffsForSelection')
-      ]);
+      // ดึงข้อมูลหัวหน้างานอย่างเดียว เพราะ OrgUnit ถูก populate ไปแล้ว
+      const supervisors = await serverCall('getAllStaffsForSelection');
 
-      // 2. สร้าง options ให้กับ select element (ยังไม่เป็น Select2)
-      populateSelect('department', departments, 'Id', 'Name', '--- เลือกฝ่าย ---');
-      populateSelect('section', sections, 'Id', 'Name', '--- เลือกแผนก ---');
+      // สร้าง Dropdown หัวหน้างาน
       populateSelect('supervisorId', supervisors, 'Id', 'DisplayName', '-- ไม่มีหัวหน้างาน --');
+      
+      // [NEW] กำหนดค่า Options สำหรับ Select2
+      const select2ModalOptions = { theme: 'bootstrap4', dropdownParent: $('#staffModal') };
 
-      // 3. [NEW] กำหนดค่า Options สำหรับ Select2 ที่จะใช้ใน Modal
-      const select2ModalOptions = {
-          theme: 'bootstrap4',
-          dropdownParent: $('#staffModal') // คำสั่งสำคัญ! ทำให้ช่องค้นหาทำงานใน Modal ได้
-      };
-
-      // 4. [NEW] แปลง select ธรรมดาให้เป็น Select2
-      $('#department').select2(select2ModalOptions);
-      $('#section').select2(select2ModalOptions);
+      // [NEW] แปลง select ทั้งหมดใน Modal ให้เป็น Select2
+      $('#orgUnitId').select2(select2ModalOptions);
       $('#supervisorId').select2(select2ModalOptions);
 
-      // 5. [REVISED] หากเป็นการแก้ไข ให้กำหนดค่าและสั่งให้ Select2 อัปเดตการแสดงผล
+      // หากเป็นการแก้ไข ให้กำหนดค่าที่เลือกไว้
       if (staffToEdit) {
-          $('#department').val(staffToEdit.Department || '').trigger('change');
-          $('#section').val(staffToEdit.Section || '').trigger('change');
+          $('#orgUnitId').val(staffToEdit.OrgUnitId || '').trigger('change');
           $('#supervisorId').val(staffToEdit.SupervisorId || '').trigger('change');
       } else {
-          // กรณีเป็นการเพิ่มใหม่, เคลียร์ค่าเพื่อให้แสดง placeholder
-          $('#department, #section, #supervisorId').val(null).trigger('change');
+          $('#orgUnitId, #supervisorId').val(null).trigger('change');
       }
   }
 
@@ -404,8 +391,8 @@
         NameEnglish: document.getElementById('nameEnglish').value,
         SurnameEnglish: document.getElementById('surnameEnglish').value,
         Designation: document.getElementById('designation').value,
-        Department: document.getElementById('department').value,
-        Section: document.getElementById('section').value,
+        OrgUnitId: $('#orgUnitId').val(), // [REVISED]
+        // Section: document.getElementById('section').value,
         Telephone: document.getElementById('telephone').value,
         Email: document.getElementById('email').value,
         StaffId: document.getElementById('staffIdField').value,
@@ -495,7 +482,7 @@
   // ==================== Event Listeners Setup ====================
   document.addEventListener('DOMContentLoaded', function () {
     fetchAndRenderStaffs();
-    populateFilterDropdowns();
+    populateOrgUnitDropdowns(); 
 
     document.getElementById('searchInput').addEventListener('input', () => {
       clearTimeout(debounceTimer);
@@ -505,8 +492,8 @@
       }, 500);
     });
 
-    // [NEW] ใช้ jQuery ดักจับ Event 'change' ซึ่งทำงานกับ Select2 ได้ดีกว่า
-    $('#departmentFilter, #sectionFilter, #statusFilter').on('change', function() {
+    // [REVISED] เปลี่ยน Listener ของ Filter
+    $('#orgUnitFilter, #statusFilter').on('change', function() {
         currentPage = 1;
         fetchAndRenderStaffs();
     });

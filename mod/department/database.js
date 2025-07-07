@@ -24,7 +24,7 @@ function findDepartmentById(id) {
 
 function addNewDepartment(data) {
     getDepartmentsTable()
-        .withUniqueId('Id', { strategy: 'increment', padding: 4, prefix: 'ORG-' })
+        .withUniqueId('Id', { strategy: 'increment', padding: 5, prefix: 'ORG-' })
         .insertRows([{
             Name: data.Name,
             Description: data.Description || '',
