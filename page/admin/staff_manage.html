@@ -248,8 +248,24 @@
   }
 
   function populateFilterDropdowns() {
-    serverCall('getAllDepartments').then(data => populateSelect('departmentFilter', data, 'Id', 'Name'));
-    serverCall('getAllSections').then(data => populateSelect('sectionFilter', data, 'Id', 'Name'));
+      const select2Options = {
+          theme: 'bootstrap4',
+          allowClear: true // อนุญาตให้มีปุ่ม (x) เพื่อล้างค่า
+      };
+
+      // ดึงข้อมูลและสร้าง Dropdown สำหรับ "ฝ่าย"
+      serverCall('getAllDepartments').then(data => {
+          populateSelect('departmentFilter', data, 'Id', 'Name', 'ทุกฝ่าย');
+          // แปลงให้เป็น Select2
+          $('#departmentFilter').select2({ ...select2Options, placeholder: 'ทุกฝ่าย' });
+      });
+
+      // ดึงข้อมูลและสร้าง Dropdown สำหรับ "แผนก"
+      serverCall('getAllSections').then(data => {
+          populateSelect('sectionFilter', data, 'Id', 'Name', 'ทุกแผนก');
+          // แปลงให้เป็น Select2
+          $('#sectionFilter').select2({ ...select2Options, placeholder: 'ทุกแผนก' });
+      });
   }
 
     function populateSelect(selectId, data, valueField, textField, placeholderText) {
@@ -268,6 +284,10 @@
   // ==================== Modal & CRUD Functions (Attached to window) ====================
   
   window.prepareAddModal = function() {
+    // [NEW] ทำลาย Select2 instance เก่า
+    $('#department, #section, #supervisorId').each(function() {
+        if ($(this).data('select2')) { $(this).select2('destroy'); }
+    });
     document.getElementById('staffForm').reset();
     document.getElementById('staffId').value = '';
     document.getElementById('staffModalLabel').textContent = 'เพิ่มข้อมูลพนักงาน';
@@ -285,6 +305,10 @@
 
     // [REVISED] แก้ไขฟังก์ชัน prepareEditModal ทั้งหมด
     window.prepareEditModal = async function(buttonElement) { // ทำให้เป็น async function
+          // [NEW] ทำลาย Select2 instance เก่า
+        $('#department, #section, #supervisorId').each(function() {
+            if ($(this).data('select2')) { $(this).select2('destroy'); }
+        });
         // 1. รีเซ็ตฟอร์ม, ตั้งชื่อ Modal, และแสดง Modal ทันที
         document.getElementById('staffForm').reset();
         document.getElementById('staffModalLabel').textContent = 'แก้ไขข้อมูลพนักงาน';
@@ -327,26 +351,40 @@
         }
     }
 
-    async function loadModalDropdowns(staffToEdit = null) {
-    // Promise.all เพื่อดึงข้อมูลทั้งหมดพร้อมกัน
-    const [departments, sections, supervisors] = await Promise.all([
-        serverCall('getAllDepartments'),
-        serverCall('getAllSections'),
-        serverCall('getAllStaffsForSelection')
-    ]);
+  async function loadModalDropdowns(staffToEdit = null) {
+      // 1. ดึงข้อมูลทั้งหมดสำหรับ Dropdowns
+      const [departments, sections, supervisors] = await Promise.all([
+          serverCall('getAllDepartments'),
+          serverCall('getAllSections'),
+          serverCall('getAllStaffsForSelection')
+      ]);
 
-    // สร้าง Dropdown พร้อม Placeholder
-    populateSelect('department', departments, 'Id', 'Name', '--- เลือกฝ่าย ---');
-    populateSelect('section', sections, 'Id', 'Name', '--- เลือกแผนก ---');
-    populateSelect('supervisorId', supervisors, 'Id', 'DisplayName', '-- ไม่มีหัวหน้างาน --');
-    
-    // หากเป็นการแก้ไข (มีข้อมูล staffToEdit) ให้กำหนดค่าที่เลือกไว้
-    if (staffToEdit) {
-        document.getElementById('department').value = staffToEdit.Department || '';
-        document.getElementById('section').value = staffToEdit.Section || '';
-        document.getElementById('supervisorId').value = staffToEdit.SupervisorId || '';
-    }
-    }
+      // 2. สร้าง options ให้กับ select element (ยังไม่เป็น Select2)
+      populateSelect('department', departments, 'Id', 'Name', '--- เลือกฝ่าย ---');
+      populateSelect('section', sections, 'Id', 'Name', '--- เลือกแผนก ---');
+      populateSelect('supervisorId', supervisors, 'Id', 'DisplayName', '-- ไม่มีหัวหน้างาน --');
+
+      // 3. [NEW] กำหนดค่า Options สำหรับ Select2 ที่จะใช้ใน Modal
+      const select2ModalOptions = {
+          theme: 'bootstrap4',
+          dropdownParent: $('#staffModal') // คำสั่งสำคัญ! ทำให้ช่องค้นหาทำงานใน Modal ได้
+      };
+
+      // 4. [NEW] แปลง select ธรรมดาให้เป็น Select2
+      $('#department').select2(select2ModalOptions);
+      $('#section').select2(select2ModalOptions);
+      $('#supervisorId').select2(select2ModalOptions);
+
+      // 5. [REVISED] หากเป็นการแก้ไข ให้กำหนดค่าและสั่งให้ Select2 อัปเดตการแสดงผล
+      if (staffToEdit) {
+          $('#department').val(staffToEdit.Department || '').trigger('change');
+          $('#section').val(staffToEdit.Section || '').trigger('change');
+          $('#supervisorId').val(staffToEdit.SupervisorId || '').trigger('change');
+      } else {
+          // กรณีเป็นการเพิ่มใหม่, เคลียร์ค่าเพื่อให้แสดง placeholder
+          $('#department, #section, #supervisorId').val(null).trigger('change');
+      }
+  }
 
   async function handleSave() {
     const form = document.getElementById('staffForm');
@@ -467,11 +505,10 @@
       }, 500);
     });
 
-    ['departmentFilter', 'sectionFilter', 'statusFilter'].forEach(id => {
-      document.getElementById(id).addEventListener('change', () => {
+    // [NEW] ใช้ jQuery ดักจับ Event 'change' ซึ่งทำงานกับ Select2 ได้ดีกว่า
+    $('#departmentFilter, #sectionFilter, #statusFilter').on('change', function() {
         currentPage = 1;
         fetchAndRenderStaffs();
-      });
     });
 
     document.getElementById('saveStaffButton').addEventListener('click', handleSave);
