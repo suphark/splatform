@@ -63,15 +63,24 @@
       </div>
     </div>
 
+    <!-- ตรวจสอบความสัมพันธ์ -->
     <h5 class="pq-section-title">ผลการตรวจสอบความสัมพันธ์ (Relationship Check)</h5>
     <div id="relationship-results-container" class="mb-4"></div>
-    <div id="criteria-sections"></div>
-    
+
+    <h5 class="pq-section-title">ข้อมูลงบการเงินย้อนหลัง</h5>
+    <div id="finance-table-container" class="mb-4 table-responsive">
+    </div>
+
+    <h5 class="pq-section-title">โครงการอ้างอิง</h5>
+    <div id="projects-table-container" class="mb-4 table-responsive">
+    </div>
+
+    <!-- ตารางเกณฑ์การประเมินทั้งหมด -->
     <div id="criteria-sections"></div>
 
     <h5 class="pq-section-title">สรุปผลการประเมิน</h5>
     <div class="row mt-3 align-items-center">
-      <div class="col-md-8">
+      <div class="col-sm-8">
         <table class="table table-bordered">
           <thead class="thead-light"><tr><th>ภาพรวม</th><th>คะแนนรวม (เต็ม 5)</th><th>% รวม</th></tr></thead>
           <tbody><tr>
@@ -81,7 +90,7 @@
           </tr></tbody>
         </table>
       </div>
-      <div class="col-md-4"><div class="grade-box" id="grade-box"><span id="final-grade"></span></div></div>
+      <div class="col-sm-4"><div class="grade-box" id="grade-box"><span id="final-grade"></span></div></div>
     </div>
   </div>
 </div>
@@ -155,7 +164,74 @@
       document.getElementById('loader').innerHTML = `<div class="alert alert-danger">Error: ${message}</div>`;
   }
 
+  // [REVISED] ฟังก์ชันสำหรับสร้างตารางงบการเงิน
+  function renderPqFinanceTable(financeData) {
+      const container = document.getElementById('finance-table-container');
+      if (!financeData || financeData.length === 0) {
+          container.innerHTML = '<p class="text-muted font-italic">ไม่มีข้อมูลงบการเงิน</p>';
+          return;
+      }
+
+      let tableHtml = `<table class="table table-sm table-bordered">
+                          <thead class="thead-light">
+                              <tr>
+                                  <th>ปี</th>
+                                  <th class="text-right">รายได้</th>
+                                  <th class="text-right">สินทรัพย์หมุนเวียน</th>
+                                  <th class="text-right">หนี้สินหมุนเวียน</th>
+                                  <th class="text-right">หนี้สินรวม</th>
+                              </tr>
+                          </thead>
+                          <tbody>`;
+      
+      financeData.forEach(rec => {
+          tableHtml += `<tr>
+                          <td>${rec.Year}</td>
+                          <td class="text-right">${Number(rec.Revenue || 0).toLocaleString()}</td>
+                          <td class="text-right">${Number(rec.CurrentAssets || 0).toLocaleString()}</td>
+                          <td class="text-right">${Number(rec.CurrentLiabilities || 0).toLocaleString()}</td>
+                          <td class="text-right">${Number(rec.TotalLiabilities || 0).toLocaleString()}</td>
+                        </tr>`;
+      });
+
+      tableHtml += `</tbody></table>`;
+      container.innerHTML = tableHtml;
+  }
+
+  // [REVISED] ฟังก์ชันสำหรับสร้างตารางโครงการอ้างอิง
+  function renderPqProjectsTable(projectData) {
+      const container = document.getElementById('projects-table-container');
+      if (!projectData || projectData.length === 0) {
+          container.innerHTML = '<p class="text-muted font-italic">ไม่มีโครงการอ้างอิง</p>';
+          return;
+      }
+      
+      let tableHtml = `<table class="table table-sm table-bordered">
+                          <thead class="thead-light">
+                              <tr>
+                                  <th>ชื่อโครงการ</th>
+                                  <th>ประเภทโครงการ</th>
+                                  <th>เจ้าของโครงการ</th>
+                                  <th>ประเภทงาน</th>
+                              </tr>
+                          </thead>
+                          <tbody>`;
+
+      projectData.forEach(p => {
+          tableHtml += `<tr>
+                          <td>${p.ProjectName}</td>
+                          <td>${p.ProjectTypeName || '-'}</td>
+                          <td>${p.ProjectOwnerName}</td>
+                          <td>${p.PackageNamesDisplay || '-'}</td>
+                        </tr>`;
+      });
+
+      tableHtml += `</tbody></table>`;
+      container.innerHTML = tableHtml;
+  }
+
   function populateView(data, criteria) {
+    document.getElementById('historyButton').href = `<?= data.baseUrl ?>?page=vendor/history&vendorId=${data.vendorData.Id}`;
     document.getElementById('vendorName').textContent = data.vendorData.NameThai;
     document.getElementById('companyType').textContent = data.vendorData.CompanyTypeName || '-';
     document.getElementById('regCapital').textContent = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()} บาท`;
@@ -185,6 +261,9 @@
     } else {
         relContainer.innerHTML = '<p class="text-muted font-italic">ไม่พบความสัมพันธ์ของกรรมการกับพนักงานในบริษัท</p>';
     }
+
+    renderPqFinanceTable(data.financeData);
+    renderPqProjectsTable(data.projectData);
 
     if (data.vendorData.WebsiteUrl) {
         websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
