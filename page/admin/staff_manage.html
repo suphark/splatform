@@ -487,10 +487,10 @@
     document.getElementById('staff-table-body').innerHTML = `<tr><td colspan="8" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
   }
   
-  function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return String(text).replace(/[&<>"']/g, m => map[m]);
-  }
+  // function escapeHtml(text) {
+  //   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  //   return String(text).replace(/[&<>"']/g, m => map[m]);
+  // }
 
   // ==================== Event Listeners Setup ====================
   document.addEventListener('DOMContentLoaded', function () {

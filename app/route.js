@@ -14,6 +14,7 @@ const routeMap = {
   'admin/dashboard': handleAdminDashboardPage,
   'admin/settings': handleAdminSettingsPage,
   'admin/staff/manage': handleManageStaffsPage, 
+  'admin/department/manage': handleManageDepartmentsPage,
   'forgot-password': handleForgotPasswordPage,
   'reset-password': handleResetPasswordPage,
   'home': handleHomePage,
@@ -236,3 +237,9 @@ function handleManageStaffsPage(session, params) {
   });
 }
 
+// [NEW] เพิ่ม Handler สำหรับหน้าจัดการฝ่าย/แผนก
+function handleManageDepartmentsPage(session, params) {
+  return render(APP_CONFIG.routing.files['admin/department/manage'], {
+    title: APP_CONFIG.routing.titles['admin/department/manage']
+  });
+}

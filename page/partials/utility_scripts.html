@@ -59,6 +59,24 @@
         showToast('เกิดข้อผิดพลาด: ' + error.message, false);
     }
 
+        /**
+     * [NEW] เพิ่มฟังก์ชันนี้เข้าไปในไฟล์ utility_scripts.html
+     * แปลงอักขระพิเศษของ HTML เพื่อป้องกันการทำลายโครงสร้าง
+     * @param {string} text - ข้อความที่ต้องการแปลง
+     * @returns {string} ข้อความที่ปลอดภัยสำหรับ HTML
+     */
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        // ตรวจสอบให้แน่ใจว่าเป็น String ก่อนที่จะ replace
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
 /**
  * [UPDATED] จัดการสถานะ Loading ของปุ่มให้มีความเสถียรมากขึ้น
  * @param {HTMLElement} button - Element ของปุ่ม

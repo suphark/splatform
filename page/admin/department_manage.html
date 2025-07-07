@@ -1,0 +1,243 @@
+<style>
+  .item-row.level-1 { background-color: #f8f9fa; font-weight: bold; }
+  .item-row.level-2 > td:first-child { padding-left: 2.5rem; }
+  .item-row.level-3 > td:first-child { padding-left: 5rem; }
+  .item-row > td:first-child > .item-name::before { content: '↳ '; color: #999; }
+  .item-row.level-1 > td:first-child > .item-name::before { content: ''; }
+</style>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-sitemap"></i> <?= data.title ?></h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-8">
+        <div class="input-group">
+            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div>
+            <input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อฝ่ายหรือแผนก...">
+        </div>
+    </div>
+    <div class="col-md-4 text-right">
+        <button type="button" class="btn btn-success" onclick="prepareAddModal(null)"><i class="fas fa-plus"></i> เพิ่มฝ่าย</button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>ชื่อฝ่าย / แผนก</th>
+                <th>คำอธิบาย</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="data-table-body"></tbody>
+    </table>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div><span id="pageInfo"></span></div>
+    <nav><ul class="pagination mb-0" id="pagination-controls"></ul></nav>
+</div>
+
+<div class="modal fade" id="dataModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dataModalLabel"></h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dataForm">
+                    <input type="hidden" id="dataId">
+                    <input type="hidden" id="parentId">
+                    <div class="form-group">
+                        <label>เป็นแผนกย่อยของ:</label>
+                        <p id="parentNameDisplay" class="font-weight-bold">N/A</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataName">ชื่อ</label>
+                        <input type="text" class="form-control" id="dataName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataDescription">คำอธิบาย</label>
+                        <textarea class="form-control" id="dataDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" id="saveDataButton" class="btn btn-primary" form="dataForm">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allDataFlat = [], hierarchicalData = [], searchTerm = '', debounceTimer, currentPage = 1;
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchAndRenderData();
+    
+    document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
+    
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { searchTerm = searchInput.value; currentPage = 1; fetchAndRenderData(); }, 500);
+    });
+
+    const prevButton = document.getElementById('prevButton'), nextButton = document.getElementById('nextButton');
+});
+
+async function fetchAndRenderData() {
+    const tableBody = document.getElementById('data-table-body');
+    tableBody.innerHTML = `<tr><td colspan="3" class="text-center"><div class="spinner-border"></div></td></tr>`;
+    try {
+        const response = await serverCall('getHierarchicalDepartments', { searchTerm: searchTerm, page: currentPage, limit: 20 });
+        if (response.success) {
+            hierarchicalData = Array.isArray(response.data) ? response.data : [];
+            renderFullTable();
+            renderPagination(response);
+        } else { throw new Error(response.message); }
+    } catch (err) {
+        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, false);
+        tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">โหลดข้อมูลล้มเหลว</td></tr>`;
+    }
+}
+
+function renderFullTable() {
+    const tableBody = document.getElementById('data-table-body');
+    tableBody.innerHTML = '';
+    allDataFlat = flattenTree(hierarchicalData);
+    if (hierarchicalData.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="3" class="text-center">ไม่พบข้อมูล</td></tr>`;
+    } else {
+        hierarchicalData.forEach(item => renderRow(item, 1, tableBody));
+    }
+}
+
+function renderRow(item, level, tableBody) {
+    const row = document.createElement('tr');
+    row.id = `item-row-${item.Id}`;
+    row.dataset.item = JSON.stringify(item);
+    row.className = `item-row level-${level}`;
+    row.innerHTML = `
+        <td><span class="item-name">${item.Name}</span></td>
+        <td>${item.Description || '-'}</td>
+        <td>
+            <button class="btn btn-sm btn-success" title="เพิ่มแผนกย่อย" onclick="prepareAddModal('${item.Id}')"><i class="fas fa-plus-circle"></i></button>
+            <button class="btn btn-sm btn-warning" title="แก้ไข" onclick="prepareEditModal(event)"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-danger" title="ลบ" onclick="handleDelete('${item.Id}', '${escapeHtml(item.Name)}')"><i class="fas fa-trash-alt"></i></button>
+        </td>`;
+    tableBody.appendChild(row);
+    if (item.children && item.children.length > 0) {
+        item.children.forEach(child => renderRow(child, level + 1, tableBody));
+    }
+}
+
+function renderPagination(data) {
+    currentPage = data.currentPage;
+    const totalPages = data.totalPages;
+    document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการหลัก)`;
+    const paginationControls = document.getElementById('pagination-controls');
+    paginationControls.innerHTML = ''; // Clear old buttons
+    
+    // Previous Button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`;
+    prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderData(); } });
+    paginationControls.appendChild(prevLi);
+
+    // Next Button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`;
+    nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderData(); } });
+    paginationControls.appendChild(nextLi);
+}
+
+
+function prepareAddModal(parentId) {
+    document.getElementById('dataForm').reset();
+    document.getElementById('dataModalLabel').textContent = parentId ? 'เพิ่มแผนกใหม่' : 'เพิ่มฝ่ายใหม่';
+    document.getElementById('dataId').value = '';
+    document.getElementById('parentId').value = parentId || '';
+    const parent = parentId ? allDataFlat.find(p => p.Id === parentId) : null;
+    document.getElementById('parentNameDisplay').textContent = parent ? parent.Name : 'ไม่มี (เป็นฝ่ายหลัก)';
+    $('#dataModal').modal('show');
+}
+
+function prepareEditModal(event) {
+    const row = event.target.closest('tr');
+    const item = JSON.parse(row.dataset.item);
+    document.getElementById('dataForm').reset();
+    document.getElementById('dataModalLabel').textContent = 'แก้ไขข้อมูล';
+    document.getElementById('dataId').value = item.Id;
+    document.getElementById('parentId').value = item.ParentId || '';
+    document.getElementById('dataName').value = item.Name;
+    document.getElementById('dataDescription').value = item.Description;
+    const parent = item.ParentId ? allDataFlat.find(p => p.Id === item.ParentId) : null;
+    document.getElementById('parentNameDisplay').textContent = parent ? parent.Name : 'ไม่มี (เป็นฝ่ายหลัก)';
+    $('#dataModal').modal('show');
+}
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    const saveButton = document.getElementById('saveDataButton');
+    setLoading(saveButton, true);
+    const formData = {
+        Id: document.getElementById('dataId').value,
+        ParentId: document.getElementById('parentId').value,
+        Name: document.getElementById('dataName').value,
+        Description: document.getElementById('dataDescription').value
+    };
+    const serverFunction = formData.Id ? 'processEditDepartment' : 'processAddNewDepartment';
+    try {
+        const response = await serverCall(serverFunction, formData);
+        if (response.success) {
+            $('#dataModal').modal('hide');
+            showToast(response.message, true);
+            fetchAndRenderData();
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
+async function handleDelete(id, name) {
+    const result = await Swal.fire({
+        title: 'คุณแน่ใจหรือไม่?', text: `คุณกำลังจะลบ "${name}"`, icon: 'warning',
+        showCancelButton: true, confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก',
+        showLoaderOnConfirm: true,
+        preConfirm: () => serverCall('processDeleteDepartment', id).catch(err => Swal.showValidationMessage(err.message)),
+        allowOutsideClick: () => !Swal.isLoading()
+    });
+    if (result.isConfirmed) {
+        const response = result.value;
+        if (response && response.success) {
+            showToast(response.message, true);
+            fetchAndRenderData();
+        } else if (response) {
+            Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
+        }
+    }
+}
+
+function flattenTree(nodes) {
+    if (!Array.isArray(nodes)) return [];
+    let flat = [];
+    nodes.forEach(node => {
+        flat.push({ ...node, children: undefined });
+        if (node.children && node.children.length > 0) {
+            flat = flat.concat(flattenTree(node.children));
+        }
+    });
+    return flat;
+}
+</script>

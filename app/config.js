@@ -26,7 +26,7 @@ const SHEET_DEFINITIONS = [
   { name: "PQCriteria", db: "main" },
   { name: "Staffs", db: "main" },
   { name: "Departments", db: "main" },
-  { name: "Sections", db: "main" },
+  // { name: "Sections", db: "main" },
 ];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
@@ -54,6 +54,7 @@ const ROUTING_CONFIG = {
     'admin/user/manage': 'page/admin/user_manage',
     'admin/role/manage': 'page/admin/role_manage',
     'admin/staff/manage': 'page/admin/staff_manage',
+    'admin/department/manage': 'page/admin/department_manage',
     'dashboard': 'page/dashboard',
     'home': 'page/home',
     // ====== User ======
@@ -75,6 +76,7 @@ const ROUTING_CONFIG = {
     'admin/user/manage': ['Admin'],
     'admin/role/manage': ['Admin'],
     'admin/staff/manage': ['Admin'],
+    'admin/department/manage': ['Admin'], // [NEW]
     'package/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/pq': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
@@ -86,6 +88,7 @@ const ROUTING_CONFIG = {
     'admin/user/manage': 'จัดการสิทธิ์ผู้ใช้',
     'admin/role/manage': 'จัดการ Role และสิทธิ์',
     'admin/staff/manage': 'จัดการข้อมูลพนักงาน',
+    'admin/department/manage': 'จัดการฝ่ายและแผนก', // [NEW]
     'dashboard': "แดชบอร์ด",
     'home': "Home",
     'login': "Login",
