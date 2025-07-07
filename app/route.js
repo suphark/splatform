@@ -13,6 +13,7 @@ const routeMap = {
   'admin/role/manage': handleManageRolesPage,
   'admin/dashboard': handleAdminDashboardPage,
   'admin/settings': handleAdminSettingsPage,
+  'admin/staff/manage': handleManageStaffsPage, 
   'forgot-password': handleForgotPasswordPage,
   'reset-password': handleResetPasswordPage,
   'home': handleHomePage,
@@ -24,17 +25,14 @@ const routeMap = {
   'vendor/manage': handleManageVendorsPage,
   'vendor/pq': handleVendorPQPage,
   'vendor/history': handleVendorHistoryPage,
-
-
 };
 
 function doGet(e) {
   const session = checkUserSession();
   const page = e.parameter.page || (session.isLoggedIn ? 'dashboard' : 'home');
 
-  // [NEW] เพิ่ม permission check สำหรับหน้า history
   const requiredRoles = APP_CONFIG.routing.permissions[page] || [];
-  if (requiredRoles.length > 0) { // แก้ไขเงื่อนไข
+  if (requiredRoles.length > 0) { 
     if (!session.isLoggedIn) {
       return render(APP_CONFIG.routing.files.login, {
         title: APP_CONFIG.routing.titles.login,
@@ -58,8 +56,6 @@ function doGet(e) {
 
   const handler = routeMap[page] || handleNotFoundPage;
   return handler(session, e.parameter);
-
-
 }
 
 // ================== POST ACTION MAP & HANDLERS ==================
@@ -232,3 +228,11 @@ function handleVendorHistoryPage(session, params) {
     vendorName: vendorName
   });
 }
+
+// [NEW] Handler สำหรับหน้าจัดการพนักงาน
+function handleManageStaffsPage(session, params) {
+  return render(APP_CONFIG.routing.files['admin/staff/manage'], {
+    title: APP_CONFIG.routing.titles['admin/staff/manage']
+  });
+}
+

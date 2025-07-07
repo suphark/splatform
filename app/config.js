@@ -24,8 +24,9 @@ const SHEET_DEFINITIONS = [
   { name: "CompanyTypes", db: "main" },
   { name: "PQForms", db: "main" },
   { name: "PQCriteria", db: "main" },
-  
-
+  { name: "Staffs", db: "main" },
+  { name: "Departments", db: "main" },
+  { name: "Sections", db: "main" },
 ];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
@@ -39,6 +40,7 @@ const GOOGLE_SERVICES = {
     folders: {
       profilePictures: '1_S_Ur0ziImSrG1uKIkWVofUqzEDEZqfL',
       vendorFiles: '1DFxzYj8XYOmjvkFsOu3lvt0rD3Hd0JK_',
+      staffProfilePictures: '11_OM30lzntI2MVy6y98_FhhWkdRXN82V',
     }
   }
 };
@@ -51,6 +53,7 @@ const ROUTING_CONFIG = {
     'admin/settings': 'page/admin/settings',
     'admin/user/manage': 'page/admin/user_manage',
     'admin/role/manage': 'page/admin/role_manage',
+    'admin/staff/manage': 'page/admin/staff_manage',
     'dashboard': 'page/dashboard',
     'home': 'page/home',
     // ====== User ======
@@ -71,6 +74,7 @@ const ROUTING_CONFIG = {
     'admin/settings': ['Admin'],
     'admin/user/manage': ['Admin'],
     'admin/role/manage': ['Admin'],
+    'admin/staff/manage': ['Admin'],
     'package/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/pq': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
@@ -79,6 +83,9 @@ const ROUTING_CONFIG = {
   titles: {
     'admin/dashboard': "แผงควบคุมผู้ดูแลระบบ",
     'admin/settings': 'ตั้งค่าเว็บไซต์',
+    'admin/user/manage': 'จัดการสิทธิ์ผู้ใช้',
+    'admin/role/manage': 'จัดการ Role และสิทธิ์',
+    'admin/staff/manage': 'จัดการข้อมูลพนักงาน',
     'dashboard': "แดชบอร์ด",
     'home': "Home",
     'login': "Login",
@@ -86,8 +93,6 @@ const ROUTING_CONFIG = {
     'profile': "โปรไฟล์ของฉัน",
     'forgot-password': "ลืมรหัสผ่าน",
     'reset-password': "ตั้งรหัสผ่านใหม่",
-    'manageUsers': "จัดการสิทธิ์ผู้ใช้",
-    'manageRoles': "จัดการ Role และสิทธิ์",
     'accessDenied': "ไม่มีสิทธิ์เข้าถึง",
     // ====== Package ======
     'package/manage': "จัดการประเภทพัสดุ",
@@ -101,7 +106,7 @@ const ROUTING_CONFIG = {
 // 1.4 การตั้งค่าเริ่มต้นของเว็บไซต์
 const SITE_DEFAULTS = {
   defaultAppName: "SUPHARK",
-  defaultFooterText: "&copy; 2025 Suphark Platform. All rights reserved.",
+  defaultFooterText: "&copy; 2025 Suphark. All rights reserved.",
 };
 
 const SECURITY_CONFIG = {
@@ -159,14 +164,4 @@ const APP_CONFIG = {
   sheetsData: SHEETS_DATA,
   routing: ROUTING_CONFIG
 };
-
-
-// ================== ส่วนที่ 4: สร้าง LIVE SITE CONFIG (เหมือนเดิม) ==================
-
-// const DYNAMIC_SETTINGS = getSiteSettings(); 
-// const SITE_CONFIG = {
-//   appName: DYNAMIC_SETTINGS.appName || APP_CONFIG.site.defaultAppName,
-//   footerText: DYNAMIC_SETTINGS.footerText || APP_CONFIG.site.defaultFooterText,
-// };
-
 
