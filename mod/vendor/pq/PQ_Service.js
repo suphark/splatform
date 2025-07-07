@@ -24,29 +24,70 @@ function generatePQData(vendorId) {
         const latestFinance = allFinances.length > 0 ? allFinances[0] : {};
         const relevantRevenueData = recentFinances.slice(0, 3);
         const avgRevenue = relevantRevenueData.reduce((sum, f) => sum + Number(f.Revenue || 0), 0) / (relevantRevenueData.length || 1);
-        
-        // --- [แก้ไข] เปลี่ยนชื่อตัวแปร ---
         const workingCapital = Number(latestFinance.CurrentAssets || 0) - Number(latestFinance.CurrentLiabilities || 0);
-        // --- จบส่วนแก้ไข ---
-
         const currentRatio = Number(latestFinance.CurrentLiabilities || 0) > 0 ? Number(latestFinance.CurrentAssets || 0) / Number(latestFinance.CurrentLiabilities) : 0;
+
+
+        // [NEW] ดึงข้อมูลสำหรับตรวจสอบความสัมพันธ์
+        const boardMembers = getBoardMembersByVendorId(vendorId);
+        const allStaffs = getAllStaffs();
+        const allOrgUnits = getAllDepartments();
+        const orgUnitMap = new Map(allOrgUnits.map(unit => [unit.Id, unit]));
+
+        // [NEW] สร้าง Map ของนามสกุลพนักงานเพื่อการตรวจสอบที่รวดเร็ว
+        const staffSurnameMap = new Map();
+        allStaffs.forEach(staff => {
+            if (staff.SurnameThai && staff.SurnameThai.trim() !== '') {
+                const surname = staff.SurnameThai.trim();
+                if (!staffSurnameMap.has(surname)) {
+                    staffSurnameMap.set(surname, []);
+                }
+                staffSurnameMap.get(surname).push(staff);
+            }
+        });
+
+        // [NEW] ตรวจสอบความสัมพันธ์
+        const relationshipResults = [];
+        boardMembers.forEach(member => {
+            const memberSurname = member.Surname ? member.Surname.trim() : '';
+            if (memberSurname && staffSurnameMap.has(memberSurname)) {
+                const matchingStaffs = staffSurnameMap.get(memberSurname);
+                matchingStaffs.forEach(staff => {
+                    // หาชื่อฝ่าย/แผนกของพนักงาน
+                    const unit = orgUnitMap.get(staff.OrgUnitId);
+                    let orgUnitDisplay = 'ไม่ระบุ';
+                    if (unit) {
+                        const parent = unit.ParentId ? orgUnitMap.get(unit.ParentId) : null;
+                        orgUnitDisplay = parent ? `${parent.Name} / ${unit.Name}` : unit.Name;
+                    }
+                    
+                    relationshipResults.push({
+                        boardMemberName: `${member.Name} ${member.Surname}`,
+                        staffName: `${staff.NameThai} ${staff.SurnameThai}`,
+                        staffDesignation: staff.Designation || '-',
+                        staffOrgUnit: orgUnitDisplay
+                    });
+                });
+            }
+        });
+
 
         const scores = { reliability: {}, financial: {} };
         const relItems = PQ_CRITERIA.reliability.items;
         const finItems = PQ_CRITERIA.financial.items;
+
         scores.reliability.companyProfile = relItems.companyProfile.getScore(vendor);
         scores.reliability.companyType = relItems.companyType.getScore(vendor);
         scores.reliability.operatingDuration = relItems.operatingDuration.getScore(operatingYears);
         scores.reliability.pastPerformance = relItems.pastPerformance.getScore(allProjects, allProjectOwners);
         scores.financial.registeredCapital = finItems.registeredCapital.getScore(Number(vendor.RegisteredCapital || 0));
         scores.financial.averageRevenue = finItems.averageRevenue.getScore(avgRevenue);
-        
-        // --- [แก้ไข] เปลี่ยนชื่อตัวแปร ---
         scores.financial.workingCapital = finItems.workingCapital.getScore(workingCapital);
-        // --- จบส่วนแก้ไข ---
-
         scores.financial.currentRatio = finItems.currentRatio.getScore(currentRatio);
         
+
+        // Calculattion
+
         const weightedScores = { reliability: {}, financial: {} };
         for (const key in relItems) { weightedScores.reliability[key] = (scores.reliability[key] * relItems[key].weight).toFixed(2); }
         for (const key in finItems) { weightedScores.financial[key] = (scores.financial[key] * finItems[key].weight).toFixed(2); }
@@ -64,7 +105,8 @@ function generatePQData(vendorId) {
             success: true,
             data: {
                 vendorData: vendor,
-                boardMembers: getBoardMembersByVendorId(vendorId),
+                boardMembers: boardMembers,
+                relationshipData: relationshipResults,
                 financeData: allFinances,
                 projectData: projectsWithNames,
                 calculated: {

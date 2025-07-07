@@ -62,6 +62,10 @@
         <p><span class="data-label">อายุบริษัท:</span> <span class="data-value" id="opDuration"></span></p>
       </div>
     </div>
+
+    <h5 class="pq-section-title">ผลการตรวจสอบความสัมพันธ์ (Relationship Check)</h5>
+    <div id="relationship-results-container" class="mb-4"></div>
+    <div id="criteria-sections"></div>
     
     <div id="criteria-sections"></div>
 
@@ -162,6 +166,26 @@
     const websiteContainer = document.getElementById('websiteUrlContainer');
     const socialContainer = document.getElementById('socialUrlContainer');
     
+    // [NEW] เพิ่ม Logic การแสดงผลความสัมพันธ์
+    const relContainer = document.getElementById('relationship-results-container');
+    if (data.relationshipData && data.relationshipData.length > 0) {
+        let html = '<ul class="list-group">';
+        data.relationshipData.forEach(rel => {
+            html += `<li class="list-group-item list-group-item-warning">
+                       <div>กรรมการ <strong>${escapeHtml(rel.boardMemberName)}</strong> อาจมีความสัมพันธ์กับพนักงาน:</div>
+                       <ul class="mt-2" style="list-style-type: none; padding-left: 20px;">
+                           <li><i class="fas fa-user-tie fa-fw mr-2"></i><strong>ชื่อ:</strong> ${escapeHtml(rel.staffName)}</li>
+                           <li><i class="fas fa-id-badge fa-fw mr-2"></i><strong>ตำแหน่ง:</strong> ${escapeHtml(rel.staffDesignation)}</li>
+                           <li><i class="fas fa-sitemap fa-fw mr-2"></i><strong>ฝ่าย/แผนก:</strong> ${escapeHtml(rel.staffOrgUnit)}</li>
+                       </ul>
+                     </li>`;
+        });
+        html += '</ul>';
+        relContainer.innerHTML = html;
+    } else {
+        relContainer.innerHTML = '<p class="text-muted font-italic">ไม่พบความสัมพันธ์ของกรรมการกับพนักงานในบริษัท</p>';
+    }
+
     if (data.vendorData.WebsiteUrl) {
         websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
     } else { websiteContainer.textContent = 'ไม่มี'; }
