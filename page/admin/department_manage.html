@@ -48,12 +48,20 @@
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="dataForm">
+                
+                <div id="data-modal-loader" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2">กำลังโหลดข้อมูล...</p>
+                </div>
+
+                <form id="dataForm" style="display: none;">
                     <input type="hidden" id="dataId">
-                    <input type="hidden" id="parentId">
+                    
                     <div class="form-group">
-                        <label>เป็นแผนกย่อยของ:</label>
-                        <p id="parentNameDisplay" class="font-weight-bold">N/A</p>
+                        <label for="dataParentId">เป็นแผนกย่อยของ (Parent)</label>
+                        <select class="form-control" id="dataParentId"></select>
                     </div>
                     <div class="form-group">
                         <label for="dataName">ชื่อ</label>
@@ -67,7 +75,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
-                <button type="submit" id="saveDataButton" class="btn btn-primary" form="dataForm">บันทึก</button>
+                <button type="submit" id="saveDataButton" class="btn btn-primary" form="dataForm" style="display: none;">บันทึก</button>
             </div>
         </div>
     </div>
@@ -158,48 +166,161 @@ function renderPagination(data) {
     paginationControls.appendChild(nextLi);
 }
 
+/**
+ * [NEW] ฟังก์ชันสำหรับสร้าง Dropdown ของ Parent
+ * @param {string|null} excludeId - ID ของหน่วยงานที่กำลังแก้ไข เพื่อไม่ให้แสดงใน List (ป้องกันเลือกตัวเอง)
+ * @param {string} selectedId - ID ของ Parent ที่ถูกเลือกไว้แล้ว
+ */
+function populateParentDropdown(excludeId = null, selectedId = '') {
+    const parentSelect = document.getElementById('dataParentId');
+    parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>'; // รีเซ็ตและใส่ค่าเริ่มต้น
 
-function prepareAddModal(parentId) {
+    serverCall('getHierarchicalDepartmentsList').then(allPossibleParents => {
+        const descendants = new Set();
+        // ถ้าเป็นการแก้ไข ให้ค้นหาลูกหลานทั้งหมดของรายการนั้นเพื่อซ่อนจาก Dropdown
+        if (excludeId) {
+            const findDescendantsRecursive = (parentId) => {
+                const children = allDataFlat.filter(d => d.ParentId === parentId);
+                children.forEach(child => {
+                    descendants.add(child.Id);
+                    findDescendantsRecursive(child.Id);
+                });
+            };
+            findDescendantsRecursive(excludeId);
+        }
+
+        allPossibleParents.forEach(dept => {
+            // เพิ่ม Option เข้าไปก็ต่อเมื่อ ไม่ใช่ตัวเอง และไม่ใช่ลูกหลานของตัวเอง
+            if (dept.Id !== excludeId && !descendants.has(dept.Id)) {
+                const option = new Option(dept.DisplayName, dept.Id);
+                parentSelect.appendChild(option);
+            }
+        });
+
+        // กำหนดค่าที่เลือกไว้หลังจากสร้าง Options เสร็จ
+        parentSelect.value = selectedId || '';
+
+    }).catch(err => {
+        showToast('ไม่สามารถโหลดรายชื่อ Parent ได้: ' + err.message, false);
+    });
+}
+
+// [NEW] เพิ่มฟังก์ชันสำหรับควบคุมสถานะ Loading ของ Modal
+function setModalLoadingState(isLoading) {
+    document.getElementById('data-modal-loader').style.display = isLoading ? 'block' : 'none';
+    document.getElementById('dataForm').style.display = isLoading ? 'none' : 'block';
+    document.getElementById('saveDataButton').style.display = isLoading ? 'none' : 'block';
+}
+
+// [REVISED] ปรับปรุงฟังก์ชัน `prepareAddModal` ให้เป็น async
+async function prepareAddModal(parentId) {
     document.getElementById('dataForm').reset();
     document.getElementById('dataModalLabel').textContent = parentId ? 'เพิ่มแผนกใหม่' : 'เพิ่มฝ่ายใหม่';
     document.getElementById('dataId').value = '';
-    document.getElementById('parentId').value = parentId || '';
-    const parent = parentId ? allDataFlat.find(p => p.Id === parentId) : null;
-    document.getElementById('parentNameDisplay').textContent = parent ? parent.Name : 'ไม่มี (เป็นฝ่ายหลัก)';
+    
+    // 1. แสดง Modal พร้อม Spinner ทันที
     $('#dataModal').modal('show');
+    setModalLoadingState(true);
+
+    try {
+        // 2. รอโหลดข้อมูลสำหรับ Dropdown
+        const allPossibleParents = await serverCall('getHierarchicalDepartmentsList');
+        
+        const parentSelect = document.getElementById('dataParentId');
+        parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>'; // รีเซ็ตค่า
+
+        allPossibleParents.forEach(dept => {
+            const option = new Option(dept.DisplayName, dept.Id);
+            parentSelect.appendChild(option);
+        });
+        
+        // 3. กำหนดค่าที่ถูกเลือก
+        parentSelect.value = parentId || '';
+
+        // 4. ซ่อน Spinner และแสดงฟอร์ม
+        setModalLoadingState(false);
+    } catch (err) {
+        showToast('ไม่สามารถโหลดข้อมูลได้: ' + err.message, false);
+        $('#dataModal').modal('hide');
+    }
 }
 
-function prepareEditModal(event) {
+// [REVISED] ปรับปรุงฟังก์ชัน `prepareEditModal` ให้เป็น async
+async function prepareEditModal(event) {
     const row = event.target.closest('tr');
     const item = JSON.parse(row.dataset.item);
+
     document.getElementById('dataForm').reset();
     document.getElementById('dataModalLabel').textContent = 'แก้ไขข้อมูล';
-    document.getElementById('dataId').value = item.Id;
-    document.getElementById('parentId').value = item.ParentId || '';
-    document.getElementById('dataName').value = item.Name;
-    document.getElementById('dataDescription').value = item.Description;
-    const parent = item.ParentId ? allDataFlat.find(p => p.Id === item.ParentId) : null;
-    document.getElementById('parentNameDisplay').textContent = parent ? parent.Name : 'ไม่มี (เป็นฝ่ายหลัก)';
+    
+    // 1. แสดง Modal พร้อม Spinner ทันที
     $('#dataModal').modal('show');
+    setModalLoadingState(true);
+
+    try {
+        // 2. รอโหลดข้อมูลสำหรับ Dropdown
+        const allPossibleParents = await serverCall('getHierarchicalDepartmentsList');
+
+        // 3. กรอกข้อมูลในฟอร์ม
+        document.getElementById('dataId').value = item.Id;
+        document.getElementById('dataName').value = item.Name;
+        document.getElementById('dataDescription').value = item.Description;
+
+        // 4. สร้าง Dropdown และป้องกันการเลือก Loop
+        const parentSelect = document.getElementById('dataParentId');
+        parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>';
+
+        const descendants = new Set();
+        const findDescendantsRecursive = (parentId) => {
+            const children = allDataFlat.filter(d => d.ParentId === parentId);
+            children.forEach(child => {
+                descendants.add(child.Id);
+                findDescendantsRecursive(child.Id);
+            });
+        };
+        findDescendantsRecursive(item.Id);
+
+        allPossibleParents.forEach(dept => {
+            if (dept.Id !== item.Id && !descendants.has(dept.Id)) {
+                const option = new Option(dept.DisplayName, dept.Id);
+                parentSelect.appendChild(option);
+            }
+        });
+        
+        // 5. กำหนดค่าที่ถูกเลือก
+        parentSelect.value = item.ParentId || '';
+
+        // 6. ซ่อน Spinner และแสดงฟอร์ม
+        setModalLoadingState(false);
+    } catch (err) {
+        showToast('ไม่สามารถโหลดข้อมูลได้: ' + err.message, false);
+        $('#dataModal').modal('hide');
+    }
 }
 
+/**
+ * [REVISED] แก้ไขฟังก์ชันให้ดึงข้อมูลจาก Dropdown แทน Input เดิม
+ */
 async function handleFormSubmit(event) {
     event.preventDefault();
     const saveButton = document.getElementById('saveDataButton');
     setLoading(saveButton, true);
+    
     const formData = {
         Id: document.getElementById('dataId').value,
-        ParentId: document.getElementById('parentId').value,
+        ParentId: document.getElementById('dataParentId').value, // <<< แก้ไขจุดนี้
         Name: document.getElementById('dataName').value,
         Description: document.getElementById('dataDescription').value
     };
+
     const serverFunction = formData.Id ? 'processEditDepartment' : 'processAddNewDepartment';
+    
     try {
         const response = await serverCall(serverFunction, formData);
         if (response.success) {
             $('#dataModal').modal('hide');
             showToast(response.message, true);
-            fetchAndRenderData();
+            fetchAndRenderData(); // รีเฟรชข้อมูลในตาราง
         } else {
             showToast(response.message, false);
         }

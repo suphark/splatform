@@ -118,10 +118,31 @@ function processAddNewDepartment(formData) {
 }
 
 /**
- * [SERVER-CALL] ประมวลผลการแก้ไขข้อมูล
+ * [REVISED] ประมวลผลการแก้ไขข้อมูล
+ * เพิ่ม Safeguard ป้องกันการกำหนด Parent ให้กับตัวเอง
  */
 function processEditDepartment(formData) {
     try {
+        // --- [NEW] Server-side Safeguard ---
+        if (formData.Id && formData.ParentId) {
+            // 1. ป้องกันการเลือกตัวเองเป็น Parent
+            if (formData.Id === formData.ParentId) {
+                return { success: false, message: 'ไม่สามารถกำหนดให้ตัวเองเป็นหน่วยงานแม่ได้' };
+            }
+            
+            // 2. ป้องกันการเกิด Loop (เลือกหน่วยงานลูกของตัวเองมาเป็น Parent)
+            const allDepts = getAllDepartments();
+            let currentParentId = formData.ParentId;
+            while (currentParentId) {
+                if (currentParentId === formData.Id) {
+                    return { success: false, message: 'เกิดข้อผิดพลาด: การกำหนดหน่วยงานแม่นี้จะทำให้โครงสร้างเป็น Loop' };
+                }
+                const parent = allDepts.find(d => d.Id === currentParentId);
+                currentParentId = parent ? parent.ParentId : null;
+            }
+        }
+        // --- End of Safeguard ---
+
         updateDepartmentById(formData.Id, formData); // จาก database.js
         writeAuditLog('Department: Edit', `ID: ${formData.Id}, Name: ${formData.Name}`);
         return { success: true, message: 'แก้ไขข้อมูลสำเร็จ!' };
