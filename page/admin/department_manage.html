@@ -58,7 +58,7 @@
 
                 <form id="dataForm" style="display: none;">
                     <input type="hidden" id="dataId">
-                    
+
                     <div class="form-group">
                         <label for="dataParentId">เป็นแผนกย่อยของ (Parent)</label>
                         <select class="form-control" id="dataParentId"></select>
@@ -212,32 +212,41 @@ function setModalLoadingState(isLoading) {
     document.getElementById('saveDataButton').style.display = isLoading ? 'none' : 'block';
 }
 
-// [REVISED] ปรับปรุงฟังก์ชัน `prepareAddModal` ให้เป็น async
+/**
+ * [REVISED] ปรับปรุงฟังก์ชัน `prepareAddModal` ให้เรียกใช้ Select2
+ */
 async function prepareAddModal(parentId) {
     document.getElementById('dataForm').reset();
     document.getElementById('dataModalLabel').textContent = parentId ? 'เพิ่มแผนกใหม่' : 'เพิ่มฝ่ายใหม่';
     document.getElementById('dataId').value = '';
     
-    // 1. แสดง Modal พร้อม Spinner ทันที
+    // [1] ทำลาย Select2 instance เก่า (ถ้ามี) เพื่อป้องกันข้อผิดพลาด
+    if ($('#dataParentId').data('select2')) {
+        $('#dataParentId').select2('destroy');
+    }
+
     $('#dataModal').modal('show');
     setModalLoadingState(true);
 
     try {
-        // 2. รอโหลดข้อมูลสำหรับ Dropdown
         const allPossibleParents = await serverCall('getHierarchicalDepartmentsList');
-        
         const parentSelect = document.getElementById('dataParentId');
-        parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>'; // รีเซ็ตค่า
+        parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>';
 
         allPossibleParents.forEach(dept => {
             const option = new Option(dept.DisplayName, dept.Id);
             parentSelect.appendChild(option);
         });
-        
-        // 3. กำหนดค่าที่ถูกเลือก
-        parentSelect.value = parentId || '';
 
-        // 4. ซ่อน Spinner และแสดงฟอร์ม
+        // [2] เรียกใช้งาน Select2
+        $('#dataParentId').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#dataModal') // คำสั่งสำคัญเพื่อให้ Dropdown แสดงผลถูกต้องใน Modal
+        });
+        
+        // [3] กำหนดค่าที่ถูกเลือกด้วย jQuery และสั่ง .trigger('change')
+        $('#dataParentId').val(parentId || '').trigger('change');
+
         setModalLoadingState(false);
     } catch (err) {
         showToast('ไม่สามารถโหลดข้อมูลได้: ' + err.message, false);
@@ -245,7 +254,9 @@ async function prepareAddModal(parentId) {
     }
 }
 
-// [REVISED] ปรับปรุงฟังก์ชัน `prepareEditModal` ให้เป็น async
+/**
+ * [REVISED] ปรับปรุงฟังก์ชัน `prepareEditModal` ให้เรียกใช้ Select2
+ */
 async function prepareEditModal(event) {
     const row = event.target.closest('tr');
     const item = JSON.parse(row.dataset.item);
@@ -253,20 +264,21 @@ async function prepareEditModal(event) {
     document.getElementById('dataForm').reset();
     document.getElementById('dataModalLabel').textContent = 'แก้ไขข้อมูล';
     
-    // 1. แสดง Modal พร้อม Spinner ทันที
+    // [1] ทำลาย Select2 instance เก่า (ถ้ามี)
+    if ($('#dataParentId').data('select2')) {
+        $('#dataParentId').select2('destroy');
+    }
+    
     $('#dataModal').modal('show');
     setModalLoadingState(true);
 
     try {
-        // 2. รอโหลดข้อมูลสำหรับ Dropdown
         const allPossibleParents = await serverCall('getHierarchicalDepartmentsList');
 
-        // 3. กรอกข้อมูลในฟอร์ม
         document.getElementById('dataId').value = item.Id;
         document.getElementById('dataName').value = item.Name;
         document.getElementById('dataDescription').value = item.Description;
 
-        // 4. สร้าง Dropdown และป้องกันการเลือก Loop
         const parentSelect = document.getElementById('dataParentId');
         parentSelect.innerHTML = '<option value="">-- ไม่มี (เป็นฝ่ายหลัก) --</option>';
 
@@ -287,10 +299,15 @@ async function prepareEditModal(event) {
             }
         });
         
-        // 5. กำหนดค่าที่ถูกเลือก
-        parentSelect.value = item.ParentId || '';
+        // [2] เรียกใช้งาน Select2
+        $('#dataParentId').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#dataModal')
+        });
+        
+        // [3] กำหนดค่าที่ถูกเลือกด้วย jQuery และสั่ง .trigger('change')
+        $('#dataParentId').val(item.ParentId || '').trigger('change');
 
-        // 6. ซ่อน Spinner และแสดงฟอร์ม
         setModalLoadingState(false);
     } catch (err) {
         showToast('ไม่สามารถโหลดข้อมูลได้: ' + err.message, false);
