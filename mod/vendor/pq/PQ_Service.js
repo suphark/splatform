@@ -11,6 +11,8 @@ function generatePQData(vendorId) {
         const allCompanyTypes = getAllCompanyTypes();
         const companyTypeMap = new Map(allCompanyTypes.map(c => [c.Id, c.Name]));
 
+        vendor.CompanyTypeName = companyTypeMap.get(vendor.CompanyTypeId) || 'ไม่ระบุ';
+
         const allFinances = getFinanceByVendorId(vendorId);
         const allProjects = getProjectsByVendorId(vendorId);
         const allProjectOwners = getAllProjectOwners();

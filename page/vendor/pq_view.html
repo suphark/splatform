@@ -42,7 +42,7 @@
         <p class="mb-0" id="pq-id-container" style="display:none;"><span class="data-label">PQ ID:</span> <span class="data-value" id="pqId"></span></p>
       </div>
       <div class="text-right">
-        <a id="historyButton" href="#" class="btn btn-info"><i class="fas fa-history mr-2"></i>ดูประวัติ</a>
+        <a id="historyButton" href="javascript:void(0);" class="btn btn-info"><i class="fas fa-history mr-2"></i>ดูประวัติ</a>
         <button id="printButton" class="btn btn-secondary" onclick="window.print()" style="display: none;"><i class="fas fa-print mr-2"></i>พิมพ์ / PDF</button>
         <button id="saveButton" class="btn btn-success"><i class="fas fa-save mr-2"></i>บันทึกผลการประเมิน</button>
       </div>
@@ -98,6 +98,7 @@
 <div id="loader"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><p class="mt-3">กำลังคำนวณคะแนน...</p></div>
 
 <script>
+
   let pqData = {}; 
   let criteriaData = {};
 
@@ -230,20 +231,46 @@
       container.innerHTML = tableHtml;
   }
 
-  function populateView(data, criteria) {
-    document.getElementById('historyButton').href = `<?= data.baseUrl ?>?page=vendor/history&vendorId=${data.vendorData.Id}`;
+ // [REVISED] แทนที่ฟังก์ชัน populateView เดิมทั้งหมดด้วยฟังก์ชันนี้
+ function populateView(data, criteria) {
+    // === ส่วนที่ 1: กรอกข้อมูลพื้นฐาน ===
     document.getElementById('vendorName').textContent = data.vendorData.NameThai;
     document.getElementById('companyType').textContent = data.vendorData.CompanyTypeName || '-';
+    // ... (ส่วนที่เหลือของการกรอกข้อมูลพื้นฐาน) ...
     document.getElementById('regCapital').textContent = `${Number(data.vendorData.RegisteredCapital || 0).toLocaleString()} บาท`;
     document.getElementById('evalDate').textContent = new Date(data.calculated.evaluationDate).toLocaleDateString('th-TH');
     document.getElementById('regDate').textContent = data.vendorData.RegisteredDate ? new Date(data.vendorData.RegisteredDate).toLocaleDateString('th-TH') : '-';
     document.getElementById('opDuration').textContent = `${Math.floor(data.calculated.operatingYears)} ปี ${Math.floor((data.calculated.operatingYears % 1) * 12)} เดือน`;
     
-    const websiteContainer = document.getElementById('websiteUrlContainer');
-    const socialContainer = document.getElementById('socialUrlContainer');
+    // === ส่วนที่ 1.1: ตั้งค่าปุ่มและลิงก์ด้วยวิธีที่แน่นอน ===
+    const historyButton = document.getElementById('historyButton');
+    const baseUrl = '<?= data.baseUrl ?>';
+    const historyUrl = `${baseUrl}?page=vendor/history&vendorId=${data.vendorData.Id}`;
+    historyButton.setAttribute('data-url', historyUrl); // เก็บ URL ที่ถูกต้องไว้ใน data attribute
+    historyButton.onclick = function(e) {
+        e.preventDefault();
+        const url = this.getAttribute('data-url');
+        console.log("Navigating to:", url); // สำหรับ Debug
+        if (url) {
+            window.top.location.href = url;
+        }
+    };
     
-    // [NEW] เพิ่ม Logic การแสดงผลความสัมพันธ์
+    // ... (โค้ดสำหรับ websiteContainer และ socialContainer)
+    const websiteContainer = document.getElementById('websiteUrlContainer');
+    if (data.vendorData.WebsiteUrl) {
+        websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
+    } else { websiteContainer.textContent = 'ไม่มี'; }
+
+    const socialContainer = document.getElementById('socialUrlContainer');
+    if (data.vendorData.SocialUrl) {
+        socialContainer.innerHTML = `<a href="${data.vendorData.SocialUrl}" target="_blank">${data.vendorData.SocialUrl}</a>`;
+    } else { socialContainer.textContent = 'ไม่มี'; }
+
+
+    // === ส่วนที่ 2: แสดงผลตารางข้อมูลเพิ่มเติม ===
     const relContainer = document.getElementById('relationship-results-container');
+    // ... (โค้ดสำหรับแสดงผล relationship) ...
     if (data.relationshipData && data.relationshipData.length > 0) {
         let html = '<ul class="list-group">';
         data.relationshipData.forEach(rel => {
@@ -265,25 +292,16 @@
     renderPqFinanceTable(data.financeData);
     renderPqProjectsTable(data.projectData);
 
-    if (data.vendorData.WebsiteUrl) {
-        websiteContainer.innerHTML = `<a href="${data.vendorData.WebsiteUrl}" target="_blank">${data.vendorData.WebsiteUrl}</a>`;
-    } else { websiteContainer.textContent = 'ไม่มี'; }
-
-    if (data.vendorData.SocialUrl) {
-        socialContainer.innerHTML = `<a href="${data.vendorData.SocialUrl}" target="_blank">${data.vendorData.SocialUrl}</a>`;
-    } else { socialContainer.textContent = 'ไม่มี'; }
-    
+    // === ส่วนที่ 3: แสดงผลตารางเกณฑ์การให้คะแนน ===
     const sectionsContainer = document.getElementById('criteria-sections');
     sectionsContainer.innerHTML = '';
-    
-    for(const sectionKey in criteria) {
+    // ... (โค้ด for loop เดิมทั้งหมดสำหรับสร้างตาราง criteria) ...
+     for(const sectionKey in criteria) {
       const section = criteria[sectionKey];
       const sectionResult = data.results[sectionKey + 'WeightedScore'];
       const sectionGrade = data.results[sectionKey + 'Grade'];
-
       let sectionHtml = `<h5 class="pq-section-title">${section.title} (${section.weight * 100}%)</h5>`;
       sectionHtml += `<table class="table table-bordered criteria-table"><thead class="thead-light"><tr><th>เกณฑ์การพิจารณา</th><th class="check-col">เลือก</th><th class="score-col">คะแนน</th><th class="w-score-col">คะแนนรวม</th></tr></thead><tbody>`;
-      
       for(const itemKey in section.items) {
         const item = section.items[itemKey];
         const actualScore = data.scores[sectionKey][itemKey];
@@ -292,18 +310,15 @@
         let vendorValueHtml = getVendorValueHtml(itemKey, data);
         item.levels.forEach(level => {
           const isChecked = level.score === actualScore;
-          // [CRITICAL FIX] แก้ไขบรรทัดนี้: ลบ .toFixed(2) ออก
           sectionHtml += `<tr><td>${level.text} ${isChecked ? vendorValueHtml : ''}</td><td class="text-center">${isChecked ? '<i class="fas fa-check-square check-icon"></i>' : '☐'}</td><td class="text-center">${level.score}</td><td class="text-center">${isChecked ? weightedScore : ''}</td></tr>`;
           if(isChecked) vendorValueHtml = '';
         });
       }
-      // [FIX] แก้ไขการแสดงผลรวมของหมวด
       sectionHtml += `<tfoot class="font-weight-bold"><tr><td colspan="2" class="text-right">คะแนนรวมหมวดนี้</td><td class="text-center" colspan="2">${sectionResult} (เกรด ${sectionGrade})</td></tr></tfoot>`;
       sectionHtml += `</tbody></table>`;
       sectionsContainer.innerHTML += sectionHtml;
     }
-
-    // [FIX] แก้ไขการแสดงผลสรุป
+    // === ส่วนที่ 4: แสดงผลสรุป ===
     document.getElementById('overall-score').textContent = data.results.totalWeightedScore;
     document.getElementById('overall-percent').textContent = `${Math.round(data.results.overallPercentage)}%`;
     const gradeBox = document.getElementById('grade-box');
