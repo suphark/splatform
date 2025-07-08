@@ -14,6 +14,12 @@ v.2
 =======================================
             Wish List
 =======================================
+>> Vendors
+> add PostQ %
+> revise PQ ชื่อในคอลัมน์เป็น PQ Grade or PQ
+> add PJM code or PJM link (check if PostQ required or not, if not don't add it)
+
+
 >> Add Staffs
 
 >> Vendors
