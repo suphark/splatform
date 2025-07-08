@@ -12,8 +12,20 @@ function getPaginatedVendors(options = {}) {
         const allVendors = getAllVendors();
         const allStatuses = getAllVendorStatuses();
         const allPackages = getAllPackages();
-        const allBoardMembers = getAllBoardMembers(); // ฟังก์ชันใหม่
+        const allBoardMembers = getAllBoardMembers();
         const allStaffs = getAllStaffs();
+
+        // --- [NEW] ดึงข้อมูลการประเมินทั้งหมด เรียงจากล่าสุดไปเก่าสุด ---
+        const allPqForms = APP_CONFIG.sheetsData.pQForms.getTable().sortBy('EvaluationDate', 'desc').getRows();
+        // --- [NEW] สร้าง Map เพื่อเก็บเกรดล่าสุดของแต่ละ Vendor ---
+        const latestGradeMap = new Map();
+        allPqForms.forEach(form => {
+            // เนื่องจากข้อมูลเรียงจากล่าสุดแล้ว รายการแรกที่เจอของแต่ละ Vendor คือรายการล่าสุด
+            if (form.VendorId && !latestGradeMap.has(form.VendorId)) {
+                latestGradeMap.set(form.VendorId, form.Grade);
+            }
+        });
+
 
         // 2. สร้าง Lookup Tables เพื่อการ Join ข้อมูลที่รวดเร็ว
         const statusMap = new Map(allStatuses.map(s => [s.Id, s]));
@@ -33,12 +45,9 @@ function getPaginatedVendors(options = {}) {
 
         // 3. Join ข้อมูลและตรวจสอบความสัมพันธ์
         const joinedVendors = allVendors.map(vendor => {
-            // ... (โค้ด Join ข้อมูล Status และ Package เดิม)
             const statusInfo = statusMap.get(vendor.StatusId) || { name: 'N/A', color: 'badge-dark' };
             const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',') : [];
             const packageDisplayNames = packageIds.map(id => (packageMap.get(id.trim())?.NameThai || id.trim()));
-            
-            // [NEW] ตรวจสอบความสัมพันธ์ของกรรมการ
             const vendorBoardMembers = allBoardMembers.filter(m => m.VendorId === vendor.Id);
             const relationshipMessages = [];
             vendorBoardMembers.forEach(member => {
@@ -53,7 +62,8 @@ function getPaginatedVendors(options = {}) {
                 StatusName: statusInfo.Name, 
                 StatusColor: statusInfo.BadgeColor || 'badge-light', 
                 PackageDisplayNames: packageDisplayNames,
-                RelationshipInfo: relationshipMessages.join(' \n') // ใช้ \n สำหรับขึ้นบรรทัดใหม่ใน tooltip
+                RelationshipInfo: relationshipMessages.join(' \n'), // ใช้ \n สำหรับขึ้นบรรทัดใหม่ใน tooltip
+                LatestGrade: latestGradeMap.get(vendor.Id) || '-',
             };
         });
 

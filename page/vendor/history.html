@@ -37,6 +37,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const HISTORY_BASE_URL = document.body.dataset.baseUrl;
     const vendorId = '<?= data.vendorId ?>';
     const tableBody = document.getElementById('history-table-body');
     const loader = document.getElementById('loader');
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${Number(record.TotalScore).toFixed(2)}</td>
                 <td><span class="badge badge-primary" style="font-size: 1em;">${record.Grade}</span></td>
                 <td>
-                    <a href="<?= data.baseUrl ?>?page=vendor/pq&pqFormId=${record.Id}" class="btn btn-sm btn-info" title="ดูรายละเอียด">
+                    <a href="${HISTORY_BASE_URL}?page=vendor/pq&pqFormId=${record.Id}" class="btn btn-sm btn-info" title="ดูรายละเอียด">
                         <i class="fas fa-eye"></i> ดูรายละเอียด
                     </a>
                 </td>

@@ -15,35 +15,40 @@
 <?!= include('page/vendor/manage_modal.html') ?>
 
 <script>
+
+  // ==================== CONSTANTS ====================
+  // [FIX] อ่านค่า baseUrl จาก data-attribute ของ body ซึ่งเป็นวิธีที่ปลอดภัยและถูกต้อง
+  const VENDOR_BASE_URL = document.body.dataset.baseUrl;
+
   // ==================== GLOBAL STATE ====================
   let availablePackages = [], availableStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [];
   let currentPage = 1, totalPages = 1;
   let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
-  let sortState = { column: 'Id', direction: 'desc' }; // << ตั้งค่าเริ่มต้นให้เรียงจากมากไปน้อย
+  let sortState = { column: 'Id', direction: 'desc' };
   let debounceTimer;
 
   // ==================== INITIALIZATION (Entry Point) ====================
   document.addEventListener('DOMContentLoaded', function () {
-    fetchAndRenderVendors();
-    populateStatusFilter();
-    populatePackageFilter();
+      fetchAndRenderVendors();
+      populateStatusFilter();
+      populatePackageFilter();
 
-    document.getElementById('saveVendorButton').addEventListener('click', handleSaveVendor);
-    document.getElementById('saveContactButton').addEventListener('click', handleSaveContact);
-    document.getElementById('saveBoardMemberButton').addEventListener('click', handleSaveBoardMember);
-    document.getElementById('saveFinanceButton').addEventListener('click', handleSaveFinanceRecord);
-    document.getElementById('saveProjectButton').addEventListener('click', handleSaveProject);
-    document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
-    document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
-    document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
-    
-    $('#packageFilter').on('change', function() {
-        selectedPackageId = $(this).val(); 
-        currentPage = 1;
-        fetchAndRenderVendors();
-    });
-    
-    document.querySelectorAll('th[data-column]').forEach(header => { header.addEventListener('click', () => { const column = header.dataset.column; if (sortState.column === column) { sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; } else { sortState.column = column; sortState.direction = 'asc'; } updateSortIcons(); fetchAndRenderVendors(); }); });
+      document.getElementById('saveVendorButton').addEventListener('click', handleSaveVendor);
+      document.getElementById('saveContactButton').addEventListener('click', handleSaveContact);
+      document.getElementById('saveBoardMemberButton').addEventListener('click', handleSaveBoardMember);
+      document.getElementById('saveFinanceButton').addEventListener('click', handleSaveFinanceRecord);
+      document.getElementById('saveProjectButton').addEventListener('click', handleSaveProject);
+      document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
+      document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
+      document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
+      
+      $('#packageFilter').on('change', function() {
+          selectedPackageId = $(this).val(); 
+          currentPage = 1;
+          fetchAndRenderVendors();
+      });
+      
+      document.querySelectorAll('th[data-column]').forEach(header => { header.addEventListener('click', () => { const column = header.dataset.column; if (sortState.column === column) { sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; } else { sortState.column = column; sortState.direction = 'asc'; } updateSortIcons(); fetchAndRenderVendors(); }); });
   });
 
   // ==================== MODAL PREPARATION ====================
@@ -309,52 +314,53 @@
   };
 
   // ==================== DATA FETCHING & RENDERING ====================
-  function fetchAndRenderVendors() { const tableBody = document.getElementById('vendor-table-body'); tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`; const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction }; serverCall('getPaginatedVendors', options).then(response => { if (response.success) { renderVendorTable(response.vendors); renderPagination(response); } else { handleServerError({ message: response.message }); } }).catch(handleServerError); }
+    function fetchAndRenderVendors() { 
+        const tableBody = document.getElementById('vendor-table-body'); 
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`; 
+        const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction }; 
+        serverCall('getPaginatedVendors', options).then(response => { if (response.success) { renderVendorTable(response.vendors); renderPagination(response); } else { handleServerError({ message: response.message }); } }).catch(handleServerError); 
+    }
   
   /**
-   * [UPDATED] ใช้ข้อมูล PackageDisplayNames ที่ได้จาก Server มาแสดงผล
+   * [FIXED] แก้ไขฟังก์ชันให้ใช้ตัวแปร VENDOR_BASE_URL ที่ถูกต้อง
    */
   function renderVendorTable(vendors) {
       const tableBody = document.getElementById('vendor-table-body');
       tableBody.innerHTML = '';
       if (!vendors || vendors.length === 0) {
-          // [FIX] แก้ไข colspan เป็น 7 เพื่อให้ครอบคลุมคอลัมน์ใหม่
-          tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
           return;
       }
       vendors.forEach(vendor => {
           const row = tableBody.insertRow();
           const statusBadge = `<span class="badge ${vendor.StatusColor || 'badge-light'}">${vendor.StatusName || 'N/A'}</span>`;
           const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${name}</span>`).join(' ');
-
-          // [NEW] สร้าง Cell สำหรับไอคอนแจ้งเตือน
+          const grade = vendor.LatestGrade || '-';
+          const gradeColorMapping = { 'A': 'badge-success', 'B': 'badge-primary', 'C': 'badge-warning', 'D': 'badge-danger' };
+          const gradeColor = gradeColorMapping[grade.replace('+', '')] || 'badge-light';
+          const gradeBadge = `<span class="badge ${gradeColor}" style="font-size: 0.9em;">${grade}</span>`;
           const relationshipCell = vendor.RelationshipInfo 
-              ? `<td>
-                  <span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}">
-                    <i class="fas fa-exclamation-triangle"></i>
-                  </span>
-                </td>` 
+              ? `<td><span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}"><i class="fas fa-exclamation-triangle"></i></span></td>` 
               : '<td></td>';
 
-          // [REVISED] เพิ่ม relationshipCell เข้าไปใน row.innerHTML
+          // [นี่คือส่วนที่แก้ไข] เปลี่ยนมาใช้ตัวแปร VENDOR_BASE_URL ที่เราประกาศไว้
           row.innerHTML = `
               ${relationshipCell}
               <td>${vendor.NameThai}</td>
               <td>${vendor.NameEnglish || '-'}</td>
               <td>${packageBadges || '-'}</td>
               <td>${statusBadge}</td>
+              <td class="text-center">${gradeBadge}</td>
               <td>${vendor.Remark || '-'}</td>
               <td>
                   <div class="btn-group" role="group">
                       <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไขข้อมูลหลัก"><i class="fas fa-edit"></i></button>
-                      <a href="<?= data.baseUrl ?>?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
-                      <a href="<?= data.baseUrl ?>?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ดูประวัติการประเมิน"><i class="fas fa-history"></i></a>
+                      <a href="${VENDOR_BASE_URL}?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="สร้างฟอร์มประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
+                      <a href="${VENDOR_BASE_URL}?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ดูประวัติการประเมิน"><i class="fas fa-history"></i></a>
                       <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                   </div>
               </td>`;
       });
-
-      // [NEW] สั่งให้ Bootstrap สร้าง Tooltip ทุกครั้งที่ render ตารางใหม่
       $('[data-toggle="tooltip"]').tooltip();
   }
 
@@ -468,58 +474,56 @@
   function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
   function loadProjectOwnersForModal() { return serverCall('getAllProjectOwners').then(data => { availableProjectOwners = data; const select = document.getElementById('projectOwnerId'); while (select.options.length > 2) { select.remove(1); } data.forEach(item => { const option = new Option(item.Name, item.Id); select.insertBefore(option, select.options[select.options.length - 1]); }); }).catch(handleServerError); }
   
+function populateForm(data) {
+    document.getElementById('vendorForm').reset();
+    document.getElementById('vendorId').value = data.Id;
+    document.getElementById('folderId').value = data.FolderId || '';
+    document.getElementById('nameThai').value = data.NameThai;
+    document.getElementById('nameEnglish').value = data.NameEnglish || '';
+    document.getElementById('websiteUrl').value = data.WebsiteUrl || '';
+    document.getElementById('socialUrl').value = data.SocialUrl || '';
+    document.getElementById('status').value = data.StatusId;
+    document.getElementById('remark').value = data.Remark || '';
+    document.getElementById('companyTypeId').value = data.CompanyTypeId;
+    document.getElementById('registeredCapital').value = data.RegisteredCapital || '';
+    document.getElementById('registeredDate').value = data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '';
+    document.getElementById('registeredObject').value = data.RegisteredObject || '';
 
+    const folderLink = document.getElementById('vendor-folder-link');
+    if (data.FolderId) {
+        // [FIX] สร้าง URL จากส่วนต่างๆ เพื่อความปลอดภัย
+        folderLink.href = 'https://' + 'drive.google.com/drive/folders/' + data.FolderId;
+        folderLink.style.display = 'inline-block';
+    } else {
+        folderLink.style.display = 'none';
+    }
 
-  function populateForm(data) { 
-      document.getElementById('vendorForm').reset(); 
-      document.getElementById('vendorId').value = data.Id; 
-      document.getElementById('folderId').value = data.FolderId || '';
-      document.getElementById('nameThai').value = data.NameThai; 
-      document.getElementById('nameEnglish').value = data.NameEnglish || ''; 
-      document.getElementById('websiteUrl').value = data.WebsiteUrl || '';
-      document.getElementById('socialUrl').value = data.SocialUrl || '';
-      document.getElementById('status').value = data.StatusId; 
-      document.getElementById('remark').value = data.Remark || ''; 
-      document.getElementById('companyTypeId').value = data.CompanyTypeId;
-      document.getElementById('registeredCapital').value = data.RegisteredCapital || ''; 
-      document.getElementById('registeredDate').value = data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '';
-      document.getElementById('registeredObject').value = data.RegisteredObject || ''; 
+    const fileFields = [
+        { key: 'CompanyProfileFolderId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
+        { key: 'IdCardFolderId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
+        { key: 'CompanyCertFolderId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
+        { key: 'VatCertFolderId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
+        { key: 'BookBankFolderId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
+    ];
 
-      const folderLink = document.getElementById('vendor-folder-link'); 
-      if (data.FolderId) { 
-          folderLink.href = `https://drive.google.com/drive/folders/${data.FolderId}`; 
-          folderLink.style.display = 'inline-block'; 
-      } else { 
-          folderLink.style.display = 'none'; 
-      } 
+    fileFields.forEach(field => {
+        const folderId = data[field.key];
+        const linkContainer = document.getElementById(field.containerId);
+        const link = document.getElementById(field.linkId);
+        const noFileSpan = document.getElementById(field.noFileId);
 
-      // --- [REVISED] แก้ไขให้ทำงานกับ FolderId ---
-      const fileFields = [
-          { key: 'CompanyProfileFolderId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
-          { key: 'IdCardFolderId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
-          { key: 'CompanyCertFolderId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
-          { key: 'VatCertFolderId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
-          { key: 'BookBankFolderId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
-      ];
+        if (folderId) {
+            // [FIX] สร้าง URL จากส่วนต่างๆ เพื่อความปลอดภัย
+            link.href = 'https://' + 'drive.google.com/drive/folders/' + folderId;
+            linkContainer.style.display = 'block';
+            noFileSpan.style.display = 'none';
+        } else {
+            linkContainer.style.display = 'none';
+            noFileSpan.style.display = 'inline';
+        }
+    });
+}
 
-      fileFields.forEach(field => {
-          const folderId = data[field.key]; // เปลี่ยนจาก fileId เป็น folderId
-          const linkContainer = document.getElementById(field.containerId);
-          const link = document.getElementById(field.linkId);
-          const noFileSpan = document.getElementById(field.noFileId);
-
-          if (folderId) {
-              // สร้างลิงก์ไปยังโฟลเดอร์
-              link.href = `https://drive.google.com/drive/folders/${folderId}`;
-              linkContainer.style.display = 'block';
-              noFileSpan.style.display = 'none';
-          } else {
-              linkContainer.style.display = 'none';
-              noFileSpan.style.display = 'inline';
-          }
-      });
-  }
-    
 async function handleSaveVendor() { 
     const saveButton = document.getElementById('saveVendorButton'); 
     const form = document.getElementById('vendorForm'); 
