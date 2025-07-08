@@ -7,101 +7,98 @@
 
 /**
  * [SERVER-CALL] [REVISED] ดึงข้อมูลพนักงานแบบแบ่งหน้า
+ * แก้ไข Logic การกรองทั้งหมดให้ทำงานอย่างถูกต้อง โดยกรองข้อมูลจาก Array โดยตรงก่อนส่งไปแบ่งหน้า
  */
 function getPaginatedStaffs(options = {}) {
-  try {
-    const allStaffs = getAllStaffs();
-    const allOrgUnits = getAllDepartments(); // ใช้ฟังก์ชันจาก department/database.js
+    try {
+        const allStaffsRaw = getAllStaffs();
+        const allOrgUnits = getAllDepartments(); 
+        const orgUnitMap = new Map(allOrgUnits.map(unit => [unit.Id, unit]));
 
-    // สร้าง Map สำหรับค้นหาชื่อหน่วยงาน และ Map สำหรับหา Parent
-    const orgUnitMap = new Map(allOrgUnits.map(unit => [unit.Id, unit]));
+        let filteredStaffs = [...allStaffsRaw]; // ทำงานกับข้อมูลที่คัดลอกมา (Shallow Copy)
 
-    // Join data for display
-    const joinedStaffs = allStaffs.map(staff => {
-      const unit = orgUnitMap.get(staff.OrgUnitId);
-      let departmentName = '-';
-      let sectionName = '';
+        // --- 1. กรองข้อมูลตามเงื่อนไขทั้งหมด ---
 
-      if (unit) {
-        if (unit.ParentId && orgUnitMap.has(unit.ParentId)) {
-          // This is a Section
-          const parentDept = orgUnitMap.get(unit.ParentId);
-          departmentName = parentDept.Name;
-          sectionName = unit.Name;
-        } else {
-          // This is a Department
-          departmentName = unit.Name;
+        // 1.1 กรองตามฝ่าย/แผนก (และหน่วยงานย่อยทั้งหมด)
+        if (options.orgUnitId) {
+            const selectedUnitId = options.orgUnitId;
+            const applicableUnitIds = new Set([selectedUnitId]);
+            
+            const findChildrenRecursive = (parentId) => {
+                allOrgUnits.forEach(unit => {
+                    if (unit.ParentId === parentId) {
+                        applicableUnitIds.add(unit.Id);
+                        findChildrenRecursive(unit.Id); // ค้นหาหน่วยงานย่อยต่อไป
+                    }
+                });
+            };
+            findChildrenRecursive(selectedUnitId);
+
+            filteredStaffs = filteredStaffs.filter(staff => applicableUnitIds.has(staff.OrgUnitId));
         }
-      }
-      
-      return {
-        ...staff,
-        DepartmentName: departmentName,
-        SectionName: sectionName,
-        SupervisorName: allStaffs.find(s => s.Id === staff.SupervisorId)?.NameThai || '-',
-      };
-    });
+        
+        // 1.2 กรองตามสถานะ
+        if (options.status) {
+            filteredStaffs = filteredStaffs.filter(staff => staff.Status === options.status);
+        }
 
-    // Filtering logic
-    const filters = [];
-    if (options.searchTerm) {
-      const term = options.searchTerm.toLowerCase();
-      filters.push(
-        { field: 'NameThai', operator: 'contains', value: term, logic: 'or' },
-        { field: 'SurnameThai', operator: 'contains', value: term, logic: 'or' },
-        { field: 'NicknameThai', operator: 'contains', value: term, logic: 'or' },
-        { field: 'Email', operator: 'contains', value: term, logic: 'or' }
-      );
-    }
-    // [REVISED] Filter by a single OrgUnitId
-    if (options.orgUnitId) {
-        // Find all children of the selected unit
-        const selectedUnitId = options.orgUnitId;
-        const childIds = new Set([selectedUnitId]);
-        const findChildrenRecursive = (parentId) => {
-            allOrgUnits.forEach(unit => {
-                if(unit.ParentId === parentId) {
-                    childIds.add(unit.Id);
-                    findChildrenRecursive(unit.Id);
+        // 1.3 กรองตามคำค้นหา
+        if (options.searchTerm) {
+            const term = options.searchTerm.toLowerCase();
+            filteredStaffs = filteredStaffs.filter(s =>
+                String(s.NameThai || '').toLowerCase().includes(term) ||
+                String(s.SurnameThai || '').toLowerCase().includes(term) ||
+                String(s.NicknameThai || '').toLowerCase().includes(term) ||
+                String(s.Email || '').toLowerCase().includes(term)
+            );
+        }
+
+        // --- 2. นำข้อมูลที่กรองแล้วมา Join เพื่อแสดงผล ---
+        const joinedAndFilteredStaffs = filteredStaffs.map(staff => {
+            const unit = orgUnitMap.get(staff.OrgUnitId);
+            let departmentName = '-';
+            let sectionName = '';
+
+            if (unit) {
+                if (unit.ParentId && orgUnitMap.has(unit.ParentId)) {
+                    const parentDept = orgUnitMap.get(unit.ParentId);
+                    departmentName = parentDept.Name;
+                    sectionName = unit.Name;
+                } else {
+                    departmentName = unit.Name;
                 }
-            });
-        };
-        findChildrenRecursive(selectedUnitId);
-
-        filters.push({
-            field: 'OrgUnitId',
-            operator: (rowValue) => childIds.has(rowValue) // Custom filter function
+            }
+            
+            return {
+                ...staff,
+                DepartmentName: departmentName,
+                SectionName: sectionName,
+                SupervisorName: allStaffsRaw.find(s => s.Id === staff.SupervisorId)?.NameThai || '-',
+            };
         });
+        
+        // --- 3. ส่งข้อมูลที่กรองและ Join เรียบร้อยแล้วไปให้ฟังก์ชันกลางทำแค่ Sort และ Paginate ---
+        const config = {
+            dataSource: joinedAndFilteredStaffs,
+            pagination: options,
+            sort: { column: options.sortColumn || 'CreateDate', direction: options.sortDirection || 'desc' },
+            filters: [], // <<<<<<< สำคัญ: ส่งอาร์เรย์ว่างไป เพราะเรากรองเองแล้ว
+        };
+        
+        const result = getPaginatedData(config); // เรียกใช้ฟังก์ชันกลางจาก UtilsLib.js
+
+        return {
+            success: true,
+            data: result.data,
+            totalRecords: result.totalRecords,
+            totalPages: result.totalPages,
+            currentPage: result.currentPage
+        };
+
+    } catch (e) {
+        Logger.log(`Error in getPaginatedStaffs: ${e.message}\n${e.stack}`);
+        return { success: false, message: e.message };
     }
-    if (options.status) {
-      filters.push({ field: 'Status', operator: 'equals', value: options.status });
-    }
-
-    // Custom operator for the filter engine
-    const customOperators = {
-        'equals': (a, b) => String(a).toLowerCase() === String(b).toLowerCase(),
-        'contains': (a, b) => String(a).toLowerCase().includes(String(b).toLowerCase())
-    };
-
-    const config = {
-      dataSource: joinedStaffs,
-      pagination: options,
-      sort: { column: options.sortColumn || 'CreateDate', direction: options.sortDirection || 'desc' },
-      filters: filters,
-      customOperators: customOperators
-    };
-    
-    const result = getPaginatedData(config);
-
-    return {
-      success: true, data: result.data, totalRecords: result.totalRecords,
-      totalPages: result.totalPages, currentPage: result.currentPage
-    };
-
-  } catch (e) {
-    Logger.log(`Error in getPaginatedStaffs: ${e.message}\n${e.stack}`);
-    return { success: false, message: e.message };
-  }
 }
 
 /**
