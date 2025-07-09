@@ -26,7 +26,11 @@ const SHEET_DEFINITIONS = [
   { name: "PQCriteria", db: "main" },
   { name: "Staffs", db: "main" },
   { name: "Departments", db: "main" },
+  { name: "Projects", db: "main" },
+  { name: "Provinces", db: "main" },
 ];
+
+const PROJECT_STATUSES = ['Active', 'Hold'];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
 const GOOGLE_SERVICES = {
@@ -55,6 +59,7 @@ const ROUTING_CONFIG = {
     'admin/staff/manage': 'page/admin/staff_manage',
     'admin/department/manage': 'page/admin/department_manage',
     'admin/project/owner/manage': 'page/admin/project/owner/manage',
+    'project/manage': 'page/project/manage',
     'dashboard': 'page/dashboard',
     'home': 'page/home',
     // ====== User ======
@@ -80,6 +85,7 @@ const ROUTING_CONFIG = {
     'admin/staff/manage': ['Admin'],
     'admin/department/manage': ['Admin'],
     'admin/project/owner/manage': ['Admin'],
+    'project/manage': ['Admin', 'PRC', 'CC_PRC', 'Member', 'Moderator'],
     'package/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/pq': ['Admin', 'PRC', 'CC_PRC'],
@@ -94,6 +100,7 @@ const ROUTING_CONFIG = {
     'admin/staff/manage': 'จัดการข้อมูลพนักงาน',
     'admin/department/manage': 'จัดการฝ่ายและแผนก',
     'admin/project/owner/manage': "จัดการข้อมูลเจ้าของโครงการ",
+    'project/manage': "ข้อมูลโครงการ (Projects)",
     'dashboard': "แดชบอร์ด",
     'home': "Home",
     'login': "Login",
@@ -171,6 +178,7 @@ const APP_CONFIG = {
   googleServices: GOOGLE_SERVICES,
   site: SITE_DEFAULTS,
   security: SECURITY_CONFIG,
+  projectStatuses: PROJECT_STATUSES,
   sheetsData: SHEETS_DATA,
   routing: ROUTING_CONFIG
 };
