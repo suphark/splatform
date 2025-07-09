@@ -272,6 +272,8 @@
   </div>
 </div>
 
+
+
 <div class="modal fade" id="projectModal" tabindex="-1" aria-labelledby="projectModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -295,13 +297,22 @@
                 <input type="number" class="form-control" id="projectYear" placeholder="ระบุปี ค.ศ. เช่น 2025">
             </div>
           </div>
+
           <div class="form-group">
-              <label for="projectOwnerId">เจ้าของโครงการ <span class="text-danger">*</span></label>
-              <select class="form-control" id="projectOwnerId">
-                  <option value="">-- กรุณาเลือก --</option>
-                  <option value="other">อื่นๆ (โปรดระบุ)</option>
-              </select>
+            <label for="projectOwnerId">เจ้าของโครงการ <span class="text-danger">*</span></label>
+            <div class="input-group">
+                <select class="form-control" id="projectOwnerId">
+                    <option value="">-- กรุณาเลือก --</option>
+                    <option value="other">อื่นๆ (โปรดระบุ)</option>
+                </select>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-success" type="button" id="addNewProjectOwnerBtn" title="เพิ่มเจ้าของโครงการใหม่">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
           </div>
+
           <div class="form-group" id="projectOwnerCustomGroup" style="display: none;">
               <label for="projectOwnerCustom">ระบุชื่อเจ้าของโครงการ</label>
               <input type="text" class="form-control" id="projectOwnerCustom">
@@ -322,9 +333,42 @@
         </form>
 
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button><button type="button" id="saveProjectButton" class="btn btn-primary">บันทึก</button></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+        <button type="button" id="saveProjectButton" class="btn btn-primary">บันทึก</button>
+      </div>
     </div>
   </div>
 </div>
 
+
+<div class="modal fade" id="projectOwnerSubModal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">เพิ่มข้อมูลเจ้าของโครงการใหม่</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="projectOwnerSubForm">
+                    <div class="form-group"><label>ชื่อ (ไทย)*</label><input type="text" id="sub_nameThai" class="form-control" required></div>
+                    <div class="form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="sub_nameEnglish" class="form-control"></div>
+                    <div class="form-group"><label>ชื่อเล่น</label><input type="text" id="sub_nickname" class="form-control"></div>
+                    <div class="form-group"><label>ประเภทบริษัท</label><select id="sub_companyTypeId" class="form-control"></select></div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                           <input type="checkbox" class="custom-control-input" id="sub_isLargeCompany">
+                           <label class="custom-control-label" for="sub_isLargeCompany">เป็นบริษัทขนาดใหญ่</label>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>หมายเหตุ</label><textarea id="sub_remark" class="form-control" rows="2"></textarea></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="saveNewProjectOwnerBtn" class="btn btn-primary">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
 

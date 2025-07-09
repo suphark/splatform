@@ -41,7 +41,7 @@ const CRUD_CONFIG = {
     vendorProject: {
         sheetKey: 'vendorProjects',
         idPrefix: 'VPR-',
-        requiredFields: ['VendorId', 'ProjectName', 'ProjectYear', 'ProjectTypeId'],
+        requiredFields: ['VendorId', 'ProjectName', 'ProjectTypeId'],
         getAfterAction: (vendorId) => getProjectsByVendorId(vendorId),
         entityName: 'โครงการอ้างอิง'
     }

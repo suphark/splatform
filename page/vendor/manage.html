@@ -38,6 +38,8 @@
       document.getElementById('saveBoardMemberButton').addEventListener('click', handleSaveBoardMember);
       document.getElementById('saveFinanceButton').addEventListener('click', handleSaveFinanceRecord);
       document.getElementById('saveProjectButton').addEventListener('click', handleSaveProject);
+      document.getElementById('addNewProjectOwnerBtn').addEventListener('click', prepareAddProjectOwnerSubModal);
+      document.getElementById('saveNewProjectOwnerBtn').addEventListener('click', handleSaveNewProjectOwner);
       document.getElementById('projectOwnerId').addEventListener('change', toggleProjectOwnerInput);
       document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { searchTerm = document.getElementById('searchInput').value; currentPage = 1; fetchAndRenderVendors(); }, 500); });
       document.getElementById('statusFilter').addEventListener('change', () => { selectedStatusId = document.getElementById('statusFilter').value; currentPage = 1; fetchAndRenderVendors(); });
@@ -216,7 +218,7 @@
     });
   };
 
-  window.prepareAddProjectModal = function () { 
+ window.prepareAddProjectModal = function () { 
     const vendorId = document.getElementById('vendorId').value; 
     if (!vendorId) { 
       showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); 
@@ -227,22 +229,31 @@
     document.getElementById('projectVendorId').value = vendorId; 
     $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง'); 
     
-    // 1. ทำลาย Select2 instance เก่า (ถ้ามี) เพื่อป้องกัน error
+    // [1] ทำลาย Select2 instance เก่า (ถ้ามี) เพื่อป้องกัน error
+    // ทำพร้อมกันทั้ง 2 dropdown เลย
     if ($('#projectPackageIds').data('select2')) {
         $('#projectPackageIds').select2('destroy');
+    }
+    if ($('#projectOwnerId').data('select2')) { // <-- เพิ่มส่วนนี้
+        $('#projectOwnerId').select2('destroy');
     }
     
     toggleProjectOwnerInput(); 
     $('#projectModal').modal('show'); 
-    // 2. สร้าง Select2 instance ใหม่
+
+    // [2] สร้าง Select2 instance ใหม่
     $('#projectPackageIds').select2({
         theme: 'bootstrap4',
         placeholder: 'ค้นหาและเลือกประเภทงานที่ทำ',
         allowClear: true,
-        dropdownParent: $('#projectModal') // สำคัญมากสำหรับ Modal
+        dropdownParent: $('#projectModal')
     });
-
-  };
+    
+    $('#projectOwnerId').select2({ // <-- เพิ่มส่วนนี้
+        theme: 'bootstrap4',
+        dropdownParent: $('#projectModal')
+    });
+ };
 
   window.prepareEditProjectModal = function (p) { 
     document.getElementById('projectForm').reset(); 
@@ -262,15 +273,17 @@
     } 
     toggleProjectOwnerInput(); 
     
-    // --- [เพิ่มและแก้ไขส่วนนี้] ---
-    // 1. ทำลาย Select2 instance เก่า (ถ้ามี)
+    // [1] ทำลาย Select2 instance เก่า
     if ($('#projectPackageIds').data('select2')) {
         $('#projectPackageIds').select2('destroy');
+    }
+    if ($('#projectOwnerId').data('select2')) { // <-- เพิ่มส่วนนี้
+        $('#projectOwnerId').select2('destroy');
     }
 
     $('#projectModal').modal('show'); 
 
-    // 2. สร้าง Select2 instance ใหม่
+    // [2] สร้าง Select2 instance ใหม่
     $('#projectPackageIds').select2({
         theme: 'bootstrap4',
         placeholder: 'ค้นหาและเลือกประเภทงานที่ทำ',
@@ -278,15 +291,21 @@
         dropdownParent: $('#projectModal')
     });
 
-    // 3. ใช้วิธีของ jQuery ในการตั้งค่ารายการที่เลือกไว้
+    $('#projectOwnerId').select2({ // <-- เพิ่มส่วนนี้
+        theme: 'bootstrap4',
+        dropdownParent: $('#projectModal')
+    });
+
+    // [3] ตั้งค่าที่ถูกเลือกไว้ด้วย jQuery และสั่ง .trigger('change')
     if (p.PackageIds && typeof p.PackageIds === 'string') { 
         const selectedIds = p.PackageIds.split(',').map(id => id.trim()); 
         $('#projectPackageIds').val(selectedIds).trigger('change'); 
     }
-    // --- จบส่วนที่แก้ไข ---
-
-
-  };
+    
+    // ตั้งค่าสำหรับ Project Owner dropdown
+    const ownerSelectValue = (p.ProjectOwnerId && p.ProjectOwnerId !== 'other') ? p.ProjectOwnerId : 'other';
+    $('#projectOwnerId').val(ownerSelectValue).trigger('change'); // <-- เพิ่มส่วนนี้
+ };
 
   window.handleDeleteProject = function (projectId, vendorId) {
     Swal.fire({
@@ -472,21 +491,94 @@
     }).catch(handleServerError);
   }  
   function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
-  function loadProjectOwnersForModal() { 
-    return serverCall('getAllProjectOwners').then(data => { 
-        availableProjectOwners = data; 
-        const select = document.getElementById('projectOwnerId'); 
-        while (select.options.length > 2) { 
-            select.remove(1); 
-        } 
-        data.forEach(item => { 
-            // [FIXED] เปลี่ยนจาก item.Name เป็น item.NameThai
-            const option = new Option(item.NameThai, item.Id); 
-            select.insertBefore(option, select.options[select.options.length - 1]); 
-        }); 
-    }).catch(handleServerError); 
-}
   
+  function loadProjectOwnersForModal(selectedValue = null) {
+      if ($('#projectOwnerId').data('select2')) {
+          $('#projectOwnerId').select2('destroy');
+      }
+      return serverCall('getAllProjectOwners').then(data => {
+          availableProjectOwners = data;
+          const select = document.getElementById('projectOwnerId');
+          // เก็บ option 'อื่นๆ' ไว้ก่อน
+          const otherOption = select.querySelector('option[value="other"]');
+          select.innerHTML = '<option value="">-- กรุณาเลือก --</option>';
+          
+          data.forEach(item => {
+              select.add(new Option(item.NameThai, item.Id));
+          });
+          // นำ option 'อื่นๆ' กลับมาต่อท้าย
+          if(otherOption) select.appendChild(otherOption);
+
+          // ถ้ามีค่าที่เคยเลือกไว้ ให้ตั้งค่านั้นกลับไป
+          if(selectedValue) {
+              select.value = selectedValue;
+          }
+
+          // สร้าง Select2 Instance
+          $('#projectOwnerId').select2({
+              theme: 'bootstrap4',
+              dropdownParent: $('#projectModal')
+          });
+          // สั่งให้ Select2 อัปเดตการแสดงผล
+          $('#projectOwnerId').trigger('change.select2');
+      }).catch(handleServerError);
+  }
+
+  // [NEW] ฟังก์ชันสำหรับเปิด Modal ย่อย
+function prepareAddProjectOwnerSubModal() {
+    document.getElementById('projectOwnerSubForm').reset();
+    // ดึง option จาก dropdown หลักมาใส่ใน dropdown ของ modal ย่อย
+    const mainCompanyTypeSelect = document.getElementById('companyTypeId'); // dropdown จาก modal หลัก
+    const subCompanyTypeSelect = document.getElementById('sub_companyTypeId');
+    subCompanyTypeSelect.innerHTML = mainCompanyTypeSelect.innerHTML;
+    subCompanyTypeSelect.value = '';
+
+    // ซ่อน modal หลักชั่วคราวเพื่อให้ modal ย่อยแสดงผลด้านหน้า
+    $('#projectModal').css('z-index', 1040); 
+    $('#projectOwnerSubModal').modal('show');
+    
+    // เมื่อ modal ย่อยถูกปิด, คืนค่า z-index ของ modal หลัก
+    $('#projectOwnerSubModal').on('hidden.bs.modal', function () {
+        $('#projectModal').css('z-index', 1050);
+        $(this).off('hidden.bs.modal'); // ลบ event listener ทิ้งไป
+    });
+}
+
+// [NEW] ฟังก์ชันสำหรับบันทึกข้อมูลจาก Modal ย่อย
+async function handleSaveNewProjectOwner() {
+    const saveButton = document.getElementById('saveNewProjectOwnerBtn');
+    setLoading(saveButton, true);
+
+    const formData = {
+        Id: '', // เป็นการเพิ่มใหม่เสมอ
+        NameThai: document.getElementById('sub_nameThai').value,
+        NameEnglish: document.getElementById('sub_nameEnglish').value,
+        Nickname: document.getElementById('sub_nickname').value,
+        CompanyTypeId: document.getElementById('sub_companyTypeId').value,
+        IsLargeCompany: document.getElementById('sub_isLargeCompany').checked,
+        Remark: document.getElementById('sub_remark').value
+    };
+
+    try {
+        const response = await serverCall('processAddOrEditProjectOwner', formData);
+        if (response.success) {
+            showToast(response.message, true);
+            $('#projectOwnerSubModal').modal('hide');
+            // หลังจากบันทึกสำเร็จ ให้โหลดข้อมูลเจ้าของโครงการใหม่ทั้งหมด
+            // และเลือกรายการล่าสุดที่เพิ่งเพิ่มเข้าไป
+            const allOwners = await serverCall('getAllProjectOwners');
+            const newOwner = allOwners.sort((a,b) => b.Id.localeCompare(a.Id))[0];
+            await loadProjectOwnersForModal(newOwner.Id);
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
 function populateForm(data) {
     document.getElementById('vendorForm').reset();
     document.getElementById('vendorId').value = data.Id;

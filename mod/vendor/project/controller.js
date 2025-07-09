@@ -52,6 +52,7 @@ function processAddOrEditProject(formData, fileData) {
     if (!formData.ProjectOwnerId && !formData.ProjectOwnerCustom) {
         return { success: false, message: "กรุณาระบุเจ้าของโครงการ" };
     }
+    
     if (!formData.PackageIds) {
         return { success: false, message: "กรุณาระบุประเภทงานที่ทำ (Pakcage)" };
     }
@@ -61,6 +62,7 @@ function processAddOrEditProject(formData, fileData) {
     } else if (formData.ProjectOwnerId) {
         formData.ProjectOwnerCustom = '';
     }
+
     if (Array.isArray(formData.PackageIds)) {
         formData.PackageIds = formData.PackageIds.join(',');
     }
