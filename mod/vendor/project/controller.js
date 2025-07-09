@@ -17,7 +17,7 @@ function getProjectsByVendorId(vendorId) {
 
         // 2. สร้าง Map เพื่อให้ค้นหาชื่อได้รวดเร็ว
         const typeMap = new Map(projectTypes.map(item => [item.Id, item.Name]));
-        const ownerMap = new Map(projectOwners.map(item => [item.Id, item.Name]));
+        const ownerMap = new Map(projectOwners.map(item => [item.Id, item.NameThai]));
         const packageMap = new Map(packages.map(item => [item.Id, item.NameThai]));
 
         // 3. วนลูปเพื่อเพิ่มข้อมูล "ชื่อ" เข้าไปในแต่ละโปรเจกต์

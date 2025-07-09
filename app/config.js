@@ -26,7 +26,6 @@ const SHEET_DEFINITIONS = [
   { name: "PQCriteria", db: "main" },
   { name: "Staffs", db: "main" },
   { name: "Departments", db: "main" },
-  // { name: "Sections", db: "main" },
 ];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
@@ -55,6 +54,7 @@ const ROUTING_CONFIG = {
     'admin/role/manage': 'page/admin/role_manage',
     'admin/staff/manage': 'page/admin/staff_manage',
     'admin/department/manage': 'page/admin/department_manage',
+    'admin/project/owner/manage': 'page/admin/project/owner/manage',
     'dashboard': 'page/dashboard',
     'home': 'page/home',
     // ====== User ======
@@ -69,6 +69,8 @@ const ROUTING_CONFIG = {
     'vendor/manage': 'page/vendor/manage',
     'vendor/pq': 'page/vendor/pq_view',
     'vendor/history': 'page/vendor/history',
+    // ====== PostQ ======
+    'postq/manage': 'page/postq/manage',
   },
   permissions: {
     'admin/dashboard': ['Admin'],
@@ -76,11 +78,13 @@ const ROUTING_CONFIG = {
     'admin/user/manage': ['Admin'],
     'admin/role/manage': ['Admin'],
     'admin/staff/manage': ['Admin'],
-    'admin/department/manage': ['Admin'], // [NEW]
+    'admin/department/manage': ['Admin'],
+    'admin/project/owner/manage': ['Admin'],
     'package/manage': ['Admin', 'PRC', 'CC_PRC'],
     'vendor/manage': ['Admin', 'PRC', 'CC_PRC'],
-    'vendor/pq': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
-    'vendor/history': ['Admin', 'PRC', 'CC_PRC'], // [NEW] กำหนดสิทธิ์
+    'vendor/pq': ['Admin', 'PRC', 'CC_PRC'],
+    'vendor/history': ['Admin', 'PRC', 'CC_PRC'],
+    'postq/manage': ['Admin', 'PRC', 'CC_PRC'], 
   },
   titles: {
     'admin/dashboard': "แผงควบคุมผู้ดูแลระบบ",
@@ -88,7 +92,8 @@ const ROUTING_CONFIG = {
     'admin/user/manage': 'จัดการสิทธิ์ผู้ใช้',
     'admin/role/manage': 'จัดการ Role และสิทธิ์',
     'admin/staff/manage': 'จัดการข้อมูลพนักงาน',
-    'admin/department/manage': 'จัดการฝ่ายและแผนก', // [NEW]
+    'admin/department/manage': 'จัดการฝ่ายและแผนก',
+    'admin/project/owner/manage': "จัดการข้อมูลเจ้าของโครงการ",
     'dashboard': "แดชบอร์ด",
     'home': "Home",
     'login': "Login",
@@ -103,6 +108,8 @@ const ROUTING_CONFIG = {
     'vendor/manage': "จัดการข้อมูลคู่ค้า (Vendor)",
     'vendor/pq': "แบบประเมินคู่ค้า",
     'vendor/history': "ประวัติการประเมินคู่ค้า",
+    // ====== PostQ ======
+    'postq/manage': "ระบบประเมินหลังรับงาน (Post-Qualification)",
   }
 };
 

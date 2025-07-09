@@ -16,8 +16,8 @@ function generatePQData(vendorId) {
         const allFinances = getFinanceByVendorId(vendorId);
         const allProjects = getProjectsByVendorId(vendorId);
         const allProjectOwners = getAllProjectOwners();
-        const projectOwnerMap = new Map(allProjectOwners.map(o => [o.Id, o.Name]));
-        const projectsWithNames = allProjects.map(p => ({ ...p, ProjectOwnerName: projectOwnerMap.get(p.ProjectOwnerId) || '' }));
+        const projectOwnerMap = new Map(allProjectOwners.map(o => [o.Id, o.NameThai]));
+        const projectsWithNames = allProjects.map(p => ({ ...p, ProjectOwnerName: projectOwnerMap.get(p.ProjectOwnerId) || '' }));
         const evaluationDate = new Date();
         const currentYear = evaluationDate.getFullYear();
         const registeredDate = vendor.RegisteredDate ? new Date(vendor.RegisteredDate) : null;

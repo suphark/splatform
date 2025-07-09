@@ -472,7 +472,20 @@
     }).catch(handleServerError);
   }  
   function loadProjectTypesForModal() { return serverCall('getAllProjectTypes').then(data => { availableProjectTypes = data; const select = document.getElementById('projectTypeId'); select.innerHTML = '<option value="">-- กรุณาเลือก --</option>'; data.forEach(item => select.add(new Option(item.Name, item.Id))); }).catch(handleServerError); }
-  function loadProjectOwnersForModal() { return serverCall('getAllProjectOwners').then(data => { availableProjectOwners = data; const select = document.getElementById('projectOwnerId'); while (select.options.length > 2) { select.remove(1); } data.forEach(item => { const option = new Option(item.Name, item.Id); select.insertBefore(option, select.options[select.options.length - 1]); }); }).catch(handleServerError); }
+  function loadProjectOwnersForModal() { 
+    return serverCall('getAllProjectOwners').then(data => { 
+        availableProjectOwners = data; 
+        const select = document.getElementById('projectOwnerId'); 
+        while (select.options.length > 2) { 
+            select.remove(1); 
+        } 
+        data.forEach(item => { 
+            // [FIXED] เปลี่ยนจาก item.Name เป็น item.NameThai
+            const option = new Option(item.NameThai, item.Id); 
+            select.insertBefore(option, select.options[select.options.length - 1]); 
+        }); 
+    }).catch(handleServerError); 
+}
   
 function populateForm(data) {
     document.getElementById('vendorForm').reset();

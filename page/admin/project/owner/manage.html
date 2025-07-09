@@ -1,0 +1,255 @@
+<!-- file: page/admin/project/owner/manage.html -->
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-user-tie"></i> <?= data.title ?></h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-success" onclick="prepareAddModal()">
+            <i class="fas fa-plus"></i> เพิ่มข้อมูลใหม่
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input type="text" id="searchInput" class="form-control" placeholder="ค้นหา (ชื่อไทย, อังกฤษ, ชื่อเล่น)...">
+    </div>
+    <div class="col-md-4">
+        <select id="companyTypeFilter" class="form-control"><option value="">ทุกประเภทบริษัท</option></select>
+    </div>
+    <div class="col-md-4">
+        <select id="isLargeFilter" class="form-control">
+            <option value="">ทั้งหมด (Is Large)</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>ชื่อ (ไทย)</th>
+                <th>ชื่อ (อังกฤษ)</th>
+                <th>ชื่อเล่น</th>
+                <th>ประเภทบริษัท</th>
+                <th>บริษัทขนาดใหญ่</th>
+                <th>หมายเหตุ</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="data-table-body"></tbody>
+    </table>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div><span id="pageInfo"></span></div>
+    <nav><ul class="pagination mb-0" id="pagination-controls"></ul></nav>
+</div>
+
+<div class="modal fade" id="dataModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dataModalLabel"></h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dataForm">
+                    <input type="hidden" id="dataId">
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>ชื่อ (ไทย)*</label><input type="text" id="nameThai" class="form-control" required></div>
+                        <div class="col-md-6 form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="nameEnglish" class="form-control"></div>
+                    </div>
+                    <div class="row">
+                         <div class="col-md-6 form-group"><label>ชื่อเล่น</label><input type="text" id="nickname" class="form-control"></div>
+                         <div class="col-md-6 form-group"><label>ประเภทบริษัท</label><select id="companyTypeId" class="form-control"></select></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                           <input type="checkbox" class="custom-control-input" id="isLargeCompany">
+                           <label class="custom-control-label" for="isLargeCompany">เป็นบริษัทขนาดใหญ่</label>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>หมายเหตุ</label><textarea id="remark" class="form-control" rows="3"></textarea></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" id="saveDataButton" class="btn btn-primary" form="dataForm">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    let debounceTimer;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchAndRenderData();
+        populateCompanyTypeFilters();
+
+        document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
+        
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { currentPage = 1; fetchAndRenderData(); }, 500);
+        });
+        document.getElementById('companyTypeFilter').addEventListener('change', () => { currentPage = 1; fetchAndRenderData(); });
+        document.getElementById('isLargeFilter').addEventListener('change', () => { currentPage = 1; fetchAndRenderData(); });
+    });
+
+    function fetchAndRenderData() {
+        const tableBody = document.getElementById('data-table-body');
+        // [2] แก้ไข colspan จาก 8 เป็น 7
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="spinner-border"></div></td></tr>`; 
+        const options = {
+            page: currentPage,
+            limit: 30,
+            searchTerm: document.getElementById('searchInput').value,
+            companyTypeId: document.getElementById('companyTypeFilter').value,
+            isLargeCompany: document.getElementById('isLargeFilter').value,
+        };
+
+        serverCall('getPaginatedProjectOwners_callable', options)
+            .then(response => {
+                if (response.success) {
+                    renderTable(response.data);
+                    renderPagination(response);
+                } else { handleServerError(response); }
+            }).catch(handleServerError);
+    }
+
+    function renderTable(data) {
+        const tableBody = document.getElementById('data-table-body');
+        tableBody.innerHTML = '';
+        if (!data || data.length === 0) {
+            // [2] แก้ไข colspan จาก 8 เป็น 7
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>`;
+            return;
+        }
+        data.forEach(item => {
+            const row = tableBody.insertRow();
+            row.dataset.item = JSON.stringify(item);
+            const isLargeBadge = item.IsLargeCompany === true || String(item.IsLargeCompany).toLowerCase() === 'true'
+                ? '<span class="badge badge-success">Yes</span>'
+                : '<span class="badge badge-secondary">No</span>';
+
+            row.innerHTML = `
+                <td>${escapeHtml(item.NameThai) || '-'}</td>
+                <td>${escapeHtml(item.NameEnglish) || '-'}</td>
+                <td>${escapeHtml(item.Nickname) || '-'}</td>
+                <td>${escapeHtml(item.CompanyTypeName) || '-'}</td>
+                <td class="text-center">${isLargeBadge}</td>
+                <td>${escapeHtml(item.Remark) || '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="prepareEditModal(this)"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="handleDelete('${item.Id}', '${escapeHtml(item.NameThai)}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+        });
+    }
+
+    function renderPagination(data) {
+        currentPage = data.currentPage;
+        const totalPages = data.totalPages;
+        document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`;
+        const controls = document.getElementById('pagination-controls');
+        controls.innerHTML = '';
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`;
+        prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderData(); } });
+        controls.appendChild(prevLi);
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`;
+        nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderData(); } });
+        controls.appendChild(nextLi);
+    }
+
+    async function populateCompanyTypeFilters() {
+        try {
+            const types = await serverCall('getAllCompanyTypes');
+            const filterSelect = document.getElementById('companyTypeFilter');
+            const modalSelect = document.getElementById('companyTypeId');
+            modalSelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
+            types.forEach(type => {
+                filterSelect.add(new Option(type.Name, type.Id));
+                modalSelect.add(new Option(type.Name, type.Id));
+            });
+        } catch(err) {
+            showToast('ไม่สามารถโหลดข้อมูลประเภทบริษัทได้', false);
+        }
+    }
+
+    function prepareAddModal() {
+        document.getElementById('dataForm').reset();
+        document.getElementById('dataId').value = '';
+        document.getElementById('isLargeCompany').checked = false;
+        document.getElementById('dataModalLabel').textContent = 'เพิ่มข้อมูลเจ้าของโครงการ';
+        $('#dataModal').modal('show');
+    }
+
+    function prepareEditModal(button) {
+        const item = JSON.parse(button.closest('tr').dataset.item);
+        document.getElementById('dataForm').reset();
+        document.getElementById('dataId').value = item.Id;
+        document.getElementById('nameThai').value = item.NameThai || '';
+        document.getElementById('nameEnglish').value = item.NameEnglish || '';
+        document.getElementById('nickname').value = item.Nickname || '';
+        document.getElementById('companyTypeId').value = item.CompanyTypeId || '';
+        document.getElementById('isLargeCompany').checked = item.IsLargeCompany === true || String(item.IsLargeCompany).toLowerCase() === 'true';
+        document.getElementById('remark').value = item.Remark || '';
+        document.getElementById('dataModalLabel').textContent = 'แก้ไขข้อมูลเจ้าของโครงการ';
+        $('#dataModal').modal('show');
+    }
+    
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const saveButton = document.getElementById('saveDataButton');
+        setLoading(saveButton, true);
+        const formData = {
+            Id: document.getElementById('dataId').value,
+            NameThai: document.getElementById('nameThai').value,
+            NameEnglish: document.getElementById('nameEnglish').value,
+            Nickname: document.getElementById('nickname').value,
+            CompanyTypeId: document.getElementById('companyTypeId').value,
+            IsLargeCompany: document.getElementById('isLargeCompany').checked,
+            Remark: document.getElementById('remark').value
+        };
+
+        try {
+            const response = await serverCall('processAddOrEditProjectOwner', formData);
+            if (response.success) {
+                showToast(response.message, true);
+                $('#dataModal').modal('hide');
+                fetchAndRenderData();
+            } else {
+                showToast(response.message, false);
+            }
+        } catch (err) {
+            handleServerError(err);
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    function handleDelete(id, name) {
+        Swal.fire({
+            title: 'ยืนยันการลบ', text: `คุณต้องการลบ "${name}" ใช่หรือไม่?`, icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true,
+            preConfirm: () => serverCall('processDeleteProjectOwner', id).catch(handleServerError),
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value.success) {
+                 Swal.fire('สำเร็จ!', result.value.message, 'success');
+                 fetchAndRenderData();
+            } else if(result.value) {
+                 Swal.fire('ผิดพลาด!', result.value.message || 'ไม่สามารถลบข้อมูลได้', 'error');
+            }
+        });
+    }
+</script>

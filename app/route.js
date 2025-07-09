@@ -3,6 +3,7 @@
  * ใช้ Map-based routing ทั้ง doGet และ doPost
  */
 
+
 // ================== GET ROUTE MAP & HANDLERS ==================
 const routeMap = {
   'dashboard': handleDashboardPage,
@@ -15,6 +16,7 @@ const routeMap = {
   'admin/settings': handleAdminSettingsPage,
   'admin/staff/manage': handleManageStaffsPage, 
   'admin/department/manage': handleManageDepartmentsPage,
+  'admin/project/owner/manage': handleManageProjectOwnersPage,
   'forgot-password': handleForgotPasswordPage,
   'reset-password': handleResetPasswordPage,
   'home': handleHomePage,
@@ -241,5 +243,12 @@ function handleManageStaffsPage(session, params) {
 function handleManageDepartmentsPage(session, params) {
   return render(APP_CONFIG.routing.files['admin/department/manage'], {
     title: APP_CONFIG.routing.titles['admin/department/manage']
+  });
+}
+
+// [NEW] เพิ่ม Handler สำหรับหน้าจัดการเจ้าของโครงการ
+function handleManageProjectOwnersPage(session, params) {
+  return render(APP_CONFIG.routing.files['admin/project/owner/manage'], {
+    title: APP_CONFIG.routing.titles['admin/project/owner/manage']
   });
 }
