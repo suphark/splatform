@@ -28,9 +28,8 @@ const SHEET_DEFINITIONS = [
   { name: "Departments", db: "main" },
   { name: "Projects", db: "main" },
   { name: "Provinces", db: "main" },
+  { name: "ProjectStatuses", db: "main" },
 ];
-
-const PROJECT_STATUSES = ['Active', 'Hold'];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ
 const GOOGLE_SERVICES = {
@@ -178,7 +177,6 @@ const APP_CONFIG = {
   googleServices: GOOGLE_SERVICES,
   site: SITE_DEFAULTS,
   security: SECURITY_CONFIG,
-  projectStatuses: PROJECT_STATUSES,
   sheetsData: SHEETS_DATA,
   routing: ROUTING_CONFIG
 };

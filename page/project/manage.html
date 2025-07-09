@@ -12,7 +12,7 @@
 
 <div class="row mb-3">
     <div class="col-md-3"><input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อโครงการ..."></div>
-    <div class="col-md-3"><select id="typeFilter" class="form-control" multiple></select></div>
+    <div class="col-md-3"><select id="typeFilter" class="form-control"><option value="">ทุกประเภท</option></select></div>
     <div class="col-md-2"><select id="ownerFilter" class="form-control"><option value="">ทุกเจ้าของ</option></select></div>
     <div class="col-md-2"><select id="provinceFilter" class="form-control"><option value="">ทุกจังหวัด</option></select></div>
     <div class="col-md-2"><select id="statusFilter" class="form-control"><option value="">ทุกสถานะ</option></select></div>
@@ -22,7 +22,13 @@
     <table class="table table-striped table-hover">
         <thead class="thead-dark">
             <tr>
-                <th>ชื่อโครงการ</th><th>ประเภท</th><th>เจ้าของ</th><th>สถานะ</th><th>จังหวัด</th><th>หมายเหตุ</th><th>จัดการ</th>
+                <th style="width: 8%;">สถานะ</th>
+                <th>ชื่อโครงการ</th>
+                <th>ประเภท</th>
+                <th>เจ้าของ</th>
+                <th>จังหวัด</th>
+                <th style="width: 5%;" class="text-center">ข้อมูล</th>
+                <th style="width: 10%;">จัดการ</th>
             </tr>
         </thead>
         <tbody id="data-table-body"></tbody>
@@ -33,7 +39,6 @@
     <div><span id="pageInfo"></span></div>
     <nav><ul class="pagination mb-0" id="pagination-controls"></ul></nav>
 </div>
-
 <div class="modal fade" id="projectModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
@@ -58,10 +63,7 @@
                         <div class="col-md-6 form-group"><label>สถานะ</label><select id="status" class="form-control"></select></div>
                         <div class="col-md-6 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
                     </div>
-                    <div class="form-group">
-                        <label>หมายเหตุ (Remark)</label>
-                        <textarea id="remark" class="form-control" rows="3"></textarea>
-                    </div>
+                    <div class="form-group"><label>หมายเหตุ (Remark)</label><textarea id="remark" class="form-control" rows="3"></textarea></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -73,21 +75,20 @@
 </div>
 
 <script>
-    let currentPage = 1, debounceTimer;
-    let masterData = {};
+    let currentPage = 1, debounceTimer, masterData = {};
 
     document.addEventListener('DOMContentLoaded', function() {
-        initMasterDataAndFilters().then(() => {
-            fetchAndRenderData();
-        });
-        
-        // --- Event Listeners ---
+        initMasterDataAndFilters().then(() => fetchAndRenderData());
         document.getElementById('projectForm').addEventListener('submit', handleFormSubmit);
-        const filters = ['typeFilter', 'ownerFilter', 'provinceFilter', 'statusFilter'];
-        filters.forEach(id => document.getElementById(id).addEventListener('change', () => { currentPage = 1; fetchAndRenderData(); }));
         document.getElementById('searchInput').addEventListener('input', () => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { currentPage = 1; fetchAndRenderData(); }, 500);
+        });
+        
+        // [FIXED] เปลี่ยนวิธีผูก Event ของ Filter ทั้งหมดให้ทำงานกับ Select2 ได้ถูกต้อง
+        $('#typeFilter, #ownerFilter, #provinceFilter, #statusFilter').on('change', () => {
+            currentPage = 1;
+            fetchAndRenderData();
         });
     });
 
@@ -98,37 +99,35 @@
             masterData = response;
 
             // Populate Filters
+            populateSelect('typeFilter', masterData.projectTypes, 'Id', 'Name', 'ทุกประเภท');
             populateSelect('ownerFilter', masterData.projectOwners, 'Id', 'NameThai', 'ทุกเจ้าของ');
             populateSelect('provinceFilter', masterData.provinces, 'Name', 'Name', 'ทุกจังหวัด');
-            populateSelect('statusFilter', masterData.statuses.map(s => ({val:s, name:s})), 'val', 'name', 'ทุกสถานะ');
+            populateSelect('statusFilter', masterData.statuses, 'Id', 'Name', 'ทุกสถานะ');
             
-            $('#typeFilter').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'ทุกประเภท', allowClear: true, width: '100%' });
-            $('#ownerFilter, #provinceFilter').select2({ theme: 'bootstrap4', width: '100%'});
+            // [FIXED] เอา Select2 ออกจาก typeFilter
+            $('#ownerFilter, #provinceFilter').select2({ theme: 'bootstrap4', width: '100%' });
 
             // Populate Modal Dropdowns
             populateSelect('projectOwnerId', masterData.projectOwners, 'Id', 'NameThai', '-- เลือก --');
             populateSelect('province', masterData.provinces, 'Name', 'Name', '-- เลือก --');
-            populateSelect('status', masterData.statuses.map(s => ({val:s, name:s})), 'val', 'name', '-- เลือก --');
+            populateSelect('status', masterData.statuses, 'Id', 'Name', '-- เลือก --');
 
             $('#projectTypeId').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'เลือกประเภทโครงการ', width: '100%', dropdownParent: $('#projectModal') });
-            $('#projectOwnerId, #province').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal')});
+            $('#projectOwnerId, #province').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal') });
 
-        } catch (err) {
-            handleServerError(err);
-        }
+        } catch (err) { handleServerError(err); }
     }
 
     function fetchAndRenderData() {
         const tableBody = document.getElementById('data-table-body');
-        // [FIXED] ปรับ colspan เป็น 7
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="spinner-border"></div></td></tr>`;
         const options = {
             page: currentPage, limit: 10,
-            searchTerm: document.getElementById('searchInput').value,
-            projectTypeId: $('#typeFilter').val().join(','), // Get array from multi-select
-            projectOwnerId: document.getElementById('ownerFilter').value,
-            status: document.getElementById('statusFilter').value,
-            province: document.getElementById('provinceFilter').value,
+            searchTerm: $('#searchInput').val(),
+            projectTypeId: $('#typeFilter').val(), // [FIXED] อ่านค่าจาก select ธรรมดา
+            projectOwnerId: $('#ownerFilter').val(),
+            status: $('#statusFilter').val(),
+            province: $('#provinceFilter').val(),
         };
         serverCall('getPaginatedProjects_callable', options)
             .then(res => {
@@ -141,27 +140,40 @@
         const tableBody = document.getElementById('data-table-body');
         tableBody.innerHTML = '';
         if (!data || data.length === 0) {
-            // [FIXED] ปรับ colspan เป็น 7
             tableBody.innerHTML = `<tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>`; return;
         }
         data.forEach(item => {
             const row = tableBody.insertRow();
             row.dataset.item = JSON.stringify(item);
-            const mapLink = item.MapUrl ? `<a href="${item.MapUrl}" target="_blank"><i class="fas fa-map-marked-alt"></i></a>` : '';
+            
+            let infoIcons = '';
+            if (item.MapUrl) {
+                infoIcons += `<a href="${item.MapUrl}" target="_blank" class="text-danger mr-2" title="เปิดแผนที่"><i class="fas fa-map-marked-alt"></i></a>`;
+            }
+            if (item.Remark) {
+                infoIcons += `<span data-toggle="tooltip" title="${escapeHtml(item.Remark)}"><i class="fas fa-comment-alt text-info"></i></span>`;
+            }
+            
+            // [FIXED] แก้ไขการแสดงผลสถานะ
+            const statusBadge = `<span class="badge" style="background-color:${item.StatusColor}; color:white;">${escapeHtml(item.StatusName)}</span>`;
+
             row.innerHTML = `
+                <td>${statusBadge}</td>
                 <td><b>${escapeHtml(item.NameThai)}</b><br><small class="text-muted">${escapeHtml(item.NameEnglish) || ''}</small></td>
                 <td><small>${escapeHtml(item.ProjectTypeName) || '-'}</small></td>
                 <td>${escapeHtml(item.ProjectOwnerName) || '-'}</td>
-                <td><span class="badge ${item.Status === 'Active' ? 'badge-success' : 'badge-warning'}">${item.Status}</span></td>
                 <td>${escapeHtml(item.Province) || '-'}</td>
-                <td><small>${escapeHtml(item.Remark) || '-'}</small></td> <td>
-                    ${mapLink}
+                <td class="text-center">${infoIcons}</td>
+                <td>
                     <button class="btn btn-sm btn-warning ml-1" onclick="prepareEditModal(this)"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="handleDelete('${item.Id}', '${escapeHtml(item.NameThai)}')"><i class="fas fa-trash"></i></button>
                 </td>
             `;
         });
+        $('[data-toggle="tooltip"]').tooltip();
     }
+
+
 
     function prepareAddModal() {
         document.getElementById('projectForm').reset();
@@ -182,12 +194,12 @@
         $('#nickname').val(item.Nickname || '');
         $('#projectYear').val(item.ProjectYear || '');
         $('#mapUrl').val(item.MapUrl || '');
-        $('#remark').val(item.Remark || ''); // [NEW] เพิ่มการกำหนดค่า Remark
+        $('#remark').val(item.Remark || '');
         
         $('#projectTypeId').val(item.ProjectTypeId ? String(item.ProjectTypeId).split(',') : null).trigger('change');
         $('#projectOwnerId').val(item.ProjectOwnerId).trigger('change');
         $('#province').val(item.Province).trigger('change');
-        $('#status').val(item.Status).trigger('change');
+        $('#status').val(item.StatusId).trigger('change');
 
         $('#projectModal').modal('show');
     }
@@ -200,8 +212,9 @@
             Id: $('#projectId').val(), NameThai: $('#nameThai').val(), NameEnglish: $('#nameEnglish').val(),
             Nickname: $('#nickname').val(), ProjectYear: $('#projectYear').val(), MapUrl: $('#mapUrl').val(),
             ProjectTypeId: $('#projectTypeId').val(), ProjectOwnerId: $('#projectOwnerId').val(),
-            Province: $('#province').val(), Status: $('#status').val(),
-            Remark: $('#remark').val(), // [NEW] เพิ่มการดึงค่า Remark
+            Province: $('#province').val(), 
+            StatusId: $('#status').val(), // [FIXED] เปลี่ยน key จาก Status เป็น StatusId
+            Remark: $('#remark').val(),
         };
 
         try {

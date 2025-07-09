@@ -1,5 +1,5 @@
 /**
- * @file mod/project/controller.js
+ * @file mod/project/list/controller.js
  */
 function getPaginatedProjects_callable(options) {
     try { return getPaginatedProjects(options); } catch (e) { return { success: false, message: e.message }; }
@@ -12,7 +12,7 @@ function getProjectMasterData_callable() {
             projectTypes: getAllProjectTypes(),
             projectOwners: getAllProjectOwners(),
             provinces: getProvinces(),
-            statuses: APP_CONFIG.projectStatuses
+            statuses: getAllProjectStatuses() // [FIXED] ดึงข้อมูลสถานะจากฟังก์ชันใหม่
         };
     } catch(e) {
         return { success: false, message: e.message };
@@ -23,7 +23,7 @@ function processAddOrEditProject(formData) {
     try {
         const isEditMode = !!formData.Id;
         if (!formData.NameThai) return { success: false, message: 'กรุณากรอกชื่อโครงการ' };
-        if (formData.MapUrl && !formData.MapUrl.includes('google.com/maps')) {
+        if (formData.MapUrl && !formData.MapUrl.includes('maps')) {
             return { success: false, message: 'ลิงก์แผนที่ไม่ถูกต้อง (ต้องเป็นลิงก์จาก Google Maps)' };
         }
         // Convert array of types to comma-separated string

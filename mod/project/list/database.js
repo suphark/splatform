@@ -2,9 +2,7 @@
  * @file mod/project/list/database.js
  */
 
-/**
- * @file mod/project/database.js
- */
+
 function getProjectsTable() {
     return APP_CONFIG.sheetsData.projects.getTable();
 }
@@ -13,24 +11,42 @@ function getProvinces() {
     return APP_CONFIG.sheetsData.provinces.getTable().getRows();
 }
 
+// [NEW & FIXED] แก้ไขฟังก์ชันสำหรับดึงข้อมูลจากชีต ProjectStatuses
+function getProjectStatusTable() {
+    // Key 'projectStatuses' ถูกสร้างขึ้นโดยอัตโนมัติจากชื่อชีต 'ProjectStatuses' ใน config
+    return APP_CONFIG.sheetsData.projectStatuses.getTable(); 
+}
+
+function getAllProjectStatuses() {
+    return getProjectStatusTable().getRows();
+}
+
+
 function getPaginatedProjects(options = {}) {
     try {
         const allProjects = getProjectsTable().getRows();
         const projectTypes = getAllProjectTypes();
         const projectOwners = getAllProjectOwners();
+        const projectStatuses = getAllProjectStatuses(); // ดึงข้อมูลสถานะ
         const provinces = getProvinces();
 
         const typeMap = new Map(projectTypes.map(t => [t.Id, t.Name]));
         const ownerMap = new Map(projectOwners.map(o => [o.Id, o.NameThai]));
+        // [NEW] สร้าง Map สำหรับสถานะ โดยเก็บทั้ง Object เพื่อเอาสีไปด้วย
+        const statusMap = new Map(projectStatuses.map(s => [s.Id, s])); 
         
         // 1. Join data
         let processedData = allProjects.map(p => {
             const typeIds = p.ProjectTypeId ? String(p.ProjectTypeId).split(',') : [];
             const typeNames = typeIds.map(id => typeMap.get(id.trim()) || id).join(', ');
+            const statusInfo = statusMap.get(p.StatusId); // ใช้ StatusId ในการ join
+
             return {
                 ...p,
                 ProjectTypeName: typeNames,
-                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || '-'
+                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || '-',
+                StatusName: statusInfo ? statusInfo.Name : p.StatusId, // [FIXED] เพิ่ม StatusName
+                StatusColor: statusInfo ? statusInfo.Color : '#6c757d' // [NEW] เพิ่ม StatusColor
             };
         });
 
@@ -40,6 +56,7 @@ function getPaginatedProjects(options = {}) {
             filters.push({ field: 'NameThai', operator: 'contains', value: options.searchTerm, logic: 'or' });
             filters.push({ field: 'NameEnglish', operator: 'contains', value: options.searchTerm, logic: 'or' });
             filters.push({ field: 'Nickname', operator: 'contains', value: options.searchTerm, logic: 'or' });
+            filters.push({ field: 'Remark', operator: 'contains', value: options.searchTerm, logic: 'or' }); // [NEW] ค้นหาใน Remark
         }
         if (options.projectTypeId) {
             filters.push({ field: 'ProjectTypeId', operator: 'contains', value: options.projectTypeId });
@@ -48,7 +65,7 @@ function getPaginatedProjects(options = {}) {
             filters.push({ field: 'ProjectOwnerId', operator: 'equals', value: options.projectOwnerId });
         }
         if (options.status) {
-            filters.push({ field: 'Status', operator: 'equals', value: options.status });
+            filters.push({ field: 'StatusId', operator: 'equals', value: options.status }); // [FIXED] กรองจาก StatusId
         }
         if (options.province) {
             filters.push({ field: 'Province', operator: 'equals', value: options.province });
