@@ -1,0 +1,244 @@
+<!-- file: page/project/manage.html -->
+
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tasks"></i> <?= data.title ?></h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-success" onclick="prepareAddModal()">
+            <i class="fas fa-plus"></i> เพิ่มโครงการใหม่
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3"><input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อโครงการ..."></div>
+    <div class="col-md-3"><select id="typeFilter" class="form-control" multiple></select></div>
+    <div class="col-md-2"><select id="ownerFilter" class="form-control"><option value="">ทุกเจ้าของ</option></select></div>
+    <div class="col-md-2"><select id="provinceFilter" class="form-control"><option value="">ทุกจังหวัด</option></select></div>
+    <div class="col-md-2"><select id="statusFilter" class="form-control"><option value="">ทุกสถานะ</option></select></div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>ชื่อโครงการ</th><th>ประเภท</th><th>เจ้าของ</th><th>สถานะ</th><th>จังหวัด</th><th>หมายเหตุ</th><th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="data-table-body"></tbody>
+    </table>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div><span id="pageInfo"></span></div>
+    <nav><ul class="pagination mb-0" id="pagination-controls"></ul></nav>
+</div>
+
+<div class="modal fade" id="projectModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="projectModalLabel"></h5><button type="button" class="close" data-dismiss="modal">×</button></div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" id="projectId">
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>ชื่อ (ไทย)*</label><input type="text" id="nameThai" class="form-control" required></div>
+                        <div class="col-md-6 form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="nameEnglish" class="form-control"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>ชื่อเล่น</label><input type="text" id="nickname" class="form-control"></div>
+                        <div class="col-md-6 form-group"><label>ปี (ค.ศ.)</label><input type="number" id="projectYear" class="form-control"></div>
+                    </div>
+                    <div class="form-group"><label>ประเภทโครงการ*</label><select id="projectTypeId" class="form-control" multiple required></select></div>
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>เจ้าของโครงการ</label><select id="projectOwnerId" class="form-control"></select></div>
+                        <div class="col-md-6 form-group"><label>จังหวัด</label><select id="province" class="form-control"></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>สถานะ</label><select id="status" class="form-control"></select></div>
+                        <div class="col-md-6 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label>หมายเหตุ (Remark)</label>
+                        <textarea id="remark" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" id="saveButton" class="btn btn-primary" form="projectForm">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1, debounceTimer;
+    let masterData = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initMasterDataAndFilters().then(() => {
+            fetchAndRenderData();
+        });
+        
+        // --- Event Listeners ---
+        document.getElementById('projectForm').addEventListener('submit', handleFormSubmit);
+        const filters = ['typeFilter', 'ownerFilter', 'provinceFilter', 'statusFilter'];
+        filters.forEach(id => document.getElementById(id).addEventListener('change', () => { currentPage = 1; fetchAndRenderData(); }));
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { currentPage = 1; fetchAndRenderData(); }, 500);
+        });
+    });
+
+    async function initMasterDataAndFilters() {
+        try {
+            const response = await serverCall('getProjectMasterData_callable');
+            if (!response.success) throw new Error(response.message);
+            masterData = response;
+
+            // Populate Filters
+            populateSelect('ownerFilter', masterData.projectOwners, 'Id', 'NameThai', 'ทุกเจ้าของ');
+            populateSelect('provinceFilter', masterData.provinces, 'Name', 'Name', 'ทุกจังหวัด');
+            populateSelect('statusFilter', masterData.statuses.map(s => ({val:s, name:s})), 'val', 'name', 'ทุกสถานะ');
+            
+            $('#typeFilter').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'ทุกประเภท', allowClear: true, width: '100%' });
+            $('#ownerFilter, #provinceFilter').select2({ theme: 'bootstrap4', width: '100%'});
+
+            // Populate Modal Dropdowns
+            populateSelect('projectOwnerId', masterData.projectOwners, 'Id', 'NameThai', '-- เลือก --');
+            populateSelect('province', masterData.provinces, 'Name', 'Name', '-- เลือก --');
+            populateSelect('status', masterData.statuses.map(s => ({val:s, name:s})), 'val', 'name', '-- เลือก --');
+
+            $('#projectTypeId').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'เลือกประเภทโครงการ', width: '100%', dropdownParent: $('#projectModal') });
+            $('#projectOwnerId, #province').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal')});
+
+        } catch (err) {
+            handleServerError(err);
+        }
+    }
+
+    function fetchAndRenderData() {
+        const tableBody = document.getElementById('data-table-body');
+        // [FIXED] ปรับ colspan เป็น 7
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="spinner-border"></div></td></tr>`;
+        const options = {
+            page: currentPage, limit: 10,
+            searchTerm: document.getElementById('searchInput').value,
+            projectTypeId: $('#typeFilter').val().join(','), // Get array from multi-select
+            projectOwnerId: document.getElementById('ownerFilter').value,
+            status: document.getElementById('statusFilter').value,
+            province: document.getElementById('provinceFilter').value,
+        };
+        serverCall('getPaginatedProjects_callable', options)
+            .then(res => {
+                if (res.success) { renderTable(res.data); renderPagination(res); } 
+                else { handleServerError(res); }
+            }).catch(handleServerError);
+    }
+
+    function renderTable(data) {
+        const tableBody = document.getElementById('data-table-body');
+        tableBody.innerHTML = '';
+        if (!data || data.length === 0) {
+            // [FIXED] ปรับ colspan เป็น 7
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>`; return;
+        }
+        data.forEach(item => {
+            const row = tableBody.insertRow();
+            row.dataset.item = JSON.stringify(item);
+            const mapLink = item.MapUrl ? `<a href="${item.MapUrl}" target="_blank"><i class="fas fa-map-marked-alt"></i></a>` : '';
+            row.innerHTML = `
+                <td><b>${escapeHtml(item.NameThai)}</b><br><small class="text-muted">${escapeHtml(item.NameEnglish) || ''}</small></td>
+                <td><small>${escapeHtml(item.ProjectTypeName) || '-'}</small></td>
+                <td>${escapeHtml(item.ProjectOwnerName) || '-'}</td>
+                <td><span class="badge ${item.Status === 'Active' ? 'badge-success' : 'badge-warning'}">${item.Status}</span></td>
+                <td>${escapeHtml(item.Province) || '-'}</td>
+                <td><small>${escapeHtml(item.Remark) || '-'}</small></td> <td>
+                    ${mapLink}
+                    <button class="btn btn-sm btn-warning ml-1" onclick="prepareEditModal(this)"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="handleDelete('${item.Id}', '${escapeHtml(item.NameThai)}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+        });
+    }
+
+    function prepareAddModal() {
+        document.getElementById('projectForm').reset();
+        document.getElementById('projectId').value = '';
+        $('#projectModalLabel').text('เพิ่มโครงการใหม่');
+        $('#projectTypeId, #projectOwnerId, #province, #status').val(null).trigger('change');
+        $('#projectModal').modal('show');
+    }
+
+    function prepareEditModal(button) {
+        const item = JSON.parse(button.closest('tr').dataset.item);
+        document.getElementById('projectForm').reset();
+        $('#projectModalLabel').text('แก้ไขโครงการ: ' + item.NameThai);
+        
+        $('#projectId').val(item.Id);
+        $('#nameThai').val(item.NameThai);
+        $('#nameEnglish').val(item.NameEnglish || '');
+        $('#nickname').val(item.Nickname || '');
+        $('#projectYear').val(item.ProjectYear || '');
+        $('#mapUrl').val(item.MapUrl || '');
+        $('#remark').val(item.Remark || ''); // [NEW] เพิ่มการกำหนดค่า Remark
+        
+        $('#projectTypeId').val(item.ProjectTypeId ? String(item.ProjectTypeId).split(',') : null).trigger('change');
+        $('#projectOwnerId').val(item.ProjectOwnerId).trigger('change');
+        $('#province').val(item.Province).trigger('change');
+        $('#status').val(item.Status).trigger('change');
+
+        $('#projectModal').modal('show');
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const saveButton = document.getElementById('saveButton');
+        setLoading(saveButton, true);
+        const formData = {
+            Id: $('#projectId').val(), NameThai: $('#nameThai').val(), NameEnglish: $('#nameEnglish').val(),
+            Nickname: $('#nickname').val(), ProjectYear: $('#projectYear').val(), MapUrl: $('#mapUrl').val(),
+            ProjectTypeId: $('#projectTypeId').val(), ProjectOwnerId: $('#projectOwnerId').val(),
+            Province: $('#province').val(), Status: $('#status').val(),
+            Remark: $('#remark').val(), // [NEW] เพิ่มการดึงค่า Remark
+        };
+
+        try {
+            const response = await serverCall('processAddOrEditProject', formData);
+            if (response.success) {
+                showToast(response.message, true);
+                $('#projectModal').modal('hide');
+                fetchAndRenderData();
+            } else { showToast(response.message, false); }
+        } catch (err) { handleServerError(err); } 
+        finally { setLoading(saveButton, false); }
+    }
+    
+    function handleDelete(id, name) {
+        Swal.fire({
+            title: 'ยืนยันการลบ', text: `คุณต้องการลบโครงการ "${name}" ใช่หรือไม่?`, icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true,
+            preConfirm: () => serverCall('processDeleteProject', id).catch(handleServerError),
+        }).then((result) => {
+            if (result.isConfirmed && result.value.success) {
+                Swal.fire('สำเร็จ!', result.value.message, 'success'); fetchAndRenderData();
+            } else if(result.value) { Swal.fire('ผิดพลาด!', result.value.message || 'ไม่สามารถลบได้', 'error'); }
+        });
+    }
+
+    function populateSelect(selectId, data, valueField, textField, placeholder) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        data.forEach(item => { select.add(new Option(item[textField], item[valueField])); });
+    }
+    
+    function renderPagination(data) {
+        currentPage = data.currentPage; const totalPages = data.totalPages;
+        document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`;
+        const controls = document.getElementById('pagination-controls'); controls.innerHTML = '';
+        const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderData(); } }); controls.appendChild(prevLi);
+        const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderData(); } }); controls.appendChild(nextLi);
+    }
+</script>

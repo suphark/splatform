@@ -803,8 +803,7 @@ async function handleSaveVendor() {
         PackageIds: $('#projectPackageIds').val(),
       };
 
-      // ลบส่วนของการจัดการไฟล์ออกทั้งหมด
-      const response = await serverCall('processAddOrEditProject', formData, {}); // ส่ง fileData เป็น object ว่างไปแทน
+      const response = await serverCall('processAddOrEditVendorProject', formData, {});
 
       if (response.success) {
         showToast(response.message, true);

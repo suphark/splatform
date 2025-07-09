@@ -47,14 +47,13 @@ function getProjectsByVendorId(vendorId) {
  * @param {object} fileData
  * @returns {object}
  */
-function processAddOrEditProject(formData, fileData) {
+function processAddOrEditVendorProject(formData, fileData) { // <-- แก้ไขชื่อฟังก์ชันที่นี่
     // --- Validation & Data Transformation พิเศษสำหรับ Project ---
     if (!formData.ProjectOwnerId && !formData.ProjectOwnerCustom) {
         return { success: false, message: "กรุณาระบุเจ้าของโครงการ" };
     }
-    
     if (!formData.PackageIds) {
-        return { success: false, message: "กรุณาระบุประเภทงานที่ทำ (Pakcage)" };
+        return { success: false, message: "กรุณาระบุประเภทงานที่ทำ (Package)" };
     }
 
     if (formData.ProjectOwnerId === 'other') {
@@ -62,7 +61,6 @@ function processAddOrEditProject(formData, fileData) {
     } else if (formData.ProjectOwnerId) {
         formData.ProjectOwnerCustom = '';
     }
-
     if (Array.isArray(formData.PackageIds)) {
         formData.PackageIds = formData.PackageIds.join(',');
     }

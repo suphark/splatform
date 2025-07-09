@@ -17,6 +17,8 @@ const routeMap = {
   'admin/staff/manage': handleManageStaffsPage, 
   'admin/department/manage': handleManageDepartmentsPage,
   'admin/project/owner/manage': handleManageProjectOwnersPage,
+  'project/manage': handleManageProjectsPage,
+  'forgot-password': handleForgotPasswordPage,
   'forgot-password': handleForgotPasswordPage,
   'reset-password': handleResetPasswordPage,
   'home': handleHomePage,
@@ -250,5 +252,12 @@ function handleManageDepartmentsPage(session, params) {
 function handleManageProjectOwnersPage(session, params) {
   return render(APP_CONFIG.routing.files['admin/project/owner/manage'], {
     title: APP_CONFIG.routing.titles['admin/project/owner/manage']
+  });
+}
+
+// [NEW] เพิ่ม Handler สำหรับหน้าจัดการโครงการ
+function handleManageProjectsPage(session, params) {
+  return render(APP_CONFIG.routing.files['project/manage'], {
+    title: APP_CONFIG.routing.titles['project/manage']
   });
 }
