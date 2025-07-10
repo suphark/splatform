@@ -4,36 +4,95 @@
 
 
 /**
- * [UPDATE] แก้ไข getProjectsByVendorId ให้ดึงข้อมูลชื่อจากชีตที่เกี่ยวข้องมาด้วย
+ * [SERVER-CALL] [NEW] ดึงข้อมูลโครงการทั้งหมดสำหรับทำ Dropdown
+ */
+function getAllProjectsForSelection() {
+    try {
+        const projects = APP_CONFIG.sheetsData.projects.getTable().getRows();
+        const projectTypes = getAllProjectTypes();
+        const projectOwners = getAllProjectOwners();
+        
+        const typeMap = new Map(projectTypes.map(t => [t.Id, t.Name]));
+        const ownerMap = new Map(projectOwners.map(o => [o.Id, o.NameThai]));
+
+        // Join ข้อมูลที่จำเป็นสำหรับการแสดงผล
+        const formattedProjects = projects.map(p => {
+            const typeIds = p.ProjectTypeId ? String(p.ProjectTypeId).split(',') : [];
+            const typeNames = typeIds.map(id => typeMap.get(id.trim()) || id).join(', ');
+
+            return {
+                Id: p.Id,
+                DisplayName: `${p.NameThai}${p.NameEnglish ? ' | ' + p.NameEnglish : ''}`,
+                ProjectTypeName: typeNames,
+                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || '-',
+                ProjectYear: p.ProjectYear || '-'
+            };
+        });
+        return formattedProjects;
+    } catch (e) {
+        Logger.log(`Error in getAllProjectsForSelection: ${e.message}`);
+        return [];
+    }
+}
+
+/**
+ * [REVISED] แก้ไขฟังก์ชัน getProjectsByVendorId ใหม่ทั้งหมด
+ * ให้ทำการ Join ข้อมูลจาก 'Projects' หลัก มาแสดงในรายการอ้างอิงของ Vendor
  */
 function getProjectsByVendorId(vendorId) {
     if (!vendorId) return [];
     try {
-        // 1. ดึงข้อมูลดิบทั้งหมดที่จำเป็น
-        const projects = APP_CONFIG.sheetsData.vendorProjects.getTable().where(row => row.VendorId === vendorId).sortBy('ProjectYear', 'desc').getRows();
+        // 1. ดึงข้อมูลอ้างอิงทั้งหมดของ Vendor คนนี้ (จะได้แค่ ProjectId)
+        const vendorProjectRefs = APP_CONFIG.sheetsData.vendorProjects.getTable()
+            .where(row => row.VendorId === vendorId)
+            .getRows();
+
+        if (vendorProjectRefs.length === 0) return [];
+
+        // 2. สร้าง Map เพื่อเก็บข้อมูลเฉพาะของ Vendor เช่น Package, ContractValue
+        const refMap = new Map(vendorProjectRefs.map(ref => [ref.ProjectId, ref]));
+        const referencedProjectIds = Array.from(refMap.keys());
+
+        // 3. ดึงข้อมูล Master ทั้งหมดที่จำเป็น
+        const allMasterProjects = APP_CONFIG.sheetsData.projects.getTable().getRows();
         const projectTypes = getAllProjectTypes();
         const projectOwners = getAllProjectOwners();
         const packages = getAllPackages();
 
-        // 2. สร้าง Map เพื่อให้ค้นหาชื่อได้รวดเร็ว
+        // 4. สร้าง Map สำหรับการ Join ชื่อ
         const typeMap = new Map(projectTypes.map(item => [item.Id, item.Name]));
         const ownerMap = new Map(projectOwners.map(item => [item.Id, item.NameThai]));
         const packageMap = new Map(packages.map(item => [item.Id, item.NameThai]));
 
-        // 3. วนลูปเพื่อเพิ่มข้อมูล "ชื่อ" เข้าไปในแต่ละโปรเจกต์
-        const enrichedProjects = projects.map(p => {
-            const packageIds = p.PackageIds ? String(p.PackageIds).split(',') : [];
-            const packageNames = packageIds.map(id => packageMap.get(id.trim()) || id.trim()).join(', ');
+        // 5. กรองเฉพาะโครงการหลักที่มีการอ้างอิงถึง และทำการ Join ข้อมูลทั้งหมด
+        const enrichedProjects = allMasterProjects
+            .filter(p => referencedProjectIds.includes(p.Id))
+            .map(masterProject => {
+                const refData = refMap.get(masterProject.Id);
+                const projectTypeNames = masterProject.ProjectTypeId ? String(masterProject.ProjectTypeId).split(',').map(id => typeMap.get(id.trim()) || id).join(', ') : '-';
+                const packageNames = refData.PackageIds ? String(refData.PackageIds).split(',').map(id => packageMap.get(id.trim()) || id).join(', ') : '-';
+                
+                return {
+                    // ข้อมูลจาก VendorProjects (ตารางอ้างอิง)
+                    Id: refData.Id, // ID ของแถวอ้างอิง VPR-...
+                    VendorId: refData.VendorId,
+                    ProjectId: refData.ProjectId,
+                    PackageIds: refData.PackageIds,
+                    ContractValue: refData.ContractValue,
+                    ProjectDescription: refData.ProjectDescription,
+                    PackageNamesDisplay: packageNames,
+                    
+                    // ข้อมูลจาก Projects (ตารางหลัก)
+                    ProjectName: masterProject.NameThai,
+                    ProjectYear: masterProject.ProjectYear,
+                    
+                    // ข้อมูลที่ Join มา
+                    ProjectTypeName: projectTypeNames,
+                    ProjectOwnerName: ownerMap.get(masterProject.ProjectOwnerId) || '-',
+                };
+            });
 
-            return {
-                ...p, // คงข้อมูลเดิมทั้งหมดไว้สำหรับฟอร์มแก้ไข
-                ProjectTypeName: typeMap.get(p.ProjectTypeId) || '-',
-                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || p.ProjectOwnerCustom || '-',
-                PackageNamesDisplay: packageNames || '-',
-            };
-        });
-        
-        return enrichedProjects;
+        return enrichedProjects.sort((a,b) => (b.ProjectYear || 0) - (a.ProjectYear || 0));
 
     } catch (e) {
         Logger.log(`Error in getProjectsByVendorId: ${e.message}`);
@@ -42,28 +101,19 @@ function getProjectsByVendorId(vendorId) {
 }
 
 /**
- * [REFACTORED] ประมวลผลการเพิ่ม/แก้ไขโครงการอ้างอิง
- * @param {object} formData
- * @param {object} fileData
+ * [REVISED] แก้ไขฟังก์ชันนี้ให้ทำงานกับฟอร์มใหม่
+ * @param {object} formData ข้อมูลจากฟอร์ม (ProjectId, PackageIds, ContractValue, ...)
  * @returns {object}
  */
-function processAddOrEditVendorProject(formData, fileData) { // <-- แก้ไขชื่อฟังก์ชันที่นี่
-    // --- Validation & Data Transformation พิเศษสำหรับ Project ---
-    if (!formData.ProjectOwnerId && !formData.ProjectOwnerCustom) {
-        return { success: false, message: "กรุณาระบุเจ้าของโครงการ" };
-    }
-    if (!formData.PackageIds) {
-        return { success: false, message: "กรุณาระบุประเภทงานที่ทำ (Package)" };
-    }
-
-    if (formData.ProjectOwnerId === 'other') {
-        formData.ProjectOwnerId = '';
-    } else if (formData.ProjectOwnerId) {
-        formData.ProjectOwnerCustom = '';
-    }
+function processAddOrEditVendorProject(formData) {
     if (Array.isArray(formData.PackageIds)) {
         formData.PackageIds = formData.PackageIds.join(',');
     }
+
+    // สร้าง Key 'Id' ให้ตรงกับที่ Generic Service ต้องการ
+    // โดยใช้ projectId_ref จาก input hidden ในฟอร์ม
+    formData.Id = formData.projectId_ref;
+    delete formData.projectId_ref;
 
     const action = formData.Id ? 'edit' : 'add';
     return processGenericCrudAction('vendorProject', action, formData);
@@ -71,7 +121,7 @@ function processAddOrEditVendorProject(formData, fileData) { // <-- แก้ไ
 
 /**
  * [REFACTORED] ประมวลผลการลบโครงการ
- * @param {string} projectId
+ * @param {string} projectId - ที่จริงแล้วคือ ID ของแถว VendorProject (VPR-...)
  * @param {string} vendorId
  * @returns {object}
  */

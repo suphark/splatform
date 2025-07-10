@@ -1,7 +1,14 @@
-<!-- file: page/vendor/manage_list.html -->
+<!-- file: page/vendor/manage/list.html -->
 
 
-<div class="row mb-3">
+<div id="filter-loader" class="text-center text-muted p-3" style="display: none; border: 1px solid #e9ecef; border-radius: .25rem;">
+    <div class="spinner-border spinner-border-sm" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <span class="ml-2">กำลังเตรียมข้อมูลตัวกรอง...</span>
+</div>
+
+<div id="filter-container" class="row mb-3">
     <div class="col-md-4">
         <div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-search"></i></span></div><input type="text" id="searchInput" class="form-control" placeholder="ค้นหาด้วยชื่อ..."></div>
     </div>

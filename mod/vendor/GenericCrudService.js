@@ -38,10 +38,12 @@ const CRUD_CONFIG = {
         getAfterAction: (vendorId) => getFinanceByVendorId(vendorId),
         entityName: 'ข้อมูลงบการเงิน'
     },
+    // [REVISED] แก้ไข Config ของ โครงการอ้างอิง
     vendorProject: {
         sheetKey: 'vendorProjects',
         idPrefix: 'VPR-',
-        requiredFields: ['VendorId', 'ProjectName', 'ProjectTypeId'],
+        // เปลี่ยน Fields ที่จำเป็นให้ตรงกับข้อมูลใหม่
+        requiredFields: ['VendorId', 'ProjectId', 'PackageIds'], 
         getAfterAction: (vendorId) => getProjectsByVendorId(vendorId),
         entityName: 'โครงการอ้างอิง'
     }

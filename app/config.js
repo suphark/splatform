@@ -70,7 +70,7 @@ const ROUTING_CONFIG = {
     // ====== Package ======
     'package/manage': 'page/package/manage',
     // ====== Vendor ======
-    'vendor/manage': 'page/vendor/manage',
+    'vendor/manage': 'page/vendor/manage/index.html',
     'vendor/pq': 'page/vendor/pq_view',
     'vendor/history': 'page/vendor/history',
     // ====== PostQ ======

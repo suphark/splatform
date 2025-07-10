@@ -1,0 +1,21 @@
+<!-- file: page/vendor/manage/modal/contact.html -->
+
+
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="contactModalLabel">ข้อมูลผู้ติดต่อ</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+      <div class="modal-body">
+        <form id="contactForm">
+          <input type="hidden" id="contactId"><input type="hidden" id="contactVendorId">
+          <div class="form-group"><label for="contactName">ชื่อ-สกุล <span class="text-danger">*</span></label><input type="text" class="form-control" id="contactName" required></div>
+          <div class="form-group"><label for="contactPosition">ตำแหน่ง</label><input type="text" class="form-control" id="contactPosition"></div>
+          <div class="form-group"><label for="contactEmail">อีเมล</label><input type="email" class="form-control" id="contactEmail"></div>
+          <div class="form-group"><label for="contactPhoneNumber">เบอร์โทรศัพท์</label><input type="text" class="form-control" id="contactPhoneNumber"></div>
+          <div class="form-group"><label for="contactLineId">LINE ID</label><input type="text" class="form-control" id="contactLineId"></div>
+        </form>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button><button type="button" id="saveContactButton" class="btn btn-primary">บันทึกผู้ติดต่อ</button></div>
+    </div>
+  </div>
+</div>

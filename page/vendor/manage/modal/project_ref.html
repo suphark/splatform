@@ -1,0 +1,43 @@
+<!-- file: page/vendor/manage/modal/project_ref.html -->
+
+
+<div class="modal fade" id="projectModal" tabindex="-1" aria-labelledby="projectModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="projectModalLabel">เพิ่มโครงการอ้างอิง</h5><button type="button" class="close" data-dismiss="modal">×</button></div>
+      <div class="modal-body">
+        <form id="projectForm">
+          <input type="hidden" id="projectId_ref"> <input type="hidden" id="projectVendorId">           <div class="form-group">
+            <label for="projectNameSelect">เลือกโครงการ*</label>
+            <select class="form-control" id="projectNameSelect" required></select>
+          </div>
+        
+        <div id="project-details-display" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 1rem;">
+            <div class="row">
+                <div class="col-md-4"><strong>ประเภทโครงการ:</strong> <p id="projectTypeDisplay" class="d-inline text-muted"></p></div>
+                <div class="col-md-4"><strong>เจ้าของโครงการ:</strong> <p id="projectOwnerDisplay" class="d-inline text-muted"></p></div>
+                <div class="col-md-4"><strong>ปี:</strong> <p id="projectYearDisplay" class="d-inline text-muted"></p></div>
+            </div>
+        </div>
+
+          <div class="form-group">
+              <label for="projectPackageIds">ประเภทงานที่ทำ (Package)*</label>
+              <select multiple class="form-control" id="projectPackageIds" required></select>
+          </div>
+          <div class="form-group">
+              <label for="contractValue">มูลค่าสัญญา</label>
+              <input type="number" class="form-control" id="contractValue" step="0.01">
+          </div>
+          <div class="form-group">
+              <label for="projectDescription">รายละเอียดของงานที่ทำในโครงการนี้</label>
+              <textarea class="form-control" id="projectDescription" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+        <button type="button" id="saveVendorProjectButton" class="btn btn-primary">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>

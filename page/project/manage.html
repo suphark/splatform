@@ -295,7 +295,7 @@
                 infoIcons += `<span data-toggle="tooltip" title="${escapeHtml(item.Remark)}"><i class="fas fa-comment-alt text-info"></i></span>`;
             }
             
-            const statusBadge = `<span class="badge" style="background-color:${item.StatusColor}; color:white;">${escapeHtml(item.StatusName)}</span>`;
+            const statusBadge = `<span class="badge ${item.StatusColor}">${escapeHtml(item.StatusName)}</span>`;
 
             row.innerHTML = `
                 <td>${statusBadge}</td>

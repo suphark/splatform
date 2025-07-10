@@ -1,0 +1,166 @@
+<!-- file: page/vendor/manage/script/project_ref.js.html -->
+
+
+<script>
+
+function renderProjectsTable(projects) {
+    const tableBody = document.getElementById('vendor-projects-table-body');
+    tableBody.innerHTML = '';
+    if (!projects || projects.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีโครงการอ้างอิง</td></tr>`;
+        return;
+    }
+    projects.forEach(p => {
+        const row = tableBody.insertRow();
+        // [FIX] แก้ไขการสร้าง JSON string ให้ปลอดภัยจากการมีเครื่องหมาย ' หรือ "
+        const projectJsonString = JSON.stringify(p)
+                                      .replace(/'/g, '&apos;')
+                                      .replace(/"/g, '&quot;');
+
+        row.innerHTML = `
+            <td>${escapeHtml(p.ProjectName) || '-'}</td>
+            <td>${escapeHtml(p.ProjectTypeName) || '-'}</td>
+            <td>${escapeHtml(p.ProjectOwnerName) || '-'}</td>
+            <td>${escapeHtml(p.PackageNamesDisplay) || '-'}</td>
+            <td>
+                <button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditProjectModal(${projectJsonString})'><i class="fas fa-edit"></i></button>
+                <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteProject('${p.Id}', '${p.VendorId}')"><i class="fas fa-trash-alt"></i></button>
+            </td>
+        `;
+    });
+}
+
+window.prepareAddProjectModal = function () {
+    const vendorId = document.getElementById('vendorId').value;
+    if (!vendorId) {
+        showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false);
+        return;
+    }
+    document.getElementById('projectForm').reset();
+    $('#projectId_ref').val('');
+    $('#projectVendorId').val(vendorId);
+    $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง');
+    
+    $('#project-details-display').hide();
+    
+    if ($('#projectNameSelect').data('select2')) $('#projectNameSelect').select2('destroy');
+    if ($('#projectPackageIds').data('select2')) $('#projectPackageIds').select2('destroy');
+
+    populateSelect('projectNameSelect', availableProjects, 'Id', 'DisplayName', '-- ค้นหาและเลือกโครงการ --');
+    populateSelect('projectPackageIds', availablePackages, 'Id', 'DisplayName');
+    
+    $('#projectNameSelect').select2({ theme: 'bootstrap4', dropdownParent: $('#projectModal') });
+    $('#projectPackageIds').select2({ theme: 'bootstrap4', placeholder: 'เลือกประเภทงาน', dropdownParent: $('#projectModal'), multiple: true });
+
+    $('#projectNameSelect, #projectPackageIds').val(null).trigger('change');
+    
+    $('#projectModal').modal('show');
+};
+
+// [REVISED] แก้ไขฟังก์ชัน "แก้ไข" ให้ทำงานได้จริง
+window.prepareEditProjectModal = function (p) {
+    // 1. Reset ฟอร์มและตั้งค่า Modal
+    document.getElementById('projectForm').reset();
+    $('#projectModalLabel').text('แก้ไขโครงการอ้างอิง');
+    
+    // 2. ตั้งค่า ID ที่จำเป็นสำหรับบันทึก
+    $('#projectId_ref').val(p.Id); // ID ของแถวอ้างอิง (VPR-...)
+    $('#projectVendorId').val(p.VendorId);
+
+    // 3. ทำลายและสร้าง Select2 Instance ใหม่
+    if ($('#projectNameSelect').data('select2')) $('#projectNameSelect').select2('destroy');
+    if ($('#projectPackageIds').data('select2')) $('#projectPackageIds').select2('destroy');
+    
+    // 4. สร้างตัวเลือกสำหรับ Dropdown ทั้งหมด
+    populateSelect('projectNameSelect', availableProjects, 'Id', 'DisplayName', '-- ค้นหาและเลือกโครงการ --');
+    populateSelect('projectPackageIds', availablePackages, 'Id', 'DisplayName');
+
+    // 5. กำหนดค่าที่เคยเลือกไว้
+    $('#projectNameSelect').val(p.ProjectId);
+    $('#contractValue').val(p.ContractValue);
+    $('#projectDescription').val(p.ProjectDescription);
+    
+    // 6. สร้าง Select2 และกำหนดค่าสำหรับ Dropdown ที่เป็น multiple-select
+    $('#projectNameSelect').select2({ theme: 'bootstrap4', dropdownParent: $('#projectModal') });
+    $('#projectPackageIds').select2({ theme: 'bootstrap4', placeholder: 'เลือกประเภทงาน', dropdownParent: $('#projectModal'), multiple: true });
+    
+    // แปลงค่า PackageIds ที่เป็น string กลับเป็น array เพื่อตั้งค่า
+    const packageIdsArray = p.PackageIds ? String(p.PackageIds).split(',') : [];
+    $('#projectPackageIds').val(packageIdsArray).trigger('change');
+    
+    // 7. แสดงรายละเอียดโครงการที่เลือก
+    handleProjectSelectionChange();
+    
+    // 8. แสดง Modal
+    $('#projectModal').modal('show');
+};
+
+function handleProjectSelectionChange() {
+    const selectedId = $('#projectNameSelect').val();
+    const detailsDisplay = $('#project-details-display');
+    if (!selectedId) {
+        detailsDisplay.hide();
+        return;
+    }
+    const selectedProject = availableProjects.find(p => p.Id === selectedId);
+    if (selectedProject) {
+        $('#projectTypeDisplay').text(selectedProject.ProjectTypeName);
+        $('#projectOwnerDisplay').text(selectedProject.ProjectOwnerName);
+        $('#projectYearDisplay').text(selectedProject.ProjectYear);
+        detailsDisplay.show();
+    }
+}
+
+async function handleSaveVendorProject(e) {
+    e.preventDefault();
+    const saveButton = document.getElementById('saveVendorProjectButton');
+    if (!saveButton) return;
+    const form = document.getElementById('projectForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    
+    setLoading(saveButton, true);
+    try {
+        const formData = {
+            // [FIX] แก้ไขการดึง ID ให้ถูกต้อง
+            Id: $('#projectId_ref').val(), 
+            VendorId: $('#projectVendorId').val(),
+            ProjectId: $('#projectNameSelect').val(),
+            PackageIds: $('#projectPackageIds').val(),
+            ContractValue: $('#contractValue').val(),
+            ProjectDescription: $('#projectDescription').val(),
+        };
+
+        if (!formData.ProjectId) throw new Error('กรุณาเลือกโครงการ');
+        
+        // ส่งข้อมูลไปที่ Backend ซึ่งจะแยกแยะการเพิ่ม/แก้ไขจาก ID เอง
+        const response = await serverCall('processAddOrEditVendorProject', formData);
+        if (response.success) {
+            showToast(response.message, true);
+            renderProjectsTable(response.data);
+            $('#projectModal').modal('hide');
+        } else { throw new Error(response.message); }
+    } catch (err) {
+        showToast(err.message, false);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
+window.handleDeleteProject = function (projectId, vendorId) {
+    Swal.fire({
+        title: 'ยืนยันการลบ', text: "คุณต้องการลบโครงการอ้างอิงนี้ใช่หรือไม่?", icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย', cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true,
+        preConfirm: () => serverCall('processDeleteProject', projectId, vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)),
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value.success) {
+            showToast(result.value.message, true);
+            renderProjectsTable(result.value.data);
+        } else if (result.value) {
+            showToast(result.value.message, false);
+        }
+    });
+};
+
+
+</script>

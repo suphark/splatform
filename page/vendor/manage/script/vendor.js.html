@@ -1,0 +1,277 @@
+<!-- file: page/vendor/manage/script/vendor.js.html -->
+
+
+<script>
+// ==================== VENDOR UI & DATA ====================
+function fetchAndRenderVendors() {
+    const tableBody = document.getElementById('vendor-table-body');
+    tableBody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`;
+    const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction };
+    serverCall('getPaginatedVendors', options).then(response => {
+        if (response.success) {
+            renderVendorTable(response.vendors);
+            renderPagination(response);
+        } else {
+            handleServerError({ message: response.message });
+        }
+    }).catch(handleServerError);
+}
+
+function renderVendorTable(vendors) {
+    const tableBody = document.getElementById('vendor-table-body');
+    tableBody.innerHTML = '';
+    if (!vendors || vendors.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
+        return;
+    }
+    vendors.forEach(vendor => {
+        const row = tableBody.insertRow();
+        row.dataset.item = JSON.stringify(vendor);
+        const statusBadge = `<span class="badge" style="background-color:${vendor.StatusColor || '#6c757d'}; color:white;">${vendor.StatusName || 'N/A'}</span>`;
+        const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
+        const grade = vendor.LatestGrade || '-';
+        const gradeColorMapping = { 'A': '#28a745', 'B': '#17a2b8', 'C': '#ffc107', 'D': '#dc3545' };
+        const gradeColor = gradeColorMapping[grade.replace('+', '')] || '#6c757d';
+        const gradeBadge = `<span class="badge" style="font-size: 0.9em; background-color:${gradeColor}; color:white;">${grade}</span>`;
+        const relationshipCell = vendor.RelationshipInfo ? `<td><span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}"><i class="fas fa-exclamation-triangle"></i></span></td>` : '<td></td>';
+        row.innerHTML = `
+            ${relationshipCell}
+            <td>${escapeHtml(vendor.NameThai)}</td>
+            <td>${escapeHtml(vendor.NameEnglish) || '-'}</td>
+            <td>${packageBadges || '-'}</td>
+            <td>${statusBadge}</td>
+            <td class="text-center">${gradeBadge}</td>
+            <td>${escapeHtml(vendor.Remark) || '-'}</td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button>
+                    <a href="${VENDOR_BASE_URL}?page=vendor/pq&vendorId=${vendor.Id}" target="_blank" class="btn btn-sm btn-primary" title="ประเมิน (PQ)"><i class="fas fa-file-alt"></i></a>
+                    <a href="${VENDOR_BASE_URL}?page=vendor/history&vendorId=${vendor.Id}" class="btn btn-sm btn-info" title="ประวัติ"><i class="fas fa-history"></i></a>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="handleDeleteVendor('${vendor.Id}')" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </td>`;
+    });
+    $('[data-toggle="tooltip"]').tooltip();
+}
+
+function renderPagination(data) { currentPage = data.currentPage; totalPages = data.totalPages; document.getElementById('pageInfo').textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${data.totalRecords} รายการ)`; const paginationControls = document.getElementById('pagination-controls'); paginationControls.innerHTML = ''; const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#">ก่อนหน้า</a>`; prevLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; fetchAndRenderVendors(); } }); paginationControls.appendChild(prevLi); const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#">ถัดไป</a>`; nextLi.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; fetchAndRenderVendors(); } }); paginationControls.appendChild(nextLi); }
+function updateSortIcons() { document.querySelectorAll('th[data-column]').forEach(header => { const icon = header.querySelector('i'); const columnOfHeader = header.dataset.column; icon.className = 'fas fa-sort ml-1 sort-icon'; if (sortState.column === columnOfHeader) { if (sortState.direction === 'asc') { icon.classList.replace('fa-sort', 'fa-sort-up'); } else if (sortState.direction === 'desc') { icon.classList.replace('fa-sort', 'fa-sort-down'); } } }); }
+
+// ==================== FILTERS ====================
+function populateStatusFilter() {
+    populateSelect('statusFilter', availableStatuses, 'Id', 'Name', 'ทุกสถานะ');
+}
+function populatePackageFilter() {
+    populateSelect('packageFilter', availablePackages, 'Id', 'DisplayName', 'ทุกประเภทพัสดุ');
+    $('#packageFilter').select2({ theme: 'bootstrap4', placeholder: 'ทุกประเภทพัสดุ', allowClear: true });
+}
+
+// ==================== VENDOR MODAL LOGIC ====================
+
+window.prepareAddVendorModal = function() {
+    if ($('#packageIds').data('select2')) $('#packageIds').select2('destroy');
+    document.getElementById('vendorForm').reset();
+    $('#vendorId').val('');
+    $('#vendorModalLabel').text('เพิ่มข้อมูล Vendor ใหม่');
+    renderContactsTable([]); renderBoardMembersTable([]); renderFinanceTable([]); renderProjectsTable([]);
+    const fileFields = ['companyProfileFile', 'idCardFile', 'companyCertFile', 'vatCertFile', 'bookBankFile'];
+    fileFields.forEach(field => {
+        const el = document.getElementById(`${field}LinkContainer`);
+        if(el) el.style.display = 'none';
+        const noFileEl = document.getElementById(`no${field.charAt(0).toUpperCase() + field.slice(1)}`);
+        if(noFileEl) noFileEl.style.display = 'inline';
+    });
+    
+    populateSelect('packageIds', availablePackages, 'Id', 'DisplayName');
+    populateSelect('status', availableStatuses, 'Id', 'Name');
+    populateSelect('companyTypeId', availableCompanyTypes, 'Id', 'Name');
+    
+    $('#packageIds').select2({ theme: 'bootstrap4', placeholder: 'ค้นหาและเลือกประเภทพัสดุ', allowClear: true, dropdownParent: $('#vendorModal'), multiple: true });
+    
+    $('#vendorTab a:first').tab('show');
+    $('#vendor-folder-link').hide();
+    $('.related-data-tab').hide();
+    $('#addContactBtn, #addBoardMemberBtn, #addFinanceBtn, #addProjectBtn').prop('disabled', true);
+    
+    setModalLoading(false);
+    $('#vendorModal').modal('show');
+};
+
+window.prepareEditVendorModal = function(vendorId) {
+    $('#vendorModalLabel').text('แก้ไขข้อมูล Vendor');
+    setModalLoading(true);
+    $('#vendorTab a:first').tab('show');
+    $('#vendorModal').modal('show');
+
+    loadInitialDataForModal().then(() => {
+        Promise.all([
+            serverCall('getVendorDetailsById', vendorId),
+            serverCall('getContactsByVendorId', vendorId),
+            serverCall('getBoardMembersByVendorId', vendorId),
+            serverCall('getFinanceByVendorId', vendorId),
+            serverCall('getProjectsByVendorId', vendorId)
+        ]).then(([vendorData, contactsData, boardData, financeData, projectsData]) => {
+            if (!vendorData) { throw new Error('ไม่พบข้อมูล Vendor'); }
+            
+            populateForm(vendorData);
+            renderContactsTable(contactsData);
+            renderBoardMembersTable(boardData);
+            renderFinanceTable(financeData);
+            renderProjectsTable(projectsData);
+            
+            if ($('#packageIds').data('select2')) $('#packageIds').select2('destroy');
+            $('#packageIds').select2({ theme: 'bootstrap4', placeholder: 'ค้นหาและเลือกประเภทพัสดุ', allowClear: true, dropdownParent: $('#vendorModal'), multiple: true });
+            if (vendorData.PackageId && Array.isArray(vendorData.PackageId)) {
+                $('#packageIds').val(vendorData.PackageId).trigger('change');
+            }
+            
+            setModalLoading(false);
+        }).catch(err => {
+            handleServerError(err);
+            $('#vendorModal').modal('hide');
+        });
+    });
+};
+
+async function handleSaveVendor() { 
+    const saveButton = document.getElementById('saveVendorButton'); 
+    const form = document.getElementById('vendorForm'); 
+    
+    if ($('#packageIds').val().length === 0) { 
+      showToast('กรุณาเลือกประเภทพัสดุอย่างน้อย 1 รายการ', false); 
+      return; 
+    } 
+    if (!form.checkValidity()) { 
+      form.reportValidity(); 
+      showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', false); 
+      return; 
+    } 
+    setLoading(saveButton, true); 
+    
+    try { 
+      // [CORRECTED] สร้าง formData ให้ถูกต้องโดยไม่มี Key ซ้ำซ้อน
+      const formData = { 
+        Id: document.getElementById('vendorId').value, 
+        FolderId: document.getElementById('folderId').value,
+        NameThai: document.getElementById('nameThai').value, 
+        NameEnglish: document.getElementById('nameEnglish').value, 
+        WebsiteUrl: document.getElementById('websiteUrl').value,
+        SocialUrl: document.getElementById('socialUrl').value,
+        PackageId: $('#packageIds').val(), 
+        StatusId: document.getElementById('status').value, 
+        Remark: document.getElementById('remark').value, 
+        CompanyTypeId: document.getElementById('companyTypeId').value,
+        RegisteredCapital: document.getElementById('registeredCapital').value,
+        RegisteredDate: document.getElementById('registeredDate').value,
+        RegisteredObject: document.getElementById('registeredObject').value
+      }; 
+      
+      const fileInputs = form.querySelectorAll('input[type="file"]'); 
+      const filePromises = []; 
+      const fileData = {}; 
+      
+      fileInputs.forEach(input => { 
+        if (input.files.length > 0) { 
+          const file = input.files[0]; 
+          const promise = new Promise((resolve, reject) => { 
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+              fileData[input.id] = { fileName: file.name, mimeType: file.type, base64: e.target.result.split(',')[1] }; 
+              resolve(); 
+            }; 
+            reader.onerror = reject; 
+            reader.readAsDataURL(file); 
+          }); 
+          filePromises.push(promise); 
+        } 
+      }); 
+      
+      await Promise.all(filePromises); 
+      const response = await serverCall('processAddOrEditVendor', formData, fileData); 
+      
+      if (response.success) { 
+        showToast(response.message, true); 
+        $('#vendorModal').modal('hide'); 
+        fetchAndRenderVendors(); 
+      } else { 
+        showToast(response.message, false); 
+      } 
+    } catch (err) { 
+      handleServerError(err); 
+    } finally { 
+      setLoading(saveButton, false); 
+    } 
+}
+
+window.handleDeleteVendor = function (vendorId) {
+  Swal.fire({ title: 'ยืนยันการลบ', text: `คุณกำลังจะลบข้อมูล Vendor (ID: ${vendorId}) พร้อมไฟล์ทั้งหมด`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true, preConfirm: () => serverCall('processDeleteVendor', vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)), allowOutsideClick: () => !Swal.isLoading() }).then(result => { if (result.isConfirmed && result.value.success) { Swal.fire('ลบสำเร็จ!', result.value.message, 'success'); fetchAndRenderVendors(); } else if (result.value) { Swal.fire('เกิดข้อผิดพลาด!', result.value.message, 'error'); } });
+};
+
+function populateForm(data) {
+    document.getElementById('vendorForm').reset();
+    $('#vendorId').val(data.Id);
+    $('#folderId').val(data.FolderId || '');
+    $('#nameThai').val(data.NameThai);
+    $('#nameEnglish').val(data.NameEnglish || '');
+    $('#websiteUrl').val(data.WebsiteUrl || '');
+    $('#socialUrl').val(data.SocialUrl || '');
+    $('#remark').val(data.Remark || '');
+    $('#registeredCapital').val(data.RegisteredCapital || '');
+    $('#registeredDate').val(data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '');
+    $('#registeredObject').val(data.RegisteredObject || '');
+
+    // Populates dropdowns with all available options first
+    populateSelect('status', availableStatuses, 'Id', 'Name');
+    populateSelect('companyTypeId', availableCompanyTypes, 'Id', 'Name');
+    populateSelect('packageIds', availablePackages, 'Id', 'DisplayName');
+    
+    // Then set their selected values
+    $('#status').val(data.StatusId);
+    $('#companyTypeId').val(data.CompanyTypeId);
+    // (packageIds จะถูก set ค่าใน prepareEditVendorModal)
+    
+    const folderLink = document.getElementById('vendor-folder-link');
+    if (data.FolderId) {
+        folderLink.href = 'https://drive.google.com/drive/folders/' + data.FolderId;
+        folderLink.style.display = 'inline-block';
+    } else {
+        folderLink.style.display = 'none';
+    }
+
+    // --- ส่วนแสดงผลไฟล์แนบที่ถูกต้อง ---
+    const fileFields = [
+        { key: 'CompanyProfileFolderId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
+        { key: 'IdCardFolderId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
+        { key: 'CompanyCertFolderId', linkId: 'companyCertFileLink', containerId: 'companyCertFileLinkContainer', noFileId: 'noCompanyCertFile' },
+        { key: 'VatCertFolderId', linkId: 'vatCertFileLink', containerId: 'vatCertFileLinkContainer', noFileId: 'noVatCertFile' },
+        { key: 'BookBankFolderId', linkId: 'bookBankFileLink', containerId: 'bookBankFileLinkContainer', noFileId: 'noBookBankFile' }
+    ];
+
+    fileFields.forEach(field => {
+        const folderId = data[field.key];
+        const linkContainer = document.getElementById(field.containerId);
+        const link = document.getElementById(field.linkId);
+        const noFileSpan = document.getElementById(field.noFileId);
+
+        if (folderId) {
+            link.href = 'https://drive.google.com/drive/folders/' + folderId;
+            linkContainer.style.display = 'block';
+            noFileSpan.style.display = 'none';
+        } else {
+            linkContainer.style.display = 'none';
+            noFileSpan.style.display = 'inline';
+        }
+    });
+    // ------------------------------------
+
+    document.querySelectorAll('.related-data-tab').forEach(el => el.style.display = 'block');
+    $('#addContactBtn, #addBoardMemberBtn, #addFinanceBtn, #addProjectBtn').prop('disabled', false);
+}
+
+function setModalLoading(isLoading) {
+    $('#modal-loader').toggle(isLoading);
+    $('#vendorForm').toggle(!isLoading);
+    $('#saveVendorButton').prop('disabled', isLoading);
+}
+
+</script>

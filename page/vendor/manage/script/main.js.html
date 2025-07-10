@@ -1,0 +1,113 @@
+<!-- file: page/vendor/manage/script/main.js.html -->
+
+<script>
+
+// ==================== GLOBAL STATE & CONSTANTS ====================
+const VENDOR_BASE_URL = document.body.dataset.baseUrl;
+let availablePackages = [], availableStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [], availableProjects = [];
+let currentPage = 1, totalPages = 1;
+let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
+let sortState = { column: 'Id', direction: 'desc' };
+let debounceTimer;
+
+// ==================== INITIALIZATION (Entry Point) ====================
+document.addEventListener('DOMContentLoaded', function () {
+    const loader = document.getElementById('filter-loader');
+    const filterContainer = document.getElementById('filter-container');
+
+    // แสดง loader และซ่อน filter ก่อนเริ่มทำงาน
+    loader.style.display = 'block';
+    filterContainer.style.display = 'none';
+
+    // โหลดข้อมูลเริ่มต้นสำหรับ Filter และ Modal
+    loadInitialDataForModal()
+        .then(() => {
+            // เมื่อโหลดข้อมูล Filter เสร็จแล้ว ค่อยโหลดข้อมูลตาราง
+            fetchAndRenderVendors();
+        })
+        .catch(err => {
+            // กรณีโหลดข้อมูล Filter ล้มเหลว ให้แสดงข้อผิดพลาด
+            handleServerError(err);
+            loader.innerHTML = '<div class="alert alert-danger">ไม่สามารถโหลดข้อมูลตัวกรองได้</div>';
+        })
+        .finally(() => {
+            // ซ่อน loader และแสดง filter กลับมาเสมอ
+            loader.style.display = 'none';
+            filterContainer.style.display = 'flex';
+        });
+
+    // ผูก Event Listeners หลัก
+    attachEventListeners();
+});
+
+function attachEventListeners() {
+    // --- Event Listeners หลักของหน้า Vendor ---
+    $(document).on('click', '#saveVendorButton', handleSaveVendor);
+    $(document).on('click', '#saveContactButton', handleSaveContact);
+    $(document).on('click', '#saveBoardMemberButton', handleSaveBoardMember);
+    $(document).on('click', '#saveFinanceButton', handleSaveFinanceRecord);
+
+    // --- Event Listeners ของ "โครงการอ้างอิง" ที่อยู่ในหน้า Vendor ---
+    $(document).on('click', '#addProjectBtn', window.prepareAddProjectModal);
+    $(document).on('click', '#saveVendorProjectButton', handleSaveVendorProject);
+    $(document).on('change', '#projectNameSelect', handleProjectSelectionChange);
+    
+    // --- Listeners สำหรับ Filter ---
+    $('#searchInput').on('input', () => { 
+        clearTimeout(debounceTimer); 
+        debounceTimer = setTimeout(() => { searchTerm = $('#searchInput').val(); currentPage = 1; fetchAndRenderVendors(); }, 500); 
+    });
+    $('#statusFilter, #packageFilter').on('change', function() {
+        selectedStatusId = $('#statusFilter').val();
+        selectedPackageId = $('#packageFilter').val(); 
+        currentPage = 1;
+        fetchAndRenderVendors();
+    });
+    
+    $('th[data-column]').on('click', function() {
+        const column = $(this).data('column');
+        if (sortState.column === column) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.column = column;
+            sortState.direction = 'asc';
+        }
+        updateSortIcons();
+        fetchAndRenderVendors();
+    });
+}
+
+function loadInitialDataForModal() {
+    const packagesPromise = serverCall('getAllPackagesForSelection').then(p => { availablePackages = p; populatePackageFilter(); });
+    const statusesPromise = serverCall('getAllVendorStatuses').then(s => { availableStatuses = s; populateStatusFilter(); });
+    const typesPromise = serverCall('getAllProjectTypes').then(t => availableProjectTypes = t);
+    const ownersPromise = serverCall('getAllProjectOwners').then(o => availableProjectOwners = o);
+    const companyTypesPromise = serverCall('getAllCompanyTypes').then(c => availableCompanyTypes = c);
+    const projectsPromise = serverCall('getAllProjectsForSelection').then(p => availableProjects = p);
+
+    // รอให้การดึงข้อมูลทั้งหมดเสร็จสิ้น
+    return Promise.all([
+        packagesPromise,
+        statusesPromise,
+        typesPromise,
+        ownersPromise,
+        companyTypesPromise,
+        projectsPromise
+    ]);
+}
+
+// ==========================================================
+// [NEW] เพิ่ม Helper Functions ที่จำเป็นกลับเข้ามา
+// ==========================================================
+function populateSelect(selectId, data, valueField, textField, placeholder) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+    data.forEach(item => { select.add(new Option(item[textField], item[valueField])); });
+}
+
+function handleServerError(error) {
+    console.error('Server Error:', error);
+    showToast('เกิดข้อผิดพลาด: ' + error.message, false);
+}
+
+</script>

@@ -1,0 +1,18 @@
+<!-- file: page/vendor/manage/modal/board.html -->
+
+
+<div class="modal fade" id="boardMemberModal" tabindex="-1" aria-labelledby="boardMemberModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="boardMemberModalLabel">ข้อมูลกรรมการ</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+      <div class="modal-body">
+        <form id="boardMemberForm">
+          <input type="hidden" id="boardMemberId"><input type="hidden" id="boardMemberVendorId">
+          <div class="form-group"><label for="boardMemberName">ชื่อจริง <span class="text-danger">*</span></label><input type="text" class="form-control" id="boardMemberName" required></div>
+          <div class="form-group"><label for="boardMemberSurname">นามสกุล <span class="text-danger">*</span></label><input type="text" class="form-control" id="boardMemberSurname" required></div>
+        </form>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button><button type="button" id="saveBoardMemberButton" class="btn btn-primary">บันทึกข้อมูล</button></div>
+    </div>
+  </div>
+</div>
