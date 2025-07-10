@@ -1,6 +1,17 @@
 <!-- file: page/project/manage.html -->
 
 
+<style>
+    .input-group .select2-container--bootstrap4 {
+        flex: 1 1 auto;
+        width: 1% !important;
+    }
+    .input-group .select2-container--bootstrap4 .select2-selection {
+        height: calc(1.5em + .75rem + 2px);
+        line-height: 1.5;
+    }
+</style>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-tasks"></i> <?= data.title ?></h1>
     <div class="btn-toolbar mb-2 mb-md-0">
@@ -10,8 +21,15 @@
     </div>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-3"><input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อโครงการ..."></div>
+<div id="filter-loader" class="text-center text-muted p-3" style="display: none; border: 1px solid #e9ecef; border-radius: .25rem;">
+    <div class="spinner-border spinner-border-sm" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <span class="ml-2">กำลังเตรียมข้อมูลตัวกรอง...</span>
+</div>
+
+<div id="filter-container" class="row mb-3">
+    <div class="col-md-3"><input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อ, ชื่อเล่น, หมายเหตุ..."></div>
     <div class="col-md-3"><select id="typeFilter" class="form-control"><option value="">ทุกประเภท</option></select></div>
     <div class="col-md-2"><select id="ownerFilter" class="form-control"><option value="">ทุกเจ้าของ</option></select></div>
     <div class="col-md-2"><select id="provinceFilter" class="form-control"><option value="">ทุกจังหวัด</option></select></div>
@@ -39,6 +57,8 @@
     <div><span id="pageInfo"></span></div>
     <nav><ul class="pagination mb-0" id="pagination-controls"></ul></nav>
 </div>
+
+<!-- MODAL : Add New Project -->
 <div class="modal fade" id="projectModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
@@ -51,17 +71,27 @@
                         <div class="col-md-6 form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="nameEnglish" class="form-control"></div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 form-group"><label>ชื่อเล่น</label><input type="text" id="nickname" class="form-control"></div>
-                        <div class="col-md-6 form-group"><label>ปี (ค.ศ.)</label><input type="number" id="projectYear" class="form-control"></div>
+                        <div class="col-md-4 form-group"><label>ชื่อเล่น</label><input type="text" id="nickname" class="form-control"></div>
+                        <div class="col-md-4 form-group"><label>จังหวัด</label><select id="province" class="form-control"></select></div>
+                        <div class="col-md-4 form-group"><label>สถานะ</label><select id="status" class="form-control"></select></div>
                     </div>
                     <div class="form-group"><label>ประเภทโครงการ*</label><select id="projectTypeId" class="form-control" multiple required></select></div>
-                    <div class="row">
-                        <div class="col-md-6 form-group"><label>เจ้าของโครงการ</label><select id="projectOwnerId" class="form-control"></select></div>
-                        <div class="col-md-6 form-group"><label>จังหวัด</label><select id="province" class="form-control"></select></div>
+                 
+                    <div class="form-group">
+                        <label>เจ้าของโครงการ</label>
+                        <div class="input-group">
+                            <select id="projectOwnerId" class="form-control"></select>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-success" type="button" onclick="prepareAddProjectOwnerSubModal()" title="เพิ่มเจ้าของโครงการใหม่">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
+
                     <div class="row">
-                        <div class="col-md-6 form-group"><label>สถานะ</label><select id="status" class="form-control"></select></div>
-                        <div class="col-md-6 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
+                        <div class="col-md-9 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
+                        <div class="col-md-3 form-group"><label>ปี (ค.ศ.)</label><input type="number" id="projectYear" class="form-control"></div>
                     </div>
                     <div class="form-group"><label>หมายเหตุ (Remark)</label><textarea id="remark" class="form-control" rows="3"></textarea></div>
                 </form>
@@ -74,18 +104,67 @@
     </div>
 </div>
 
+<!-- MODAL : Add New Owner -->
+<div class="modal fade" id="main_projectOwnerSubModal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">เพิ่มข้อมูลเจ้าของโครงการใหม่</h5>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="main_projectOwnerSubForm">
+                    <div class="row">
+                        <div class="col-md-6 form-group"><label>ชื่อ (ไทย)*</label><input type="text" id="main_sub_nameThai" class="form-control" required></div>
+                        <div class="col-md-6 form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="main_sub_nameEnglish" class="form-control"></div>
+                    </div>
+                    <div class="row">
+                         <div class="col-md-6 form-group"><label>ชื่อเล่น</label><input type="text" id="main_sub_nickname" class="form-control"></div>
+                         <div class="col-md-6 form-group"><label>ประเภทบริษัท</label><select id="main_sub_companyTypeId" class="form-control"></select></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                           <input type="checkbox" class="custom-control-input" id="main_sub_isLargeCompany">
+                           <label class="custom-control-label" for="main_sub_isLargeCompany">เป็นบริษัทขนาดใหญ่</label>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>หมายเหตุ</label><textarea id="main_sub_remark" class="form-control" rows="2"></textarea></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="main_saveNewProjectOwnerBtn" class="btn btn-primary">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let currentPage = 1, debounceTimer, masterData = {};
 
     document.addEventListener('DOMContentLoaded', function() {
-        initMasterDataAndFilters().then(() => fetchAndRenderData());
-        document.getElementById('projectForm').addEventListener('submit', handleFormSubmit);
-        document.getElementById('searchInput').addEventListener('input', () => {
+        const loader = document.getElementById('filter-loader');
+        const filterContainer = document.getElementById('filter-container');
+
+        loader.style.display = 'block';
+        filterContainer.style.display = 'none';
+
+        initMasterDataAndFilters()
+            .then(() => fetchAndRenderData())
+            .finally(() => {
+                loader.style.display = 'none';
+                filterContainer.style.display = 'flex';
+            });
+        
+        // Event Listeners
+        $(document).on('submit', '#projectForm', handleFormSubmit);
+        $(document).on('click', '#main_saveNewProjectOwnerBtn', handleSaveNewProjectOwner);
+
+        $('#searchInput').on('input', () => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { currentPage = 1; fetchAndRenderData(); }, 500);
         });
         
-        // [FIXED] เปลี่ยนวิธีผูก Event ของ Filter ทั้งหมดให้ทำงานกับ Select2 ได้ถูกต้อง
         $('#typeFilter, #ownerFilter, #provinceFilter, #statusFilter').on('change', () => {
             currentPage = 1;
             fetchAndRenderData();
@@ -97,25 +176,87 @@
             const response = await serverCall('getProjectMasterData_callable');
             if (!response.success) throw new Error(response.message);
             masterData = response;
+            masterData.companyTypes = await serverCall('getAllCompanyTypes');
 
-            // Populate Filters
             populateSelect('typeFilter', masterData.projectTypes, 'Id', 'Name', 'ทุกประเภท');
-            populateSelect('ownerFilter', masterData.projectOwners, 'Id', 'NameThai', 'ทุกเจ้าของ');
-            populateSelect('provinceFilter', masterData.provinces, 'Name', 'Name', 'ทุกจังหวัด');
             populateSelect('statusFilter', masterData.statuses, 'Id', 'Name', 'ทุกสถานะ');
+            await reloadProjectOwners();
+            await reloadProvinces();
             
-            // [FIXED] เอา Select2 ออกจาก typeFilter
-            $('#ownerFilter, #provinceFilter').select2({ theme: 'bootstrap4', width: '100%' });
-
-            // Populate Modal Dropdowns
-            populateSelect('projectOwnerId', masterData.projectOwners, 'Id', 'NameThai', '-- เลือก --');
-            populateSelect('province', masterData.provinces, 'Name', 'Name', '-- เลือก --');
             populateSelect('status', masterData.statuses, 'Id', 'Name', '-- เลือก --');
-
-            $('#projectTypeId').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'เลือกประเภทโครงการ', width: '100%', dropdownParent: $('#projectModal') });
-            $('#projectOwnerId, #province').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal') });
+            $('#projectTypeId').select2({ data: masterData.projectTypes.map(t => ({id: t.Id, text: t.Name})), theme: 'bootstrap4', placeholder: 'เลือกประเภทโครงการ', width: '100%', dropdownParent: $('#projectModal'), multiple: true });
 
         } catch (err) { handleServerError(err); }
+    }
+    
+    async function reloadProjectOwners(selectedValue = null) {
+        if ($('#ownerFilter').data('select2')) $('#ownerFilter').select2('destroy');
+        if ($('#projectOwnerId').data('select2')) $('#projectOwnerId').select2('destroy');
+        
+        const owners = await serverCall('getAllProjectOwners');
+        masterData.projectOwners = owners;
+        populateSelect('ownerFilter', owners, 'Id', 'NameThai', 'ทุกเจ้าของ');
+        populateSelect('projectOwnerId', owners, 'Id', 'NameThai', '-- เลือก --');
+        
+        $('#ownerFilter').select2({ theme: 'bootstrap4', width: '100%' });
+        $('#projectOwnerId').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal') });
+
+        if (selectedValue) {
+            $('#projectOwnerId').val(selectedValue).trigger('change');
+        }
+    }
+
+    async function reloadProvinces(selectedValue = null) {
+        if ($('#provinceFilter').data('select2')) $('#provinceFilter').select2('destroy');
+        if ($('#province').data('select2')) $('#province').select2('destroy');
+
+        const provinces = await serverCall('getProvinces');
+        masterData.provinces = provinces;
+        populateSelect('provinceFilter', provinces, 'Name', 'Name', 'ทุกจังหวัด');
+        populateSelect('province', provinces, 'Name', 'Name', '-- เลือก --');
+        
+        $('#provinceFilter').select2({ theme: 'bootstrap4', width: '100%' });
+        $('#province').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projectModal') });
+
+        if(selectedValue) {
+            $('#province').val(selectedValue).trigger('change');
+        }
+    }
+    
+    window.prepareAddProjectOwnerSubModal = function() {
+        document.getElementById('main_projectOwnerSubForm').reset();
+        const subCompanyTypeSelect = document.getElementById('main_sub_companyTypeId');
+        if (masterData && masterData.companyTypes) {
+            populateSelect(subCompanyTypeSelect.id, masterData.companyTypes, 'Id', 'Name', '-- เลือกประเภท --');
+        } else {
+            showToast("ข้อมูลประเภทบริษัทยังไม่พร้อม", false); return;
+        }
+        $('#projectModal').css('z-index', 1040); 
+        $('#main_projectOwnerSubModal').modal('show');
+        $('#main_projectOwnerSubModal').on('hidden.bs.modal', function () {
+            $('#projectModal').css('z-index', 1050); $(this).off('hidden.bs.modal');
+        });
+    }
+
+    async function handleSaveNewProjectOwner() {
+        const saveButton = document.getElementById('main_saveNewProjectOwnerBtn');
+        setLoading(saveButton, true);
+        const formData = {
+            Id: '', NameThai: $('#main_sub_nameThai').val(), NameEnglish: $('#main_sub_nameEnglish').val(),
+            Nickname: $('#main_sub_nickname').val(), CompanyTypeId: $('#main_sub_companyTypeId').val(),
+            IsLargeCompany: $('#main_sub_isLargeCompany').is(':checked'), Remark: $('#main_sub_remark').val()
+        };
+        try {
+            const response = await serverCall('processAddOrEditProjectOwner', formData);
+            if (response.success) {
+                showToast(response.message, true);
+                $('#main_projectOwnerSubModal').modal('hide');
+                const allOwners = await serverCall('getAllProjectOwners');
+                const newOwner = allOwners.sort((a,b) => b.Id.localeCompare(a.Id))[0];
+                await reloadProjectOwners(newOwner.Id);
+            } else { showToast(response.message, false); }
+        } catch (err) { handleServerError(err); } 
+        finally { setLoading(saveButton, false); }
     }
 
     function fetchAndRenderData() {
@@ -124,7 +265,7 @@
         const options = {
             page: currentPage, limit: 10,
             searchTerm: $('#searchInput').val(),
-            projectTypeId: $('#typeFilter').val(), // [FIXED] อ่านค่าจาก select ธรรมดา
+            projectTypeId: $('#typeFilter').val(),
             projectOwnerId: $('#ownerFilter').val(),
             status: $('#statusFilter').val(),
             province: $('#provinceFilter').val(),
@@ -154,7 +295,6 @@
                 infoIcons += `<span data-toggle="tooltip" title="${escapeHtml(item.Remark)}"><i class="fas fa-comment-alt text-info"></i></span>`;
             }
             
-            // [FIXED] แก้ไขการแสดงผลสถานะ
             const statusBadge = `<span class="badge" style="background-color:${item.StatusColor}; color:white;">${escapeHtml(item.StatusName)}</span>`;
 
             row.innerHTML = `
@@ -172,8 +312,6 @@
         });
         $('[data-toggle="tooltip"]').tooltip();
     }
-
-
 
     function prepareAddModal() {
         document.getElementById('projectForm').reset();
@@ -212,8 +350,7 @@
             Id: $('#projectId').val(), NameThai: $('#nameThai').val(), NameEnglish: $('#nameEnglish').val(),
             Nickname: $('#nickname').val(), ProjectYear: $('#projectYear').val(), MapUrl: $('#mapUrl').val(),
             ProjectTypeId: $('#projectTypeId').val(), ProjectOwnerId: $('#projectOwnerId').val(),
-            Province: $('#province').val(), 
-            StatusId: $('#status').val(), // [FIXED] เปลี่ยน key จาก Status เป็น StatusId
+            Province: $('#province').val(), StatusId: $('#status').val(),
             Remark: $('#remark').val(),
         };
 

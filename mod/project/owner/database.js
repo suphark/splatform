@@ -73,7 +73,7 @@ function findProjectOwnerById(id) {
 
 function addNewProjectOwner(data) {
     getProjectOwnersTable()
-        .withUniqueId('Id', { strategy: 'increment', padding: 4, prefix: 'PO-' })
+        .withUniqueId('Id', { strategy: 'increment', padding: 6, prefix: 'PJO-' })
         .insertRows([data]);
 }
 
