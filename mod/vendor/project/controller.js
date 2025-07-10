@@ -4,7 +4,8 @@
 
 
 /**
- * [SERVER-CALL] [NEW] ดึงข้อมูลโครงการทั้งหมดสำหรับทำ Dropdown
+ * [SERVER-CALL] [REVISED] ดึงข้อมูลโครงการทั้งหมดสำหรับทำ Dropdown
+ * ปรับปรุงการแสดงผล DisplayName ใหม่
  */
 function getAllProjectsForSelection() {
     try {
@@ -19,12 +20,25 @@ function getAllProjectsForSelection() {
         const formattedProjects = projects.map(p => {
             const typeIds = p.ProjectTypeId ? String(p.ProjectTypeId).split(',') : [];
             const typeNames = typeIds.map(id => typeMap.get(id.trim()) || id).join(', ');
+            
+            // --- [ส่วนที่แก้ไข] ---
+            // 1. สร้างชื่อโครงการหลัก
+            let displayName = `${p.NameThai}${p.NameEnglish ? ' | ' + p.NameEnglish : ''}`;
+            
+            // 2. ดึงชื่อเจ้าของโครงการ
+            const ownerName = ownerMap.get(p.ProjectOwnerId);
+
+            // 3. ถ้ามีชื่อเจ้าของโครงการ ให้เติม "โดย" เข้าไป
+            if (ownerName) {
+                displayName += ` ( ${ownerName} )`;
+            }
+            // --- จบส่วนที่แก้ไข ---
 
             return {
                 Id: p.Id,
-                DisplayName: `${p.NameThai}${p.NameEnglish ? ' | ' + p.NameEnglish : ''}`,
+                DisplayName: displayName, // ใช้ DisplayName ที่สร้างขึ้นใหม่
                 ProjectTypeName: typeNames,
-                ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || '-',
+                ProjectOwnerName: ownerName || '-',
                 ProjectYear: p.ProjectYear || '-'
             };
         });
