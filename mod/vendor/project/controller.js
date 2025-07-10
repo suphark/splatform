@@ -49,7 +49,6 @@ function getProjectsByVendorId(vendorId) {
 
         if (vendorProjectRefs.length === 0) return [];
 
-        // 2. สร้าง Map เพื่อเก็บข้อมูลเฉพาะของ Vendor เช่น Package, ContractValue
         const refMap = new Map(vendorProjectRefs.map(ref => [ref.ProjectId, ref]));
         const referencedProjectIds = Array.from(refMap.keys());
 
@@ -74,7 +73,7 @@ function getProjectsByVendorId(vendorId) {
                 
                 return {
                     // ข้อมูลจาก VendorProjects (ตารางอ้างอิง)
-                    Id: refData.Id, // ID ของแถวอ้างอิง VPR-...
+                    Id: refData.Id, 
                     VendorId: refData.VendorId,
                     ProjectId: refData.ProjectId,
                     PackageIds: refData.PackageIds,
@@ -86,6 +85,9 @@ function getProjectsByVendorId(vendorId) {
                     ProjectName: masterProject.NameThai,
                     ProjectYear: masterProject.ProjectYear,
                     
+                    // [FIXED] เพิ่ม ProjectOwnerId กลับเข้าไปเพื่อให้ PQ คำนวณคะแนนได้
+                    ProjectOwnerId: masterProject.ProjectOwnerId, 
+
                     // ข้อมูลที่ Join มา
                     ProjectTypeName: projectTypeNames,
                     ProjectOwnerName: ownerMap.get(masterProject.ProjectOwnerId) || '-',
@@ -109,10 +111,8 @@ function processAddOrEditVendorProject(formData) {
     if (Array.isArray(formData.PackageIds)) {
         formData.PackageIds = formData.PackageIds.join(',');
     }
-
-    // สร้าง Key 'Id' ให้ตรงกับที่ Generic Service ต้องการ
-    // โดยใช้ projectId_ref จาก input hidden ในฟอร์ม
-    formData.Id = formData.projectId_ref;
+    
+    formData.Id = formData.projectId_ref; // ใช้ ID จากฟอร์ม hidden (VPR-...)
     delete formData.projectId_ref;
 
     const action = formData.Id ? 'edit' : 'add';
