@@ -24,13 +24,13 @@ function getFinanceByVendorId(vendorId) {
  * @returns {object}
  */
 function processAddOrEditFinanceRecord(formData, fileData) {
-    // --- Validation พิเศษสำหรับ Finance ---
     const year = Number(formData.Year);
     const currentYear = new Date().getFullYear();
     if (isNaN(year) || year > currentYear || year < currentYear - 10) {
         return { success: false, message: 'ปีที่ระบุไม่ถูกต้องหรืออยู่นอกช่วงที่กำหนด' };
     }
 
+    // ตอนนี้ isFinanceYearExists จะทำงานถูกต้องแล้ว
     if (isFinanceYearExists(formData.VendorId, year, formData.Id)) {
         return { success: false, message: `มีข้อมูลงบการเงินของปี ${year} อยู่ในระบบแล้ว` };
     }
@@ -61,24 +61,36 @@ function getFinanceRecordById(financeId) {
 }
 
 /**
- * [NEW] ตรวจสอบว่ามีข้อมูลงบการเงินของปีที่ระบุสำหรับ Vendor นี้แล้วหรือยัง
+ * [REVISED] แก้ไขตรรกะการตรวจสอบข้อมูลซ้ำให้ถูกต้อง
  * @param {string} vendorId - ID ของ Vendor
  * @param {number} year - ปีที่ต้องการตรวจสอบ
- * @param {string|null} excludeId - ID ของรายการงบการเงินที่จะยกเว้น (สำหรับโหมดแก้ไข)
+ * @param {string|null} excludeId - ID ของรายการที่กำลังแก้ไข (เพื่อยกเว้นออกจากการตรวจสอบ)
  * @returns {boolean} true ถ้ามีข้อมูลปีนี้อยู่แล้ว, false ถ้ายังไม่มี
  */
 function isFinanceYearExists(vendorId, year, excludeId = null) {
     const table = APP_CONFIG.sheetsData.vendorFinance.getTable();
     
-    let query = table.where(row => row.VendorId === vendorId && Number(row.Year) === Number(year));
-    
-    // ถ้าเป็นการแก้ไข ให้ยกเว้นรายการของตัวเองออกจากการตรวจสอบ
-    if (excludeId) {
-        query = query.where(row => row.Id !== excludeId);
-    }
+    // ใช้ .where() ที่รับฟังก์ชันเข้าไปเพื่อสร้างเงื่อนไขที่ซับซ้อน
+    const count = table.where(row => {
+        // เงื่อนไขที่ 1: ต้องเป็นของ Vendor เดียวกัน และ ปีเดียวกัน
+        const isMatch = (row.VendorId === vendorId && Number(row.Year) === Number(year));
+        
+        // ถ้าเงื่อนไขแรกไม่ตรง ก็ไม่ใช่ข้อมูลที่เราสนใจ (return false)
+        if (!isMatch) {
+            return false;
+        }
+        
+        // ถ้าเงื่อนไขแรกตรง ให้ตรวจสอบต่อ
+        // ถ้าเราอยู่ในโหมด "แก้ไข" (มี excludeId) และ ID ของแถวที่เจอ คือ ID เดียวกับที่เรากำลังแก้
+        // แสดงว่ามันคือ "ตัวมันเอง" ไม่ใช่ "ข้อมูลซ้ำ" (return false เพื่อไม่ให้นับ)
+        if (excludeId && row.Id === excludeId) {
+            return false;
+        }
+        
+        // ถ้าผ่านเงื่อนไขทั้งหมดมาได้ แสดงว่านี่คือ "ข้อมูลซ้ำ" จริงๆ (return true เพื่อให้นับ)
+        return true;
+    }).count();
 
-    const count = query.count();
     table.clearAll();
-    
     return count > 0;
 }

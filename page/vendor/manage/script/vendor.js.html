@@ -27,7 +27,7 @@ function renderVendorTable(vendors) {
     vendors.forEach(vendor => {
         const row = tableBody.insertRow();
         row.dataset.item = JSON.stringify(vendor);
-        const statusBadge = `<span class="badge" style="background-color:${vendor.StatusColor || '#6c757d'}; color:white;">${vendor.StatusName || 'N/A'}</span>`;
+        const statusBadge = `<span class="badge ${vendor.StatusColor || '#6c757d'}">${vendor.StatusName || 'N/A'}</span>`;
         const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
         const grade = vendor.LatestGrade || '-';
         const gradeColorMapping = { 'A': '#28a745', 'B': '#17a2b8', 'C': '#ffc107', 'D': '#dc3545' };

@@ -1,0 +1,134 @@
+<!-- file: page/vendor/manage/script/finance.js.html -->
+
+
+<script>
+
+
+
+window.prepareAddFinanceModal = function () { 
+    const currentVendorId = document.getElementById('vendorId').value; 
+    if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } 
+    document.getElementById('financeForm').reset(); 
+    $('#financeId').val(''); 
+    $('#financeVendorId').val(currentVendorId); 
+    $('#financeModalLabel').text('เพิ่มข้อมูลงบการเงิน'); 
+    setFinanceModalLoading(false); 
+    $('#financeModal').modal('show'); 
+};
+
+window.prepareEditFinanceModal = function (financeId) { 
+    $('#financeModalLabel').text('แก้ไขข้อมูลงบการเงิน'); 
+    setFinanceModalLoading(true); 
+    $('#financeModal').modal('show'); 
+    serverCall('getFinanceRecordById', financeId).then(recordData => { 
+        if (!recordData) { showToast('ไม่สามารถดึงข้อมูลได้', false); $('#financeModal').modal('hide'); return; } 
+        document.getElementById('financeForm').reset(); 
+        $('#financeId').val(recordData.Id); 
+        $('#financeVendorId').val(recordData.VendorId); 
+        $('#financeYear').val(recordData.Year || ''); 
+        $('#financeRevenue').val(recordData.Revenue || ''); 
+        $('#financeCurrentAssets').val(recordData.CurrentAssets || ''); 
+        $('#financeCurrentLiabilities').val(recordData.CurrentLiabilities || ''); 
+        $('#financeTotalLiabilities').val(recordData.TotalLiabilities || ''); 
+        setFinanceModalLoading(false); 
+    }).catch(err => { handleServerError(err); $('#financeModal').modal('hide'); }); 
+};
+
+window.handleDeleteFinanceRecord = function (financeId, vendorId) {
+    Swal.fire({
+        title: 'ยืนยันการลบ',
+        text: "คุณต้องการลบข้อมูลงบการเงินรายการนี้ใช่หรือไม่?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+        return serverCall('processDeleteFinanceRecord', financeId, vendorId)
+            .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value.success) {
+        showToast(result.value.message, true);
+        renderFinanceTable(result.value.data); // อัปเดตตาราง
+        } else if (result.value) {
+        showToast(result.value.message, false);
+        }
+    });
+};
+
+async function handleSaveFinanceRecord() {
+    const form = document.getElementById('financeForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    const saveButton = document.getElementById('saveFinanceButton');
+    setLoading(saveButton, true);
+
+    const formData = {
+        Id: document.getElementById('financeId').value,
+        VendorId: document.getElementById('financeVendorId').value,
+        Year: document.getElementById('financeYear').value,
+        Revenue: document.getElementById('financeRevenue').value,
+        CurrentAssets: document.getElementById('financeCurrentAssets').value,
+        CurrentLiabilities: document.getElementById('financeCurrentLiabilities').value,
+        TotalLiabilities: document.getElementById('financeTotalLiabilities').value,
+    };
+
+    // [แก้ไข] ลบ Logic การอ่านไฟล์ทั้งหมด
+    try {
+        // ส่ง formData ไปอย่างเดียว ไม่มี fileData
+        const response = await serverCall('processAddOrEditFinanceRecord', formData); 
+        if (response.success) {
+            showToast(response.message, true);
+            renderFinanceTable(response.data);
+            $('#financeModal').modal('hide');
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
+function renderFinanceTable(financeRecords) {
+    const tableBody = document.getElementById('vendor-finance-table-body');
+    tableBody.innerHTML = '';
+    if (!financeRecords || financeRecords.length === 0) {
+        // [แก้ไข] แก้ colspan เป็น 6
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลงบการเงิน</td></tr>`;
+        return;
+    }
+    financeRecords.forEach(rec => {
+        const row = tableBody.insertRow();
+        const recordJsonString = JSON.stringify(rec).replace(/"/g, '&quot;');
+        
+        // [แก้ไข] ลบ fileLink และ <td> ที่เกี่ยวข้องออก
+        row.innerHTML = `
+            <td>${rec.Year || '-'}</td>
+            <td>${rec.Revenue ? Number(rec.Revenue).toLocaleString() : '-'}</td>
+            <td>${rec.CurrentAssets ? Number(rec.CurrentAssets).toLocaleString() : '-'}</td>
+            <td>${rec.CurrentLiabilities ? Number(rec.CurrentLiabilities).toLocaleString() : '-'}</td>
+            <td>${rec.TotalLiabilities ? Number(rec.TotalLiabilities).toLocaleString() : '-'}</td>
+            <td>
+                <button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick="prepareEditFinanceModal('${rec.Id}')"><i class="fas fa-edit"></i></button> 
+                <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteFinanceRecord('${rec.Id}', '${rec.VendorId}')"><i class="fas fa-trash-alt"></i></button>
+            </td>
+        `;
+    });
+}
+
+// [NEW] เพิ่มฟังก์ชันที่หายไปกลับเข้ามา
+function setFinanceModalLoading(isLoading) {
+    $('#finance-modal-loader').toggle(isLoading);
+    $('#financeForm').toggle(!isLoading);
+    $('#saveFinanceButton').prop('disabled', isLoading);
+}
+
+
+</script>

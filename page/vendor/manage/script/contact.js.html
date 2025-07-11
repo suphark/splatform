@@ -1,0 +1,96 @@
+<!-- file: page/vendor/manage/script/contact.js.html -->
+
+
+<script>
+
+
+
+window.prepareAddContactModal = function () {
+    const currentVendorId = document.getElementById('vendorId').value;
+    if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; }
+    document.getElementById('contactForm').reset();
+    document.getElementById('contactId').value = '';
+    document.getElementById('contactVendorId').value = currentVendorId;
+    $('#contactModalLabel').text('เพิ่มข้อมูลผู้ติดต่อ');
+    $('#contactModal').modal('show');
+};
+
+window.prepareEditContactModal = function (contactData) {
+    document.getElementById('contactForm').reset();
+    $('#contactModalLabel').text('แก้ไขข้อมูลผู้ติดต่อ');
+    $('#contactId').val(contactData.Id);
+    $('#contactVendorId').val(contactData.VendorId);
+    $('#contactName').val(contactData.Name || '');
+    $('#contactPosition').val(contactData.Position || '');
+    $('#contactEmail').val(contactData.Email || '');
+    $('#contactPhoneNumber').val(contactData.PhoneNumber ? String(contactData.PhoneNumber).replace(/'/g, '') : '');
+    $('#contactLineId').val(contactData.LineId || '');
+    $('#contactModal').modal('show');
+};
+
+window.handleDeleteContact = function (contactId, vendorId) {
+    Swal.fire({
+        title: 'ยืนยันการลบ', text: "คุณต้องการลบผู้ติดต่อรายนี้ใช่หรือไม่?", icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย', cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true,
+        preConfirm: () => serverCall('processDeleteContact', contactId, vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)),
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value.success) {
+            showToast(result.value.message, true);
+            renderContactsTable(result.value.data);
+        } else if (result.value) {
+            showToast(result.value.message, false);
+        }
+    });
+};
+
+async function handleSaveContact() {
+    const form = document.getElementById('contactForm'); if (!form.checkValidity()) { form.reportValidity(); return; }
+    const saveButton = document.getElementById('saveContactButton'); setLoading(saveButton, true);
+    const formData = { Id: $('#contactId').val(), VendorId: $('#contactVendorId').val(), Name: $('#contactName').val(), Position: $('#contactPosition').val(), Email: $('#contactEmail').val(), PhoneNumber: "'" + $('#contactPhoneNumber').val(), LineId: $('#contactLineId').val() };
+    try {
+        const response = await serverCall('processAddOrEditContact', formData);
+        if (response.success) { showToast(response.message, true); renderContactsTable(response.data); $('#contactModal').modal('hide'); } else { showToast(response.message, false); }
+    } catch (err) { handleServerError(err); }
+    finally { setLoading(saveButton, false); }
+}
+
+// [REVISED] แก้ไขฟังก์ชันนี้เพื่อจัดการกับเครื่องหมาย '
+function renderContactsTable(contacts) {
+    const tableBody = document.getElementById('vendor-contacts-table-body');
+    tableBody.innerHTML = '';
+    if (!contacts || contacts.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลผู้ติดต่อ</td></tr>`; return;
+    }
+    contacts.forEach(contact => {
+        const row = tableBody.insertRow();
+        
+        // --- ส่วนที่แก้ไข ---
+        // 1. สร้าง JSON string จาก object ของ contact
+        // 2. จัดการกับเครื่องหมาย ' โดยแทนที่ด้วย &apos; (HTML entity)
+        // 3. จัดการกับเครื่องหมาย " โดยแทนที่ด้วย &quot; (HTML entity)
+        const contactJsonString = JSON.stringify(contact)
+                                      .replace(/'/g, '&apos;')
+                                      .replace(/"/g, '&quot;');
+        
+        const displayPhoneNumber = contact.PhoneNumber ? String(contact.PhoneNumber).replace(/'/g, '') : '-';
+
+        row.innerHTML = `
+            <td>${escapeHtml(contact.Name) || '-'}</td>
+            <td>${escapeHtml(contact.Position) || '-'}</td>
+            <td>${escapeHtml(displayPhoneNumber)}</td>
+            <td>${escapeHtml(contact.Email) || '-'}</td>
+            <td>
+                <button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditContactModal(${contactJsonString})'>
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteContact('${contact.Id}', '${contact.VendorId}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>`;
+    });
+}
+
+
+
+</script>

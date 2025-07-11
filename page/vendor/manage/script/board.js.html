@@ -1,0 +1,83 @@
+<!-- file: page/vendor/manage/script/board.js.html -->
+
+
+<script>
+
+
+
+window.prepareAddBoardMemberModal = function () { const currentVendorId = document.getElementById('vendorId').value; if (!currentVendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; } document.getElementById('boardMemberForm').reset(); document.getElementById('boardMemberId').value = ''; document.getElementById('boardMemberVendorId').value = currentVendorId; $('#boardMemberModalLabel').text('เพิ่มข้อมูลกรรมการ'); $('#boardMemberModal').modal('show'); };
+window.prepareEditBoardMemberModal = function (memberData) { document.getElementById('boardMemberForm').reset(); $('#boardMemberModalLabel').text('แก้ไขข้อมูลกรรมการ'); document.getElementById('boardMemberId').value = memberData.Id; document.getElementById('boardMemberVendorId').value = memberData.VendorId; document.getElementById('boardMemberName').value = memberData.Name || ''; document.getElementById('boardMemberSurname').value = memberData.Surname || ''; $('#boardMemberModal').modal('show'); };
+window.handleDeleteBoardMember = function (memberId, vendorId) {
+    Swal.fire({
+        title: 'ยืนยันการลบ',
+        text: "คุณต้องการลบข้อมูลกรรมการท่านนี้ใช่หรือไม่?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+        return serverCall('processDeleteBoardMember', memberId, vendorId)
+            .catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`));
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value.success) {
+        showToast(result.value.message, true);
+        renderBoardMembersTable(result.value.data);
+        } else if (result.value) {
+        showToast(result.value.message, false);
+        }
+    });
+};
+
+async function handleSaveBoardMember() {
+    const form = document.getElementById('boardMemberForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    const saveButton = document.getElementById('saveBoardMemberButton');
+    setLoading(saveButton, true);
+
+    const formData = {
+        Id: document.getElementById('boardMemberId').value,
+        VendorId: document.getElementById('boardMemberVendorId').value,
+        Name: document.getElementById('boardMemberName').value,
+        Surname: document.getElementById('boardMemberSurname').value,
+    };
+
+    try {
+        const response = await serverCall('processAddOrEditBoardMember', formData);
+        if (response.success) {
+            renderBoardMembersTable(response.data);
+            $('#boardMemberModal').modal('hide');
+
+            // [NEW] ตรวจสอบและแสดงการแจ้งเตือนความสัมพันธ์
+            if (response.relationshipWarning) {
+                // ใช้ Swal.fire เพื่อให้ผู้ใช้เห็นการแจ้งเตือนที่ชัดเจน
+                Swal.fire({
+                    title: 'บันทึกสำเร็จ!',
+                    text: response.relationshipWarning, // ข้อความแจ้งเตือนจาก Server
+                    icon: 'warning' // ใช้ไอคอนสีเหลืองเพื่อเน้นความสำคัญ
+                });
+            } else {
+                showToast(response.message, true); // หากไม่มีอะไรพิเศษ ก็แสดง Toast ปกติ
+            }
+            // รีเฟรชตาราง Vendor หลักเพื่อให้ไอคอนอัปเดต
+            fetchAndRenderVendors(); 
+
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
+function renderBoardMembersTable(members) { const tableBody = document.getElementById('vendor-board-table-body'); tableBody.innerHTML = ''; if (!members || members.length === 0) { tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูลกรรมการ</td></tr>`; return; } members.forEach(member => { const row = tableBody.insertRow(); const memberJsonString = JSON.stringify(member).replace(/"/g, '&quot;'); row.innerHTML = `<td>${member.Name || '-'}</td><td>${member.Surname || '-'}</td><td><button type="button" class="btn btn-xs btn-outline-warning" title="แก้ไข" onclick='prepareEditBoardMemberModal(${memberJsonString})'><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-xs btn-outline-danger" title="ลบ" onclick="handleDeleteBoardMember('${member.Id}', '${member.VendorId}')"><i class="fas fa-trash-alt"></i></button></td>`; }); }
+
+
+
+</script>
