@@ -6,7 +6,15 @@
   body { background-color: #f0f2f5; font-family: 'Sarabun', sans-serif; }
   .pq-container { max-width: 900px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   .pq-header { border-bottom: 2px solid #dee2e6; padding-bottom: 15px; margin-bottom: 20px; }
-  .pq-section-title { font-size: 1.2rem; font-weight: bold; color: #fff; background-color: #495057; padding: 10px; border-radius: 4px; margin-top: 25px; margin-bottom: 15px; }
+
+  /* [1. FIXED] เพิ่ม property นี้เพื่อให้หัวข้อพิมพ์สีพื้นหลังออกมาด้วย */
+  .pq-section-title { 
+    font-size: 1.2rem; font-weight: bold; color: #fff; background-color: #495057; 
+    padding: 10px; border-radius: 4px; margin-top: 25px; margin-bottom: 15px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .criteria-table { font-size: 0.9rem; }
   .criteria-table th { background-color: #f8f9fa; text-align: center; }
   .criteria-table .check-col { width: 40px; }
@@ -16,7 +24,14 @@
   .vendor-info-box p { margin-bottom: 0.5rem; }
   .check-icon { color: #28a745; font-size: 1.2em; }
   .vendor-data { font-style: italic; color: #007bff; }
-  .grade-box { padding: 10px; border-radius: 5px; color: white; text-align: center; font-size: 2.2rem; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* ส่วนนี้ถูกต้องอยู่แล้ว มี property บังคับพิมพ์สี */
+  .grade-box { 
+    padding: 10px; border-radius: 5px; color: white; text-align: center; 
+    font-size: 2.2rem; font-weight: bold; 
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact; 
+  }
   .grade-A { background-color: #28a745; }
   .grade-B { background-color: #17a2b8; }
   .grade-C { background-color: #ffc107; color: #212529 !important; }
@@ -28,9 +43,15 @@
     .pq-header .btn, #saveButton, #printButton, #historyButton { display: none !important; } 
     #pq-id-container { display: block !important; }
     .pq-container { box-shadow: none; border: none; margin: 0; padding: 0; max-width: 100%; border-radius: 0; }
-    h3, h5, p, span, td, th { color: black !important; }
-    .grade-box { border: 2px solid #6c757d; background-color: #e9ecef !important; }
     a { text-decoration: none; color: inherit; }
+    
+    /* [2. FIXED] ลบส่วนที่บังคับให้ Grade Box เป็นสีเทาตอนพิมพ์ออกไป */
+    /*
+    .grade-box { 
+        border: 2px solid #6c757d; 
+        background-color: #e9ecef !important;
+    }
+    */
   }
 </style>
 
