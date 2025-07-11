@@ -34,7 +34,7 @@ function processAddOrEditProject(formData) {
         if (isEditMode) {
             updateProjectById(formData.Id, formData);
             writeAuditLog('Project: Edit', `ID: ${formData.Id}`);
-            const updatedProject = findProjectById(formData.Id); // ดึงข้อมูลที่อัปเดตแล้ว
+            const updatedProject = findProjectById(formData.Id); // <-- โค้ดเรียกใช้ฟังก์ชันที่ไม่มีอยู่จริงตรงนี้
             return { success: true, message: 'แก้ไขข้อมูลโครงการสำเร็จ!', data: updatedProject };
         } else {
             addNewProject(formData);

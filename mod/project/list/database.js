@@ -85,6 +85,19 @@ function getPaginatedProjects(options = {}) {
     }
 }
 
+/**
+ * [NEW] ค้นหาโครงการด้วย ID
+ * @param {string} id - ID ของโครงการ
+ * @returns {object|null} ข้อมูลโครงการ หรือ null ถ้าไม่พบ
+ */
+function findProjectById(id) {
+    if (!id) return null;
+    const table = getProjectsTable();
+    const project = table.where(p => p.Id === id).first();
+    table.clearAll(); // เคลียร์ Builder และ Cache หลังใช้งาน
+    return project;
+}
+
 function addNewProject(data) {
     getProjectsTable()
         .withUniqueId('Id', { strategy: 'increment', padding: 6, prefix: 'PRJ-' })
@@ -99,3 +112,4 @@ function updateProjectById(id, data) {
 function deleteProjectById(id) {
     getProjectsTable().where(row => row.Id === id).deleteRows();
 }
+
