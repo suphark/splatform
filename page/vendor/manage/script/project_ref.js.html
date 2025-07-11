@@ -30,17 +30,26 @@ function renderProjectsTable(projects) {
     });
 }
 
+// [NEW] ฟังก์ชันสำหรับเปิดหน้าเพิ่มโครงการในแท็บใหม่
+window.openAddNewProjectPage = function() {
+    // ดึงข้อความที่ผู้ใช้พิมพ์ค้นหาล่าสุด
+    const searchTerm = $('.select2-search__field').val() || '';
+    // ปิด select2 dropdown ปัจจุบัน
+    $('#projectNameSelect').select2('close');
+    // เปิดหน้าจัดการโครงการในแท็บใหม่ พร้อมส่งค่าที่ค้นหาไปด้วย
+    const url = `${VENDOR_BASE_URL}?page=project/manage&name=${encodeURIComponent(searchTerm)}`;
+    window.open(url, '_blank');
+};
+
+// [REVISED] แก้ไขฟังก์ชันนี้ใหม่ทั้งหมด
 window.prepareAddProjectModal = function () {
     const vendorId = document.getElementById('vendorId').value;
-    if (!vendorId) {
-        showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false);
-        return;
-    }
+    if (!vendorId) { showToast('กรุณาบันทึกข้อมูล Vendor หลักก่อน', false); return; }
+    
     document.getElementById('projectForm').reset();
     $('#projectId_ref').val('');
     $('#projectVendorId').val(vendorId);
     $('#projectModalLabel').text('เพิ่มโครงการอ้างอิง');
-    
     $('#project-details-display').hide();
     
     if ($('#projectNameSelect').data('select2')) $('#projectNameSelect').select2('destroy');
@@ -49,13 +58,30 @@ window.prepareAddProjectModal = function () {
     populateSelect('projectNameSelect', availableProjects, 'Id', 'DisplayName', '-- ค้นหาและเลือกโครงการ --');
     populateSelect('projectPackageIds', availablePackages, 'Id', 'DisplayName');
     
-    $('#projectNameSelect').select2({ theme: 'bootstrap4', dropdownParent: $('#projectModal') });
     $('#projectPackageIds').select2({ theme: 'bootstrap4', placeholder: 'เลือกประเภทงาน', dropdownParent: $('#projectModal'), multiple: true });
 
+    // สร้าง Select2 สำหรับ Project Name พร้อมตรรกะ "ไม่พบข้อมูล" แบบใหม่
+    $('#projectNameSelect').select2({
+        theme: 'bootstrap4',
+        dropdownParent: $('#projectModal'),
+        language: {
+            noResults: function () {
+                // สร้างปุ่มเพิ่มโครงการโดยตรงในผลการค้นหา
+                const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="window.openAddNewProjectPage()">` +
+                                `<i class="fas fa-plus mr-1"></i> เพิ่มโครงการใหม่</button>`;
+                return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+            }
+        },
+        escapeMarkup: function (markup) {
+            // อนุญาตให้ใช้ HTML ในผลลัพธ์ได้
+            return markup;
+        }
+    });
+
     $('#projectNameSelect, #projectPackageIds').val(null).trigger('change');
-    
     $('#projectModal').modal('show');
 };
+
 
 // [REVISED] แก้ไขฟังก์ชัน "แก้ไข" ให้ทำงานได้จริง
 window.prepareEditProjectModal = function (p) {

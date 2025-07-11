@@ -1,18 +1,25 @@
-<!-- file: page/vendor/manage/modal/project_ref.html -->
-
-
 <div class="modal fade" id="projectModal" tabindex="-1" aria-labelledby="projectModalLabel" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="projectModalLabel">เพิ่มโครงการอ้างอิง</h5><button type="button" class="close" data-dismiss="modal">×</button></div>
       <div class="modal-body">
         <form id="projectForm">
-          <input type="hidden" id="projectId_ref"> <input type="hidden" id="projectVendorId">           <div class="form-group">
-            <label for="projectNameSelect">เลือกโครงการ*</label>
-            <select class="form-control" id="projectNameSelect" required></select>
+          <input type="hidden" id="projectId_ref"> 
+          <input type="hidden" id="projectVendorId">
+
+          <div id="add-new-project-prompt" class="alert alert-light text-center" style="display: none;">
+              ไม่พบโครงการในระบบ 
+              <a href="<?= data.baseUrl ?>?page=project/manage" target="_blank" class="btn btn-sm btn-success ml-2">
+                  <i class="fas fa-plus"></i> เพิ่มโครงการใหม่
+              </a>
           </div>
-        
-        <div id="project-details-display" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 1rem;">
+
+          <div class="form-group" id="project-selection-group">
+              <label for="projectNameSelect">เลือกโครงการ*</label>
+              <select class="form-control" id="projectNameSelect" required></select>
+          </div>
+      
+          <div id="project-details-display" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 1rem;">
             <div class="row">
                 <div class="col-md-4"><strong>ประเภทโครงการ:</strong> <p id="projectTypeDisplay" class="d-inline text-muted"></p></div>
                 <div class="col-md-4"><strong>เจ้าของโครงการ:</strong> <p id="projectOwnerDisplay" class="d-inline text-muted"></p></div>

@@ -2,30 +2,7 @@
 
 
 <h1><?= data.title ?></h1>
-<p>ยินดีต้อนรับสู่เว็บแอปพลิเคชันที่สร้างด้วย Google Apps Script ในสไตล์ Next.js</p>
+<p>Supply Chain version 2025-07-11</p>
 <hr>
-<h4>การสื่อสารกับ Server (Client-Side)</h4>
-<p>กดปุ่มด้านล่างเพื่อเรียกใช้ฟังก์ชัน <code>getServerTimestamp()</code> ที่อยู่ในไฟล์ <code>Code.gs</code> ผ่าน <code>google.script.run</code></p>
-<button class="btn btn-primary" onclick="callServerFunction()">เรียกข้อมูลจากเซิร์ฟเวอร์</button>
-<div id="response-div" class="mt-3 p-3 border bg-light" style="display: none;"></div>
-
-<script>
-  function callServerFunction() {
-    const responseDiv = document.getElementById('response-div');
-    responseDiv.style.display = 'block';
-    responseDiv.innerHTML = '<em>กำลังร้องขอข้อมูล...</em>';
-
-    google.script.run
-      .withSuccessHandler(function(response) {
-        // เมื่อสำเร็จ ให้นำผลลัพธ์มาแสดง
-        responseDiv.innerText = response;
-      })
-      .withFailureHandler(function(error) {
-        // หากเกิดข้อผิดพลาด
-        responseDiv.innerText = 'เกิดข้อผิดพลาด: ' + error.message;
-      })
-      .getServerTimestamp(); // ชื่อฟังก์ชันใน Code.gs ที่เราจะเรียก
-
-  }
-  
-</script>
+<h4>ปัญหาที่อาจจะเกิดขึ้นในการใช้งาน</h4>
+<p>เนื่องจาก โปรแกรมทำงานบน Google Sheets ซึ่งจะมีผลให้ทำงานได้ช้ามาก แต่ฟรี ในการคำนวณ เช่น กดปุ่มบันทึก, แก้ไข, ลบ จะแสดงสัญลักษณ์การทำงาน (spinner) ทุกครั้งหากไม่เห็นให้กดปุ่ม F12 > เลือกเมนู Console > click ขวา > เลือก copy console > ส่งข้อความจาก console และ แคปหน้าจอทั้งหมด ส่งให้พี่เพื่อตรวจสอบ</p>

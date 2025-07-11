@@ -101,4 +101,13 @@ function setLoading(button, isLoading, loadingText = 'กำลังบัน�
         button.disabled = false;
     }
 }
+
+// [FIX] เพิ่มโค้ดนี้เพื่อแก้ปัญหา Bootstrap Modal กับ Select2 ตีกัน
+$(document).on('focusin', function(e) {
+    if ($(e.target).closest(".select2-container").length || $(e.target).closest(".select2-dropdown").length) {
+    e.stopImmediatePropagation();
+    }
+});
+
+
 </script>
