@@ -2,10 +2,12 @@
 
 
 <script>
+
+
 // ==================== VENDOR UI & DATA ====================
 function fetchAndRenderVendors() {
     const tableBody = document.getElementById('vendor-table-body');
-    tableBody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`;
     const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction };
     serverCall('getPaginatedVendors', options).then(response => {
         if (response.success) {
@@ -19,20 +21,15 @@ function fetchAndRenderVendors() {
 
 function renderVendorTable(vendors) {
     const tableBody = document.getElementById('vendor-table-body');
-
     tableBody.innerHTML = '';
-
     if (!vendors || vendors.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
         return;
     }
-
     vendors.forEach(vendor => {
         const row = tableBody.insertRow();
         row.dataset.item = JSON.stringify(vendor);
-        const remarkCell = vendor.Remark 
-            ? `<td class="text-center"><span data-toggle="tooltip" title="${escapeHtml(vendor.Remark)}"><i class="fas fa-comment-alt text-info"></i></span></td>` 
-            : '<td></td>';        
+        const remarkCell = vendor.Remark ? `<td class="text-center"><span data-toggle="tooltip" title="${escapeHtml(vendor.Remark)}"><i class="fas fa-comment-alt text-info"></i></span></td>` : '<td></td>';
         const statusBadge = `<span class="badge ${vendor.StatusColor || '#6c757d'}">${vendor.StatusName || 'N/A'}</span>`;
         const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
         const grade = vendor.LatestGrade || '-';
@@ -58,7 +55,6 @@ function renderVendorTable(vendors) {
                 </div>
             </td>`;
     });
-    // สั่งให้ Tooltip ทำงานอีกครั้งสำหรับไอคอนใหม่
     $('[data-toggle="tooltip"]').tooltip();
 }
 
@@ -67,7 +63,8 @@ function updateSortIcons() { document.querySelectorAll('th[data-column]').forEac
 
 // ==================== FILTERS ====================
 function populateStatusFilter() {
-    populateSelect('statusFilter', availableStatuses, 'Id', 'Name', 'ทุกสถานะ');
+    // [แก้ไข] ใช้ตัวแปรที่ถูกต้องและชัดเจน
+    populateSelect('statusFilter', availableVendorStatuses, 'Id', 'Name', 'ทุกสถานะ');
 }
 function populatePackageFilter() {
     populateSelect('packageFilter', availablePackages, 'Id', 'DisplayName', 'ทุกประเภทพัสดุ');
@@ -91,7 +88,8 @@ window.prepareAddVendorModal = function() {
     });
     
     populateSelect('packageIds', availablePackages, 'Id', 'DisplayName');
-    populateSelect('status', availableStatuses, 'Id', 'Name');
+    // [แก้ไข] ใช้ตัวแปรที่ถูกต้องและชัดเจน
+    populateSelect('status', availableVendorStatuses, 'Id', 'Name'); 
     populateSelect('companyTypeId', availableCompanyTypes, 'Id', 'Name');
     
     $('#packageIds').select2({ theme: 'bootstrap4', placeholder: 'ค้นหาและเลือกประเภทพัสดุ', allowClear: true, dropdownParent: $('#vendorModal'), multiple: true });
@@ -228,15 +226,13 @@ function populateForm(data) {
     $('#registeredDate').val(data.RegisteredDate ? new Date(data.RegisteredDate).toISOString().split('T')[0] : '');
     $('#registeredObject').val(data.RegisteredObject || '');
 
-    // Populates dropdowns with all available options first
-    populateSelect('status', availableStatuses, 'Id', 'Name');
+    // [แก้ไข] ใช้ตัวแปรที่ถูกต้องและชัดเจน
+    populateSelect('status', availableVendorStatuses, 'Id', 'Name');
     populateSelect('companyTypeId', availableCompanyTypes, 'Id', 'Name');
     populateSelect('packageIds', availablePackages, 'Id', 'DisplayName');
     
-    // Then set their selected values
     $('#status').val(data.StatusId);
     $('#companyTypeId').val(data.CompanyTypeId);
-    // (packageIds จะถูก set ค่าใน prepareEditVendorModal)
     
     const folderLink = document.getElementById('vendor-folder-link');
     if (data.FolderId) {
@@ -246,7 +242,6 @@ function populateForm(data) {
         folderLink.style.display = 'none';
     }
 
-    // --- ส่วนแสดงผลไฟล์แนบที่ถูกต้อง ---
     const fileFields = [
         { key: 'CompanyProfileFolderId', linkId: 'companyProfileFileLink', containerId: 'companyProfileFileLinkContainer', noFileId: 'noCompanyProfileFile' },
         { key: 'IdCardFolderId', linkId: 'idCardFileLink', containerId: 'idCardFileLinkContainer', noFileId: 'noIdCardFile' },
@@ -270,7 +265,6 @@ function populateForm(data) {
             noFileSpan.style.display = 'inline';
         }
     });
-    // ------------------------------------
 
     document.querySelectorAll('.related-data-tab').forEach(el => el.style.display = 'block');
     $('#addContactBtn, #addBoardMemberBtn, #addFinanceBtn, #addProjectBtn').prop('disabled', false);

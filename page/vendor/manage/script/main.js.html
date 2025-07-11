@@ -1,10 +1,13 @@
 <!-- file: page/vendor/manage/script/main.js.html -->
 
+
 <script>
+
 
 // ==================== GLOBAL STATE & CONSTANTS ====================
 const VENDOR_BASE_URL = document.body.dataset.baseUrl;
-let availablePackages = [], availableStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [], availableProjects = [];
+// [แก้ไข] เปลี่ยนชื่อตัวแปรให้ชัดเจน และเพิ่ม availableProjectStatuses
+let availablePackages = [], availableVendorStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [], availableProjects = [], availableProvinces = [], availableProjectStatuses = [];
 let currentPage = 1, totalPages = 1;
 let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
 let sortState = { column: 'Id', direction: 'desc' };
@@ -15,45 +18,35 @@ document.addEventListener('DOMContentLoaded', function () {
     const loader = document.getElementById('filter-loader');
     const filterContainer = document.getElementById('filter-container');
 
-    // แสดง loader และซ่อน filter ก่อนเริ่มทำงาน
     loader.style.display = 'block';
     filterContainer.style.display = 'none';
 
-    // โหลดข้อมูลเริ่มต้นสำหรับ Filter และ Modal
     loadInitialDataForModal()
         .then(() => {
-            // เมื่อโหลดข้อมูล Filter เสร็จแล้ว ค่อยโหลดข้อมูลตาราง
             fetchAndRenderVendors();
         })
         .catch(err => {
-            // กรณีโหลดข้อมูล Filter ล้มเหลว ให้แสดงข้อผิดพลาด
             handleServerError(err);
             loader.innerHTML = '<div class="alert alert-danger">ไม่สามารถโหลดข้อมูลตัวกรองได้</div>';
         })
         .finally(() => {
-            // ซ่อน loader และแสดง filter กลับมาเสมอ
             loader.style.display = 'none';
             filterContainer.style.display = 'flex';
         });
 
-    // ผูก Event Listeners หลัก
     attachEventListeners();
 });
 
 function attachEventListeners() {
-    // --- Event Listeners หลักของหน้า Vendor ---
     $(document).on('click', '#saveVendorButton', handleSaveVendor);
     $(document).on('click', '#saveContactButton', handleSaveContact);
     $(document).on('click', '#saveBoardMemberButton', handleSaveBoardMember);
     $(document).on('click', '#saveFinanceButton', handleSaveFinanceRecord);
-
-    // --- Event Listeners ของ "โครงการอ้างอิง" ที่อยู่ในหน้า Vendor ---
     $(document).on('click', '#addProjectBtn', window.prepareAddProjectModal);
     $(document).on('click', '#saveSubProjectButton', handleSaveSubProject);
     $(document).on('click', '#saveVendorProjectButton', handleSaveVendorProject);
     $(document).on('change', '#projectNameSelect', handleProjectSelectionChange);
     
-    // --- Listeners สำหรับ Filter ---
     $('#searchInput').on('input', () => { 
         clearTimeout(debounceTimer); 
         debounceTimer = setTimeout(() => { searchTerm = $('#searchInput').val(); currentPage = 1; fetchAndRenderVendors(); }, 500); 
@@ -78,27 +71,32 @@ function attachEventListeners() {
     });
 }
 
+// [แก้ไข] เปลี่ยนชื่อตัวแปรและฟังก์ชันให้ชัดเจน
 function loadInitialDataForModal() {
     const packagesPromise = serverCall('getAllPackagesForSelection').then(p => { availablePackages = p; populatePackageFilter(); });
-    const statusesPromise = serverCall('getAllVendorStatuses').then(s => { availableStatuses = s; populateStatusFilter(); });
+    // [แก้ไข] เปลี่ยนชื่อตัวแปรเป็น availableVendorStatuses
+    const vendorStatusesPromise = serverCall('getAllVendorStatuses').then(s => { availableVendorStatuses = s; populateStatusFilter(); });
     const typesPromise = serverCall('getAllProjectTypes').then(t => availableProjectTypes = t);
     const ownersPromise = serverCall('getAllProjectOwners').then(o => availableProjectOwners = o);
     const companyTypesPromise = serverCall('getAllCompanyTypes').then(c => availableCompanyTypes = c);
     const projectsPromise = serverCall('getAllProjectsForSelection').then(p => availableProjects = p);
+    const provincesPromise = serverCall('getProvinces').then(p => availableProvinces = p);
+    const projectStatusesPromise = serverCall('getAllProjectStatuses').then(ps => availableProjectStatuses = ps);
 
-    // รอให้การดึงข้อมูลทั้งหมดเสร็จสิ้น
     return Promise.all([
         packagesPromise,
-        statusesPromise,
+        vendorStatusesPromise, // [แก้ไข]
         typesPromise,
         ownersPromise,
         companyTypesPromise,
-        projectsPromise
+        projectsPromise,
+        provincesPromise,
+        projectStatusesPromise
     ]);
 }
 
 // ==========================================================
-// [NEW] เพิ่ม Helper Functions ที่จำเป็นกลับเข้ามา
+// Helper Functions
 // ==========================================================
 function populateSelect(selectId, data, valueField, textField, placeholder) {
     const select = document.getElementById(selectId);
@@ -110,5 +108,6 @@ function handleServerError(error) {
     console.error('Server Error:', error);
     showToast('เกิดข้อผิดพลาด: ' + error.message, false);
 }
+
 
 </script>

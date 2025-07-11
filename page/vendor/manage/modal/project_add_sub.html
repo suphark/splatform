@@ -2,44 +2,32 @@
 
 
 <div class="modal fade" id="projectAddSubModal" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="projectAddSubModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="projectAddSubModalLabel"><i class="fas fa-plus-circle"></i> เพิ่มโครงการใหม่ในระบบ</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+                    <span aria-hidden="true">×</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form id="subProjectForm">
+                <form id="pasProjectForm">
                     <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label for="sub_projectNameThai">ชื่อโครงการ (ไทย) <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="sub_projectNameThai" required>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label for="sub_projectNameEnglish">ชื่อโครงการ (อังกฤษ)</label>
-                            <input type="text" class="form-control" id="sub_projectNameEnglish">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="sub_projectTypeId">ประเภทโครงการ</label>
-                        <select class="form-control" id="sub_projectTypeId"></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="sub_projectOwnerId">เจ้าของโครงการ</label>
-                        <select class="form-control" id="sub_projectOwnerId"></select>
+                        <div class="col-md-6 form-group"><label>ชื่อ (ไทย)*</label><input type="text" id="pas_nameThai" class="form-control" required></div>
+                        <div class="col-md-6 form-group"><label>ชื่อ (อังกฤษ)</label><input type="text" id="pas_nameEnglish" class="form-control"></div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label for="sub_projectYear">ปีโครงการ</label>
-                            <input type="number" class="form-control" id="sub_projectYear" placeholder="เช่น 2025">
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label for="sub_province">จังหวัด</label>
-                            <input type="text" class="form-control" id="sub_province">
-                        </div>
+                        <div class="col-md-4 form-group"><label>ชื่อเล่น</label><input type="text" id="pas_nickname" class="form-control"></div>
+                        <div class="col-md-4 form-group"><label>จังหวัด</label><select id="pas_province" class="form-control"></select></div>
+                        <div class="col-md-4 form-group"><label>สถานะ</label><select id="pas_status" class="form-control"></select></div>
                     </div>
+                    <div class="form-group"><label>ประเภทโครงการ*</label><select id="pas_projectTypeId" class="form-control" multiple required></select></div>
+                    <div class="form-group"><label>เจ้าของโครงการ</label><select id="pas_projectOwnerId" class="form-control"></select></div>
+                    <div class="row">
+                        <div class="col-md-9 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="pas_mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
+                        <div class="col-md-3 form-group"><label>ปี (ค.ศ.)</label><input type="number" id="pas_projectYear" class="form-control"></div>
+                    </div>
+                    <div class="form-group"><label>หมายเหตุ (Remark)</label><textarea id="pas_remark" class="form-control" rows="3"></textarea></div>
                 </form>
             </div>
             <div class="modal-footer">

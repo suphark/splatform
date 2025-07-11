@@ -1,26 +1,46 @@
-<!-- file: page/vendor/manage/script/project_add_sub.html -->
+<!-- file: page/vendor/manage/script/project_add_sub.js.html -->
+
 
 
 <script>
 
 
-// [NEW] ฟังก์ชันสำหรับเตรียมและเปิด Sub-Modal
 window.prepareSubProjectModal = function() {
-    // ดึงข้อความที่ผู้ใช้พิมพ์ค้นหาล่าสุดมาใส่ในฟอร์มให้เลย
+    // [แก้ไข] ใช้ ID ฟอร์มใหม่
+    $('#pasProjectForm').trigger('reset');
     const searchTerm = $('.select2-search__field').val() || '';
-    $('#sub_projectNameThai').val(searchTerm);
+    $('#pas_nameThai').val(searchTerm);
     $('#projectNameSelect').select2('close');
 
-    // สร้าง Dropdown ใน Sub-Modal
-    populateSelect('sub_projectTypeId', availableProjectTypes, 'Id', 'Name', '-- เลือกประเภท --');
-    populateSelect('sub_projectOwnerId', availableProjectOwners, 'Id', 'NameThai', '-- เลือกเจ้าของ --');
+    // [แก้ไข] ใช้ ID ใหม่
+    $('#pas_projectTypeId, #pas_projectOwnerId, #pas_province, #pas_status').each(function() {
+        if ($(this).data('select2')) {
+            $(this).select2('destroy');
+        }
+    });
 
+    // [แก้ไข] ใช้ ID ใหม่
+    populateSelect('pas_projectTypeId', availableProjectTypes, 'Id', 'Name');
+    populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'NameThai', '-- เลือกเจ้าของ --');
+    populateSelect('pas_province', availableProvinces, 'Name', 'Name', '-- เลือกจังหวัด --');
+    populateSelect('pas_status', availableProjectStatuses, 'Id', 'Name', '-- เลือกสถานะ --'); 
+
+    const select2Options = {
+        theme: 'bootstrap4',
+        dropdownParent: $('#projectAddSubModal')
+    };
+    // [แก้ไข] ใช้ ID ใหม่
+    $('#pas_projectOwnerId').select2(select2Options);
+    $('#pas_province').select2(select2Options);
+    $('#pas_status').select2(select2Options);
+    $('#pas_projectTypeId').select2({ ...select2Options, multiple: true, placeholder: 'เลือกประเภทโครงการ' });
+    
     $('#projectAddSubModal').modal('show');
 };
 
-// [NEW] ฟังก์ชันสำหรับบันทึกข้อมูลจาก Sub-Modal
 async function handleSaveSubProject() {
-    const form = document.getElementById('subProjectForm');
+    // [แก้ไข] ใช้ ID ฟอร์มใหม่
+    const form = document.getElementById('pasProjectForm');
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
@@ -30,13 +50,18 @@ async function handleSaveSubProject() {
     setLoading(saveButton, true);
 
     try {
+        // [แก้ไข] ดึงข้อมูลจาก ID ใหม่ 'pas_' ทั้งหมด
         const formData = {
-            NameThai: $('#sub_projectNameThai').val(),
-            NameEnglish: $('#sub_projectNameEnglish').val(),
-            ProjectTypeId: $('#sub_projectTypeId').val(),
-            ProjectOwnerId: $('#sub_projectOwnerId').val(),
-            ProjectYear: $('#sub_projectYear').val(),
-            Province: $('#sub_province').val(),
+            NameThai: $('#pas_nameThai').val(),
+            NameEnglish: $('#pas_nameEnglish').val(),
+            Nickname: $('#pas_nickname').val(),
+            Province: $('#pas_province').val(),
+            StatusId: $('#pas_status').val(),
+            ProjectTypeId: $('#pas_projectTypeId').val(),
+            ProjectOwnerId: $('#pas_projectOwnerId').val(),
+            MapUrl: $('#pas_mapUrl').val(),
+            ProjectYear: $('#pas_projectYear').val(),
+            Remark: $('#pas_remark').val()
         };
 
         const response = await serverCall('processAddNewProjectFromSubModal', formData);
@@ -44,18 +69,11 @@ async function handleSaveSubProject() {
         if (response.success) {
             showToast('เพิ่มโครงการใหม่สำเร็จ!', true);
             
-            // อัปเดตข้อมูลโครงการทั้งหมดในหน้าหลัก
             availableProjects = response.data.allProjects;
-            
-            // สร้าง Dropdown ของโครงการใน Modal เดิมขึ้นมาใหม่ด้วยข้อมูลล่าสุด
             populateSelect('projectNameSelect', availableProjects, 'Id', 'DisplayName', '-- ค้นหาและเลือกโครงการ --');
-            
-            // เลือกโครงการที่เพิ่งสร้างใหม่ให้เลย
             $('#projectNameSelect').val(response.data.newProjectId).trigger('change');
             
-            // ปิด Sub-Modal
             $('#projectAddSubModal').modal('hide');
-            form.reset();
         } else {
             showToast(response.message, false);
         }
