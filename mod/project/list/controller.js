@@ -51,7 +51,7 @@ function processAddOrEditProject(formData) {
     }
 }
 
-function processDeleteProject(projectId) {
+function processDeleteProject_fromList(projectId) {
     try {
         deleteProjectById(projectId);
         writeAuditLog('Project: Delete', `ID: ${projectId}`);

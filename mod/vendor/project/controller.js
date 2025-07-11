@@ -129,8 +129,8 @@ function processAddOrEditVendorProject(formData) {
     return processGenericCrudAction('vendorProject', action, formData);
 }
 
-function processDeleteProject(projectId, vendorId) {
-    return processGenericCrudAction('vendorProject', 'delete', { id: projectId, parentId: vendorId });
+function processDeleteVendorProjectReference(projectRefId, vendorId) { // <-- เปลี่ยนชื่อฟังก์ชันและ parameter
+    return processGenericCrudAction('vendorProject', 'delete', { id: projectRefId, parentId: vendorId });
 }
 
 /**

@@ -164,7 +164,7 @@ window.handleDeleteProject = function (projectId, vendorId) {
     Swal.fire({
         title: 'ยืนยันการลบ', text: "คุณต้องการลบโครงการอ้างอิงนี้ใช่หรือไม่?", icon: 'warning',
         showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย', cancelButtonText: 'ยกเลิก', showLoaderOnConfirm: true,
-        preConfirm: () => serverCall('processDeleteProject', projectId, vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)),
+        preConfirm: () => serverCall('processDeleteVendorProjectReference', projectId, vendorId).catch(error => Swal.showValidationMessage(`เกิดข้อผิดพลาด: ${error.message}`)),
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
         if (result.isConfirmed && result.value.success) {
