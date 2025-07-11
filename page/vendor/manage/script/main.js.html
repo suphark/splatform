@@ -49,6 +49,7 @@ function attachEventListeners() {
 
     // --- Event Listeners ของ "โครงการอ้างอิง" ที่อยู่ในหน้า Vendor ---
     $(document).on('click', '#addProjectBtn', window.prepareAddProjectModal);
+    $(document).on('click', '#saveSubProjectButton', handleSaveSubProject);
     $(document).on('click', '#saveVendorProjectButton', handleSaveVendorProject);
     $(document).on('change', '#projectNameSelect', handleProjectSelectionChange);
     

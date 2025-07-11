@@ -132,3 +132,46 @@ function processAddOrEditVendorProject(formData) {
 function processDeleteProject(projectId, vendorId) {
     return processGenericCrudAction('vendorProject', 'delete', { id: projectId, parentId: vendorId });
 }
+
+/**
+ * [NEW] ฟังก์ชันสำหรับรับข้อมูลจาก Sub-Modal เพื่อสร้างโครงการใหม่
+ * และส่งข้อมูลโครงการทั้งหมดที่อัปเดตแล้วกลับไป
+ */
+function processAddNewProjectFromSubModal(formData) {
+    try {
+        // ตรวจสอบข้อมูลเบื้องต้น
+        if (!formData || !formData.NameThai) {
+            throw new Error("กรุณาระบุชื่อโครงการ (ไทย)");
+        }
+
+        // ใช้ฟังก์ชัน processAddOrEditProject ที่มีอยู่แล้วเพื่อเพิ่มข้อมูล
+        // เราต้องสร้าง payload ให้ตรงกับที่ฟังก์ชันนั้นต้องการ
+        const payload = {
+            Id: '', // ID ว่างคือการเพิ่มใหม่
+            ...formData 
+        };
+        const result = processAddOrEditProject(payload);
+
+        if (!result.success) {
+            // หากการบันทึกหลักล้มเหลว ให้ส่ง error กลับไป
+            return result;
+        }
+        
+        // หากบันทึกสำเร็จ
+        const newProjectId = result.data.Id; // ดึง ID ของโครงการที่สร้างใหม่
+        const allProjects = getAllProjectsForSelection(); // ดึงรายชื่อโครงการทั้งหมดที่อัปเดตแล้ว
+
+        return {
+            success: true,
+            message: "เพิ่มโครงการใหม่สำเร็จ!",
+            data: {
+                newProjectId: newProjectId,
+                allProjects: allProjects
+            }
+        };
+
+    } catch (e) {
+        Logger.log(`Error in processAddNewProjectFromSubModal: ${e.message}`);
+        return { success: false, message: e.message };
+    }
+}

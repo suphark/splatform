@@ -1,0 +1,70 @@
+<!-- file: page/vendor/manage/script/project_add_sub.html -->
+
+
+<script>
+
+
+// [NEW] ฟังก์ชันสำหรับเตรียมและเปิด Sub-Modal
+window.prepareSubProjectModal = function() {
+    // ดึงข้อความที่ผู้ใช้พิมพ์ค้นหาล่าสุดมาใส่ในฟอร์มให้เลย
+    const searchTerm = $('.select2-search__field').val() || '';
+    $('#sub_projectNameThai').val(searchTerm);
+    $('#projectNameSelect').select2('close');
+
+    // สร้าง Dropdown ใน Sub-Modal
+    populateSelect('sub_projectTypeId', availableProjectTypes, 'Id', 'Name', '-- เลือกประเภท --');
+    populateSelect('sub_projectOwnerId', availableProjectOwners, 'Id', 'NameThai', '-- เลือกเจ้าของ --');
+
+    $('#projectAddSubModal').modal('show');
+};
+
+// [NEW] ฟังก์ชันสำหรับบันทึกข้อมูลจาก Sub-Modal
+async function handleSaveSubProject() {
+    const form = document.getElementById('subProjectForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const saveButton = document.getElementById('saveSubProjectButton');
+    setLoading(saveButton, true);
+
+    try {
+        const formData = {
+            NameThai: $('#sub_projectNameThai').val(),
+            NameEnglish: $('#sub_projectNameEnglish').val(),
+            ProjectTypeId: $('#sub_projectTypeId').val(),
+            ProjectOwnerId: $('#sub_projectOwnerId').val(),
+            ProjectYear: $('#sub_projectYear').val(),
+            Province: $('#sub_province').val(),
+        };
+
+        const response = await serverCall('processAddNewProjectFromSubModal', formData);
+
+        if (response.success) {
+            showToast('เพิ่มโครงการใหม่สำเร็จ!', true);
+            
+            // อัปเดตข้อมูลโครงการทั้งหมดในหน้าหลัก
+            availableProjects = response.data.allProjects;
+            
+            // สร้าง Dropdown ของโครงการใน Modal เดิมขึ้นมาใหม่ด้วยข้อมูลล่าสุด
+            populateSelect('projectNameSelect', availableProjects, 'Id', 'DisplayName', '-- ค้นหาและเลือกโครงการ --');
+            
+            // เลือกโครงการที่เพิ่งสร้างใหม่ให้เลย
+            $('#projectNameSelect').val(response.data.newProjectId).trigger('change');
+            
+            // ปิด Sub-Modal
+            $('#projectAddSubModal').modal('hide');
+            form.reset();
+        } else {
+            showToast(response.message, false);
+        }
+    } catch (err) {
+        handleServerError(err);
+    } finally {
+        setLoading(saveButton, false);
+    }
+}
+
+
+</script>
