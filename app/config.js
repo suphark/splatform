@@ -29,6 +29,7 @@ const SHEET_DEFINITIONS = [
   { name: "Projects", db: "main" },
   { name: "Provinces", db: "main" },
   { name: "ProjectStatuses", db: "main" },
+  { name: "PostQForms", db: "main" },
 ];
 
 // 1.2 การตั้งค่า ID ของบริการต่างๆ

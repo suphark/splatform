@@ -15,6 +15,7 @@ function getPaginatedVendors(options = {}) {
         const allBoardMembers = getAllBoardMembers();
         const allStaffs = getAllStaffs();
         const allPqForms = APP_CONFIG.sheetsData.pQForms.getTable().sortBy('EvaluationDate', 'desc').getRows();
+        const allPostQForms = APP_CONFIG.sheetsData.postQForms.getTable().sortBy('CreateDate', 'desc').getRows();
 
         // 2. สร้าง Map เพื่อการ Join และค้นหาข้อมูลที่รวดเร็ว
         const latestGradeMap = new Map();
@@ -23,6 +24,15 @@ function getPaginatedVendors(options = {}) {
                 latestGradeMap.set(form.VendorId, form.Grade);
             }
         });
+
+        // [NEW] สร้าง Map สำหรับ PostQ Score (เอาเฉพาะรายการล่าสุด)
+        const postQScoreMap = new Map();
+        allPostQForms.forEach(form => {
+            if (form.VendorId && !postQScoreMap.has(form.VendorId)) {
+                postQScoreMap.set(form.VendorId, form.TotalScore);
+            }
+        });
+
         const statusMap = new Map(allStatuses.map(s => [s.Id, s]));
         const packageMap = new Map(allPackages.map(p => [p.Id, p]));
         const staffSurnameMap = new Map();
@@ -38,19 +48,18 @@ function getPaginatedVendors(options = {}) {
 
         // 3. Join ข้อมูลทั้งหมดเข้าด้วยกันก่อน
         const joinedVendors = allVendors.map(vendor => {
-            const statusInfo = statusMap.get(vendor.StatusId) || { name: 'N/A', color: 'badge-dark' };
+            const statusInfo = statusMap.get(vendor.StatusId) || { Name: 'N/A', BadgeColor: 'badge-secondary' };
             const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',').map(id => id.trim()) : [];
             const packageDisplayNames = packageIds.map(id => (packageMap.get(id) ?.NameThai || id));
-            // ... (โค้ดส่วน relationship เหมือนเดิม) ...
             
             return {
                 ...vendor,
-                PackageIdArray: packageIds, // [NEW] เพิ่ม Array ของ Package ID เพื่อใช้กรอง
+                PackageIdArray: packageIds,
                 StatusName: statusInfo.Name,
                 StatusColor: statusInfo.BadgeColor || 'badge-light',
                 PackageDisplayNames: packageDisplayNames,
-                //...
                 LatestGrade: latestGradeMap.get(vendor.Id) || '-',
+                PostQScore: postQScoreMap.get(vendor.Id) || '-'
             };
         });
 

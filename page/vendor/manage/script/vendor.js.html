@@ -19,14 +19,20 @@ function fetchAndRenderVendors() {
 
 function renderVendorTable(vendors) {
     const tableBody = document.getElementById('vendor-table-body');
+
     tableBody.innerHTML = '';
+
     if (!vendors || vendors.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">ไม่พบข้อมูล Vendor</td></tr>`;
         return;
     }
+
     vendors.forEach(vendor => {
         const row = tableBody.insertRow();
         row.dataset.item = JSON.stringify(vendor);
+        const remarkCell = vendor.Remark 
+            ? `<td class="text-center"><span data-toggle="tooltip" title="${escapeHtml(vendor.Remark)}"><i class="fas fa-comment-alt text-info"></i></span></td>` 
+            : '<td></td>';        
         const statusBadge = `<span class="badge ${vendor.StatusColor || '#6c757d'}">${vendor.StatusName || 'N/A'}</span>`;
         const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
         const grade = vendor.LatestGrade || '-';
@@ -35,13 +41,14 @@ function renderVendorTable(vendors) {
         const gradeBadge = `<span class="badge" style="font-size: 0.9em; background-color:${gradeColor}; color:white;">${grade}</span>`;
         const relationshipCell = vendor.RelationshipInfo ? `<td><span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}"><i class="fas fa-exclamation-triangle"></i></span></td>` : '<td></td>';
         row.innerHTML = `
+            ${remarkCell}
             ${relationshipCell}
             <td>${escapeHtml(vendor.NameThai)}</td>
             <td>${escapeHtml(vendor.NameEnglish) || '-'}</td>
             <td>${packageBadges || '-'}</td>
             <td>${statusBadge}</td>
             <td class="text-center">${gradeBadge}</td>
-            <td>${escapeHtml(vendor.Remark) || '-'}</td>
+            <td class="text-center">${vendor.PostQScore || '-'}</td>
             <td>
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-sm btn-warning" onclick="prepareEditVendorModal('${vendor.Id}')" title="แก้ไข"><i class="fas fa-edit"></i></button>
@@ -51,6 +58,7 @@ function renderVendorTable(vendors) {
                 </div>
             </td>`;
     });
+    // สั่งให้ Tooltip ทำงานอีกครั้งสำหรับไอคอนใหม่
     $('[data-toggle="tooltip"]').tooltip();
 }
 
