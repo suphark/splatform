@@ -295,7 +295,8 @@
                 infoIcons += `<span data-toggle="tooltip" title="${escapeHtml(item.Remark)}"><i class="fas fa-comment-alt text-info"></i></span>`;
             }
             
-            const statusBadge = `<span class="badge ${item.StatusColor}">${escapeHtml(item.StatusName)}</span>`;
+            // [REVISED] สร้าง Badge โดยใช้คลาสสีแทน inline style
+            const statusBadge = `<span class="badge ${escapeHtml(item.StatusBadgeColor) || 'badge-secondary'}">${escapeHtml(item.StatusName)}</span>`;
 
             row.innerHTML = `
                 <td>${statusBadge}</td>

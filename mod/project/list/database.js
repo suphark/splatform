@@ -45,8 +45,8 @@ function getPaginatedProjects(options = {}) {
                 ...p,
                 ProjectTypeName: typeNames,
                 ProjectOwnerName: ownerMap.get(p.ProjectOwnerId) || '-',
-                StatusName: statusInfo ? statusInfo.Name : p.StatusId, // [FIXED] เพิ่ม StatusName
-                StatusColor: statusInfo ? statusInfo.Color : '#6c757d' // [NEW] เพิ่ม StatusColor
+                StatusName: statusInfo ? statusInfo.Name : p.StatusId,
+                StatusBadgeColor: statusInfo ? statusInfo.BadgeColor : 'badge-secondary' 
             };
         });
 
