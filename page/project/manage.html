@@ -75,15 +75,12 @@
                         <div class="col-md-4 form-group"><label>สถานะ</label><select id="projManage_status" class="form-control"></select></div>
                     </div>
                     <div class="form-group"><label>ประเภทโครงการ*</label><select id="projManage_projectTypeId" class="form-control" multiple required></select></div>
+                    
                     <div class="form-group">
                         <label>เจ้าของโครงการ</label>
-                        <div class="input-group">
-                            <select id="projManage_projectOwnerId" class="form-control"></select>
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-success" type="button" onclick="projManage_prepareAddOwnerSubModal()" title="เพิ่มเจ้าของโครงการใหม่"><i class="fas fa-plus"></i></button>
-                            </div>
-                        </div>
+                        <select id="projManage_projectOwnerId" class="form-control"></select>
                     </div>
+                    
                     <div class="row">
                         <div class="col-md-9 form-group"><label>ลิงก์ Google Maps</label><input type="url" id="projManage_mapUrl" class="form-control" placeholder="https://www.google.com/maps/..."></div>
                         <div class="col-md-3 form-group"><label>ปี (ค.ศ.)</label><input type="number" id="projManage_projectYear" class="form-control"></div>
@@ -131,7 +128,8 @@
 </div>
 
 <script>
-    let projManage_currentPage = 1, projManage_debounceTimer, projManage_masterData = {
+    let projManage_currentPage = 1, projManage_debounceTimer;
+    let projManage_masterData = {
         projectTypes: [],
         projectOwners: [],
         formattedProjectOwners: [],
@@ -141,17 +139,11 @@
     };
 
     /**
-     * [NEW] เพิ่มฟังก์ชันนี้เข้าไป
      * ฟังก์ชันสำหรับสร้างตัวเลือกใน Dropdown
-     * @param {string} selectId - ID ของ <select> element
-     * @param {Array} data - ข้อมูล (Array of Objects) ที่จะใช้สร้างตัวเลือก
-     * @param {string} valueField - ชื่อ property สำหรับค่า value ของ <option>
-     * @param {string} textField - ชื่อ property สำหรับข้อความที่แสดงของ <option>
-     * @param {string} placeholder - ข้อความเริ่มต้น (เช่น "กรุณาเลือก")
      */
     function populateSelect(selectId, data, valueField, textField, placeholder) {
         const select = document.getElementById(selectId);
-        if (!select) return; // ป้องกัน error หากไม่พบ element
+        if (!select) return;
         select.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
         data.forEach(item => {
             select.add(new Option(item[textField], item[valueField]));
@@ -161,11 +153,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         const loader = document.getElementById('projManage_filterLoader');
         const filterContainer = document.getElementById('projManage_filterContainer');
-
         loader.style.display = 'block';
         filterContainer.style.display = 'none';
 
-        // [REVISED] เรียกใช้ initMasterData และ fetchAndRenderData ตามลำดับ
         projManage_initMasterData()
             .then(() => projManage_fetchAndRenderData())
             .finally(() => {
@@ -173,48 +163,36 @@
                 filterContainer.style.display = 'flex';
             });
         
-        // Event Listeners
+        // --- Event Listeners ---
         $('#projManage_form').on('submit', projManage_handleFormSubmit);
         $('#projManage_ownerSub_saveBtn').on('click', projManage_handleSaveNewOwner);
-
         $('#projManage_searchInput').on('input', () => {
             clearTimeout(projManage_debounceTimer);
             projManage_debounceTimer = setTimeout(() => { projManage_currentPage = 1; projManage_fetchAndRenderData(); }, 500);
         });
-        
         $('#projManage_typeFilter, #projManage_ownerFilter, #projManage_provinceFilter, #projManage_statusFilter').on('change', () => {
             projManage_currentPage = 1;
             projManage_fetchAndRenderData();
         });
     });
 
-    // [REVISED] ปรับปรุงฟังก์ชัน initMasterData ให้ดึงข้อมูลทั้งหมดที่จำเป็นมาเก็บไว้ก่อน
     async function projManage_initMasterData() {
         try {
-            // ดึงข้อมูลหลักจาก server
             const response = await serverCall('getProjectMasterData_callable');
             if (!response.success) throw new Error(response.message);
-            
-            // เก็บข้อมูลดิบไว้ในตัวแปร
             projManage_masterData.projectTypes = response.projectTypes;
-            projManage_masterData.projectOwners = response.projectOwners; // ข้อมูลดิบ (NameThai)
+            projManage_masterData.projectOwners = response.projectOwners;
             projManage_masterData.provinces = response.provinces;
             projManage_masterData.statuses = response.statuses;
-
-            // ดึงข้อมูลเพิ่มเติม
             projManage_masterData.companyTypes = await serverCall('getAllCompanyTypes');
-            // ดึงข้อมูลเจ้าของโครงการที่จัดรูปแบบแล้วสำหรับ Modal
             projManage_masterData.formattedProjectOwners = await serverCall('getAllProjectOwnersForSelection'); 
 
-            // สร้าง Dropdown สำหรับ Filter ด้านบน
+            // สร้าง Dropdown สำหรับ Filter
             populateSelect('projManage_typeFilter', projManage_masterData.projectTypes, 'Id', 'Name', 'ทุกประเภท');
             populateSelect('projManage_statusFilter', projManage_masterData.statuses, 'Id', 'Name', 'ทุกสถานะ');
             populateSelect('projManage_ownerFilter', projManage_masterData.projectOwners, 'Id', 'NameThai', 'ทุกเจ้าของ');
             populateSelect('projManage_provinceFilter', projManage_masterData.provinces, 'Name', 'Name', 'ทุกจังหวัด');
-
-            // ทำให้ Filter เป็น Select2
             $('#projManage_typeFilter, #projManage_ownerFilter, #projManage_provinceFilter, #projManage_statusFilter').select2({ theme: 'bootstrap4', width: '100%' });
-
         } catch (err) { handleServerError(err); }
     }
     
@@ -248,7 +226,9 @@
         if(selectedValue) { $('#projManage_province').val(selectedValue).trigger('change'); }
     }
     
+    // ฟังก์ชันนี้มีอยู่แล้ว และทำงานกับ sub-modal ที่ถูกต้อง
     window.projManage_prepareAddOwnerSubModal = function() {
+        $('#projManage_projectOwnerId').select2('close');
         $('#projManage_ownerSubForm')[0].reset();
         const subCompanyTypeSelect = document.getElementById('projManage_ownerSub_companyTypeId');
         if (projManage_masterData && projManage_masterData.companyTypes) {
@@ -262,47 +242,52 @@
             $('#projManage_modal').css('z-index', 1050); $(this).off('hidden.bs.modal');
         });
     }
-
   // [REVISED] ปรับปรุงฟังก์ชันเปิด Modal แก้ไขข้อมูล
-    window.projManage_prepareEditModal = function(button) {
+window.projManage_prepareEditModal = function(button) {
         const item = JSON.parse(button.closest('tr').dataset.item);
         $('#projManage_form')[0].reset();
         $('#projManage_modalLabel').text('แก้ไขโครงการ: ' + item.NameThai);
-        
-        // ทำลาย Select2 instance เก่า
         $('#projManage_projectTypeId, #projManage_projectOwnerId, #projManage_province, #projManage_status').each(function() {
             if ($(this).data('select2')) { $(this).select2('destroy'); }
         });
-        
-        // สร้าง Dropdowns
         populateSelect('projManage_projectTypeId', projManage_masterData.projectTypes, 'Id', 'Name');
         populateSelect('projManage_projectOwnerId', projManage_masterData.formattedProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของโครงการ --');
         populateSelect('projManage_province', projManage_masterData.provinces, 'Name', 'Name', '-- เลือกจังหวัด --');
         populateSelect('projManage_status', projManage_masterData.statuses, 'Id', 'Name', '-- เลือกสถานะ --');
 
-        // ทำให้เป็น Select2
         const select2ModalOptions = { theme: 'bootstrap4', width: '100%', dropdownParent: $('#projManage_modal') };
-        $('#projManage_projectOwnerId').select2(select2ModalOptions);
         $('#projManage_province').select2(select2ModalOptions);
         $('#projManage_status').select2(select2ModalOptions);
         $('#projManage_projectTypeId').select2({ ...select2ModalOptions, multiple: true, placeholder: 'เลือกประเภทโครงการ' });
-        
-        // กรอกข้อมูลเดิมลงฟอร์ม
+
+        // [REVISED] เพิ่ม Logic ปุ่ม "+" ให้กับ Dropdown เจ้าของโครงการ (ในโหมดแก้ไข)
+        $('#projManage_projectOwnerId').select2({
+            ...select2ModalOptions,
+            language: {
+                noResults: function() {
+                    const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="projManage_prepareAddOwnerSubModal()">` +
+                                    `<i class="fas fa-plus mr-1"></i> เพิ่มเจ้าของโครงการใหม่</button>`;
+                    return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+                }
+            },
+            escapeMarkup: function (markup) { return markup; }
+        });
+
         $('#projManage_projectId').val(item.Id);
         $('#projManage_nameThai').val(item.NameThai);
-        // ... (กรอกข้อมูล field อื่นๆ) ...
+        $('#projManage_nameEnglish').val(item.NameEnglish || '');
+        $('#projManage_nickname').val(item.Nickname || '');
+        $('#projManage_projectYear').val(item.ProjectYear || '');
+        $('#projManage_mapUrl').val(item.MapUrl || '');
         $('#projManage_remark').val(item.Remark || '');
-        
-        // ตั้งค่า Dropdown ให้เป็นค่าเดิม
         $('#projManage_projectTypeId').val(item.ProjectTypeId ? String(item.ProjectTypeId).split(',') : null).trigger('change');
         $('#projManage_projectOwnerId').val(item.ProjectOwnerId).trigger('change');
         $('#projManage_province').val(item.Province).trigger('change');
         $('#projManage_status').val(item.StatusId).trigger('change');
-
         $('#projManage_modal').modal('show');
     }
 
-    // [REVISED] ปรับปรุงฟังก์ชันบันทึกข้อมูลเจ้าของโครงการใหม่จาก Sub-Modal
+    // [REVISED] ปรับปรุงฟังก์ชันบันทึกเจ้าของใหม่ ให้ re-initialize select2 และเลือกรายการใหม่
     async function projManage_handleSaveNewOwner() {
         const saveButton = document.getElementById('projManage_ownerSub_saveBtn');
         setLoading(saveButton, true);
@@ -317,16 +302,25 @@
                 showToast(response.message, true);
                 $('#projManage_ownerSubModal').modal('hide');
                 
-                // โหลดข้อมูลเจ้าของโครงการใหม่
+                // อัปเดตข้อมูลและ Dropdown ใน Modal หลัก
                 const newOwnersList = await serverCall('getAllProjectOwnersForSelection');
                 projManage_masterData.formattedProjectOwners = newOwnersList;
-                
-                // ทำลายและสร้าง Dropdown เจ้าของโครงการใน Modal หลักใหม่
                 if ($('#projManage_projectOwnerId').data('select2')) $('#projManage_projectOwnerId').select2('destroy');
                 populateSelect('projManage_projectOwnerId', newOwnersList, 'Id', 'DisplayName', '-- เลือก --');
-                $('#projManage_projectOwnerId').select2({ theme: 'bootstrap4', width: '100%', dropdownParent: $('#projManage_modal') });
                 
-                // เลือกรายการที่เพิ่งเพิ่มใหม่
+                // ทำให้เป็น Select2 ใหม่พร้อมปุ่ม "+"
+                $('#projManage_projectOwnerId').select2({
+                    theme: 'bootstrap4', width: '100%', dropdownParent: $('#projManage_modal'),
+                    language: {
+                        noResults: function() {
+                            const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="projManage_prepareAddOwnerSubModal()"><i class="fas fa-plus mr-1"></i> เพิ่มเจ้าของโครงการใหม่</button>`;
+                            return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+                        }
+                    },
+                    escapeMarkup: function (markup) { return markup; }
+                });
+
+                // เลือกรายการที่เพิ่งเพิ่มให้โดยอัตโนมัติ
                 if (response.data && response.data.Id) {
                     $('#projManage_projectOwnerId').val(response.data.Id).trigger('change');
                 }
@@ -386,31 +380,36 @@
         $('[data-toggle="tooltip"]').tooltip();
     }
 
-    window.projManage_prepareAddModal = function() {
-        // รีเซ็ตฟอร์มและตั้งค่าหัวข้อ
+ window.projManage_prepareAddModal = function() {
         $('#projManage_form')[0].reset();
         $('#projManage_projectId').val('');
         $('#projManage_modalLabel').text('เพิ่มโครงการใหม่');
-        
-        // ทำลาย Select2 instance เก่า (ถ้ามี)
         $('#projManage_projectTypeId, #projManage_projectOwnerId, #projManage_province, #projManage_status').each(function() {
             if ($(this).data('select2')) { $(this).select2('destroy'); }
         });
-
-        // สร้าง Dropdowns ใน Modal จากข้อมูลที่โหลดมาแล้ว
         populateSelect('projManage_projectTypeId', projManage_masterData.projectTypes, 'Id', 'Name');
         populateSelect('projManage_projectOwnerId', projManage_masterData.formattedProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของโครงการ --');
         populateSelect('projManage_province', projManage_masterData.provinces, 'Name', 'Name', '-- เลือกจังหวัด --');
         populateSelect('projManage_status', projManage_masterData.statuses, 'Id', 'Name', '-- เลือกสถานะ --');
         
-        // ทำให้ Dropdowns ใน Modal เป็น Select2
         const select2ModalOptions = { theme: 'bootstrap4', width: '100%', dropdownParent: $('#projManage_modal') };
-        $('#projManage_projectOwnerId').select2(select2ModalOptions);
         $('#projManage_province').select2(select2ModalOptions);
         $('#projManage_status').select2(select2ModalOptions);
         $('#projManage_projectTypeId').select2({ ...select2ModalOptions, multiple: true, placeholder: 'เลือกประเภทโครงการ' });
         
-        // ล้างค่าที่อาจจะค้างอยู่
+        // [REVISED] เพิ่ม Logic ปุ่ม "+" ให้กับ Dropdown เจ้าของโครงการ
+        $('#projManage_projectOwnerId').select2({
+            ...select2ModalOptions,
+            language: {
+                noResults: function() {
+                    const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="projManage_prepareAddOwnerSubModal()">` +
+                                    `<i class="fas fa-plus mr-1"></i> เพิ่มเจ้าของโครงการใหม่</button>`;
+                    return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+                }
+            },
+            escapeMarkup: function (markup) { return markup; }
+        });
+
         $('#projManage_projectTypeId, #projManage_projectOwnerId, #projManage_province, #projManage_status').val(null).trigger('change');
         $('#projManage_modal').modal('show');
     }
