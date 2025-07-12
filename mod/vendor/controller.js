@@ -100,7 +100,11 @@ function getPaginatedVendors(options = {}) {
         if (options.packageId) {
             filteredDataSource = filteredDataSource.filter(v => v.PackageIdArray.includes(options.packageId));
         }
-        // --- [END OF FIX] ---
+
+        // [NEW] เพิ่มการกรองตาม PQ Grade
+        if (options.grade) {
+            filteredDataSource = filteredDataSource.filter(v => v.LatestGrade === options.grade);
+        }
 
         // 5. ส่งข้อมูลที่กรองแล้วไปแบ่งหน้า
         const config = {

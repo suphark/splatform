@@ -8,7 +8,16 @@
 function fetchAndRenderVendors() {
     const tableBody = document.getElementById('vendor-table-body');
     tableBody.innerHTML = `<tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm"></div> กำลังโหลด...</td></tr>`;
-    const options = { page: currentPage, limit: 10, searchTerm: searchTerm, statusId: selectedStatusId, packageId: selectedPackageId, sortColumn: sortState.column, sortDirection: sortState.direction };
+    const options = { 
+        page: currentPage, 
+        limit: 10, 
+        searchTerm: searchTerm, 
+        statusId: selectedStatusId, 
+        packageId: selectedPackageId, 
+        sortColumn: sortState.column, 
+        sortDirection: sortState.direction,
+        grade: selectedGrade
+    };
     serverCall('getPaginatedVendors', options).then(response => {
         if (response.success) {
             renderVendorTable(response.vendors);

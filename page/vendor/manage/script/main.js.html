@@ -9,7 +9,7 @@ const VENDOR_BASE_URL = document.body.dataset.baseUrl;
 // [แก้ไข] เปลี่ยนชื่อตัวแปรให้ชัดเจน และเพิ่ม availableProjectStatuses
 let availablePackages = [], availableVendorStatuses = [], availableProjectTypes = [], availableProjectOwners = [], availableCompanyTypes = [], availableProjects = [], availableProvinces = [], availableProjectStatuses = [];
 let currentPage = 1, totalPages = 1;
-let searchTerm = '', selectedStatusId = '', selectedPackageId = '';
+let searchTerm = '', selectedStatusId = '', selectedPackageId = '', selectedGrade = '';
 let sortState = { column: 'Id', direction: 'desc' };
 let debounceTimer;
 
@@ -51,9 +51,10 @@ function attachEventListeners() {
         clearTimeout(debounceTimer); 
         debounceTimer = setTimeout(() => { searchTerm = $('#searchInput').val(); currentPage = 1; fetchAndRenderVendors(); }, 500); 
     });
-    $('#statusFilter, #packageFilter').on('change', function() {
+    $('#statusFilter, #packageFilter, #gradeFilter').on('change', function() {
         selectedStatusId = $('#statusFilter').val();
         selectedPackageId = $('#packageFilter').val(); 
+        selectedGrade = $('#gradeFilter').val();
         currentPage = 1;
         fetchAndRenderVendors();
     });
