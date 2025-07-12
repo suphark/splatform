@@ -22,11 +22,15 @@ function processAddOrEditProjectOwner(formData) {
         if (isEditMode) {
             updateProjectOwnerById(formData.Id, formData);
             writeAuditLog('Project Owner: Edit', `ID: ${formData.Id}, Name: ${formData.NameThai}`);
-            return { success: true, message: 'แก้ไขข้อมูลเจ้าของโครงการสำเร็จ!' };
+            // [REVISED] ค้นหาข้อมูลที่อัปเดตแล้วส่งกลับไป
+            const updatedOwner = findProjectOwnerById(formData.Id);
+            return { success: true, message: 'แก้ไขข้อมูลเจ้าของโครงการสำเร็จ!', data: updatedOwner };
         } else {
             addNewProjectOwner(formData);
             writeAuditLog('Project Owner: Create', `Name: ${formData.NameThai}`);
-            return { success: true, message: 'เพิ่มข้อมูลเจ้าของโครงการสำเร็จ!' };
+            // [REVISED] ค้นหาข้อมูลล่าสุดที่เพิ่งสร้าง แล้วส่งกลับไป
+            const newOwner = getProjectOwnersTable().sortBy('Id', 'desc').first();
+            return { success: true, message: 'เพิ่มข้อมูลเจ้าของโครงการสำเร็จ!', data: newOwner };
         }
     } catch (e) {
         Logger.log(`Error in processAddOrEditProjectOwner: ${e.message}`);
