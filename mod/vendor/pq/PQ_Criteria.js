@@ -14,17 +14,17 @@ const PQ_CRITERIA = {
                 title: 'ข้อมูลบริษัท (Company Profile)',
                 weight: 0.10,
                 levels: [
-                    { score: 5, text: 'มีช่องทางติดต่ออื่นๆ และ เว็บไซต์บริษัท' },
-                    { score: 3, text: 'มีช่องทางติดต่ออื่นๆ หรือ เว็บไซด์บริษัท' },
-                    { score: 2, text: 'มีเอกสาร Company Profile' },
+                    { score: 5, text: 'มีข้อมูลและช่องทางติดต่อครบทุกด้าน' },
+                    { score: 3, text: 'มีข้อมูลหลัก และมีช่องทางติดต่ออย่างน้อย 1 อย่าง (เว็บไซต์/อื่นๆ)' },
+                    { score: 2, text: 'มีเฉพาะเอกสารสำคัญ และ Company Profile' },
                     { score: 1, text: 'มีเอกสารสำหรับขึ้นทะเบียนครบถ้วน' },
-                    { score: 0, text: 'ไม่มีเลย' }
+                    { score: 0, text: 'ขาดเอกสารสำคัญที่ใช้ในการขึ้นทะเบียน' }
                 ],
                 getScore: (vendor) => {
-                    if (vendor.WebsiteUrl && vendor.SocialUrl) return 5;
-                    if (vendor.WebsiteUrl || vendor.SocialUrl) return 3;
-                    if (vendor.CompanyProfileFolderId) return 2;
-                    if (vendor.CompanyCertFolderId && vendor.VatCertFolderId && vendor.BookBankFolderId) return 1;
+                    if ((vendor.IdCardFolderId || vendor.CompanyCertFolderId) && vendor.BookBankFolderId && vendor.CompanyProfileFolderId && vendor.WebsiteUrl && vendor.SocialUrl) return 5;
+                    if ((vendor.IdCardFolderId || vendor.CompanyCertFolderId) && vendor.BookBankFolderId && vendor.CompanyProfileFolderId && (vendor.WebsiteUrl || vendor.SocialUrl)) return 3;
+                    if ((vendor.IdCardFolderId || vendor.CompanyCertFolderId) && vendor.BookBankFolderId && vendor.CompanyProfileFolderId) return 2;
+                    if ((vendor.IdCardFolderId || vendor.CompanyCertFolderId) && vendor.BookBankFolderId) return 1;
                     return 0;
                 }
             },
