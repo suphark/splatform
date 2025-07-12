@@ -29,17 +29,24 @@ function renderVendorTable(vendors) {
     vendors.forEach(vendor => {
         const row = tableBody.insertRow();
         row.dataset.item = JSON.stringify(vendor);
-        const remarkCell = vendor.Remark ? `<td class="text-center"><span data-toggle="tooltip" title="${escapeHtml(vendor.Remark)}"><i class="fas fa-comment-alt text-info"></i></span></td>` : '<td></td>';
+
+        let infoContent = '';
+        if (vendor.Remark) {
+            infoContent += `<span class="text-primary mr-1" data-toggle="tooltip" data-placement="right" title="หมายเหตุ: ${escapeHtml(vendor.Remark)}"><i class="fas fa-comment-alt"></i></span>`;
+        }
+        if (vendor.RelationshipInfo) {
+            infoContent += `<span class="text-info mr-1" data-toggle="tooltip" data-placement="right" title="ความเชื่อมโยง: ${escapeHtml(vendor.RelationshipInfo)}"><i class="fas fa-users"></i></span>`;
+        }
+        const infoCell = `<td class="text-center">${infoContent}</td>`;
+
         const statusBadge = `<span class="badge ${vendor.StatusColor || '#6c757d'}">${vendor.StatusName || 'N/A'}</span>`;
         const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
         const grade = vendor.LatestGrade || '-';
         const gradeColorMapping = { 'A': '#28a745', 'B': '#17a2b8', 'C': '#ffc107', 'D': '#dc3545' };
         const gradeColor = gradeColorMapping[grade.replace('+', '')] || '#6c757d';
         const gradeBadge = `<span class="badge" style="font-size: 0.9em; background-color:${gradeColor}; color:white;">${grade}</span>`;
-        const relationshipCell = vendor.RelationshipInfo ? `<td><span class="text-warning" data-toggle="tooltip" data-placement="right" title="${escapeHtml(vendor.RelationshipInfo)}"><i class="fas fa-exclamation-triangle"></i></span></td>` : '<td></td>';
         row.innerHTML = `
-            ${remarkCell}
-            ${relationshipCell}
+            ${infoCell}
             <td>${escapeHtml(vendor.NameThai)}</td>
             <td>${escapeHtml(vendor.NameEnglish) || '-'}</td>
             <td>${packageBadges || '-'}</td>

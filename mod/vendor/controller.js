@@ -51,6 +51,19 @@ function getPaginatedVendors(options = {}) {
             const statusInfo = statusMap.get(vendor.StatusId) || { Name: 'N/A', BadgeColor: 'badge-secondary' };
             const packageIds = vendor.PackageId ? String(vendor.PackageId).split(',').map(id => id.trim()) : [];
             const packageDisplayNames = packageIds.map(id => (packageMap.get(id) ?.NameThai || id));
+
+            // --- [START] ส่วนที่เพิ่มเข้ามาเพื่อตรวจสอบความสัมพันธ์ ---
+            const vendorBoardMembers = allBoardMembers.filter(m => m.VendorId === vendor.Id);
+            const relationshipMessages = new Set(); // ใช้ Set เพื่อป้องกันข้อความซ้ำ
+
+            vendorBoardMembers.forEach(member => {
+                const surname = member.Surname ? member.Surname.trim() : '';
+                if (surname && staffSurnameMap.has(surname)) {
+                    const matchingStaffs = staffSurnameMap.get(surname);
+                    relationshipMessages.add(`กรรมการ (${member.Name} ${surname}) มีนามสกุลตรงกับพนักงาน: ${matchingStaffs.join(', ')}`);
+                }
+            });
+            // --- [END] ส่วนที่เพิ่มเข้ามา ---
             
             return {
                 ...vendor,
@@ -59,7 +72,9 @@ function getPaginatedVendors(options = {}) {
                 StatusColor: statusInfo.BadgeColor || 'badge-light',
                 PackageDisplayNames: packageDisplayNames,
                 LatestGrade: latestGradeMap.get(vendor.Id) || '-',
-                PostQScore: postQScoreMap.get(vendor.Id) || '-'
+                PostQScore: postQScoreMap.get(vendor.Id) || '-',
+                // เพิ่ม Field นี้เข้าไปใน Object ที่จะ return
+                RelationshipInfo: Array.from(relationshipMessages).join(' | ') || null
             };
         });
 
