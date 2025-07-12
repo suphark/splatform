@@ -77,8 +77,7 @@ function loadInitialDataForModal() {
     // [แก้ไข] เปลี่ยนชื่อตัวแปรเป็น availableVendorStatuses
     const vendorStatusesPromise = serverCall('getAllVendorStatuses').then(s => { availableVendorStatuses = s; populateStatusFilter(); });
     const typesPromise = serverCall('getAllProjectTypes').then(t => availableProjectTypes = t);
-    const ownersPromise = serverCall('getAllProjectOwners').then(o => availableProjectOwners = o);
-    const companyTypesPromise = serverCall('getAllCompanyTypes').then(c => availableCompanyTypes = c);
+    const ownersPromise = serverCall('getAllProjectOwnersForSelection').then(o => availableProjectOwners = o);    const companyTypesPromise = serverCall('getAllCompanyTypes').then(c => availableCompanyTypes = c);
     const projectsPromise = serverCall('getAllProjectsForSelection').then(p => availableProjects = p);
     const provincesPromise = serverCall('getProvinces').then(p => availableProvinces = p);
     const projectStatusesPromise = serverCall('getAllProjectStatuses').then(ps => availableProjectStatuses = ps);

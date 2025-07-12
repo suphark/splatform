@@ -40,3 +40,26 @@ function getAllCompanyTypes() {
     return [];
   }
 }
+
+/**
+ * [NEW] เพิ่มฟังก์ชันนี้
+ * [SERVER-CALL] ดึงข้อมูลเจ้าของโครงการทั้งหมดสำหรับ Dropdown ในรูปแบบ NameThai | NameEnglish
+ * @returns {Array<Object>}
+ */
+function getAllProjectOwnersForSelection() {
+    try {
+        const owners = APP_CONFIG.sheetsData.projectOwners.getTable().getRows();
+        return owners.map(owner => {
+            const displayName = owner.NameEnglish && owner.NameEnglish.trim() !== ''
+                              ? `${owner.NameThai} | ${owner.NameEnglish}`
+                              : owner.NameThai;
+            return {
+                Id: owner.Id,
+                DisplayName: displayName
+            };
+        });
+    } catch (e) {
+        Logger.log('Error in getAllProjectOwnersForSelection: ' + e.message);
+        return [];
+    }
+}

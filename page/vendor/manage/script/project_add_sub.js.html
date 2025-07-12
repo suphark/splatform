@@ -21,8 +21,7 @@ window.prepareSubProjectModal = function() {
 
     // [แก้ไข] ใช้ ID ใหม่
     populateSelect('pas_projectTypeId', availableProjectTypes, 'Id', 'Name');
-    populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'NameThai', '-- เลือกเจ้าของ --');
-    populateSelect('pas_province', availableProvinces, 'Name', 'Name', '-- เลือกจังหวัด --');
+    populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของ --');    populateSelect('pas_province', availableProvinces, 'Name', 'Name', '-- เลือกจังหวัด --');
     populateSelect('pas_status', availableProjectStatuses, 'Id', 'Name', '-- เลือกสถานะ --'); 
 
     const select2Options = {
