@@ -24,7 +24,7 @@ function processAddOrEditProject(formData) {
     try {
         const isEditMode = !!formData.Id;
         if (!formData.NameThai) return { success: false, message: 'กรุณากรอกชื่อโครงการ' };
-        if (formData.MapUrl && !formData.MapUrl.includes('maps.google.com')) {
+        if (formData.MapUrl && !formData.MapUrl.includes('maps')) {
             return { success: false, message: 'ลิงก์แผนที่ไม่ถูกต้อง (ต้องเป็นลิงก์จาก Google Maps)' };
         }
         if (Array.isArray(formData.ProjectTypeId)) {

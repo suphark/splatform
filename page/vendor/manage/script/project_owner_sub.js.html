@@ -1,0 +1,99 @@
+<!-- file: page/vendor/manage/script/proejct_owner_sub.js.html -->
+
+
+<script>
+    /**
+     * ฟังก์ชันสำหรับเปิดหน้าต่างย่อย (Sub-Modal) เพื่อเพิ่มเจ้าของโครงการใหม่
+     */
+    window.vdr_prepareAddOwnerSubModal = function() {
+        // ปิด Dropdown ที่กำลังค้นหาอยู่
+        $('#pas_projectOwnerId').select2('close');
+
+        // รีเซ็ตฟอร์มใน Sub-Modal
+        $('#projectOwnerSubForm')[0].reset();
+        
+        // สร้าง Dropdown "ประเภทบริษัท" ใน Sub-Modal
+        populateSelect('sub_companyTypeId', availableCompanyTypes, 'Id', 'Name', '-- เลือกประเภท --');
+        
+        // จัดการลำดับการแสดงผลของ Modal (ให้ Sub-Modal อยู่ด้านหน้า)
+        $('#projectAddSubModal').css('z-index', 1040); 
+        $('#projectOwnerSubModal').modal('show');
+        
+        // เมื่อ Sub-Modal ถูกปิด, คืนค่า z-index ของ Modal หลักกลับเหมือนเดิม
+        $('#projectOwnerSubModal').on('hidden.bs.modal', function () {
+            $('#projectAddSubModal').css('z-index', 1050); 
+            $(this).off('hidden.bs.modal');
+        });
+    };
+
+    /**
+     * ฟังก์ชันสำหรับบันทึกข้อมูลเจ้าของโครงการใหม่จาก Sub-Modal
+     */
+    async function vdr_handleSaveNewOwner() {
+        const saveButton = document.getElementById('saveNewProjectOwnerBtn');
+        const form = document.getElementById('projectOwnerSubForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        setLoading(saveButton, true);
+
+        const formData = {
+            Id: '',
+            NameThai: $('#sub_nameThai').val(),
+            NameEnglish: $('#sub_nameEnglish').val(),
+            Nickname: $('#sub_nickname').val(),
+            CompanyTypeId: $('#sub_companyTypeId').val(),
+            IsLargeCompany: $('#sub_isLargeCompany').is(':checked'),
+            Remark: $('#sub_remark').val()
+        };
+
+        try {
+            const response = await serverCall('processAddOrEditProjectOwner', formData);
+
+            if (response.success) {
+                showToast(response.message, true);
+                $('#projectOwnerSubModal').modal('hide');
+
+                // --- อัปเดต Dropdown เจ้าของโครงการใน Modal หลัก ---
+                const newOwnersList = await serverCall('getAllProjectOwnersForSelection');
+                availableProjectOwners = newOwnersList; // อัปเดตข้อมูล Global
+
+                if ($('#pas_projectOwnerId').data('select2')) {
+                    $('#pas_projectOwnerId').select2('destroy');
+                }
+                populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของ --');
+                
+                // สร้าง Select2 ขึ้นมาใหม่พร้อม Logic "เพิ่มเจ้าของใหม่"
+                $('#pas_projectOwnerId').select2({
+                    theme: 'bootstrap4',
+                    dropdownParent: $('#projectAddSubModal'),
+                    language: {
+                        noResults: function () {
+                            const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="vdr_prepareAddOwnerSubModal()"><i class="fas fa-plus mr-1"></i> เพิ่มเจ้าของใหม่</button>`;
+                            return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+                        }
+                    },
+                    escapeMarkup: function (markup) { return markup; }
+                });
+
+                // เลือกรายการที่เพิ่งเพิ่มใหม่ให้โดยอัตโนมัติ
+                if (response.data && response.data.Id) {
+                    $('#pas_projectOwnerId').val(response.data.Id).trigger('change');
+                }
+            } else {
+                showToast(response.message, false);
+            }
+        } catch (err) {
+            handleServerError(err);
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    // ผูก Event Listener กับปุ่มบันทึกของ Sub-Modal
+    document.addEventListener('DOMContentLoaded', function() {
+        $('#saveNewProjectOwnerBtn').on('click', vdr_handleSaveNewOwner);
+    });
+</script>

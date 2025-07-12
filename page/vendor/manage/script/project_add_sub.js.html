@@ -6,33 +6,48 @@
 
 
 window.prepareSubProjectModal = function() {
-    // [แก้ไข] ใช้ ID ฟอร์มใหม่
+
     $('#pasProjectForm').trigger('reset');
     const searchTerm = $('.select2-search__field').val() || '';
     $('#pas_nameThai').val(searchTerm);
     $('#projectNameSelect').select2('close');
 
-    // [แก้ไข] ใช้ ID ใหม่
     $('#pas_projectTypeId, #pas_projectOwnerId, #pas_province, #pas_status').each(function() {
-        if ($(this).data('select2')) {
-            $(this).select2('destroy');
-        }
+        if ($(this).data('select2')) { $(this).select2('destroy'); }
     });
 
-    // [แก้ไข] ใช้ ID ใหม่
     populateSelect('pas_projectTypeId', availableProjectTypes, 'Id', 'Name');
-    populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของ --');    populateSelect('pas_province', availableProvinces, 'Name', 'Name', '-- เลือกจังหวัด --');
+    populateSelect('pas_projectOwnerId', availableProjectOwners, 'Id', 'DisplayName', '-- เลือกเจ้าของ --');
+    populateSelect('pas_province', availableProvinces, 'Name', 'Name', '-- เลือกจังหวัด --');
     populateSelect('pas_status', availableProjectStatuses, 'Id', 'Name', '-- เลือกสถานะ --'); 
 
     const select2Options = {
         theme: 'bootstrap4',
         dropdownParent: $('#projectAddSubModal')
     };
-    // [แก้ไข] ใช้ ID ใหม่
-    $('#pas_projectOwnerId').select2(select2Options);
+    
+    // สร้าง Select2 สำหรับ Dropdown อื่นๆ ตามปกติ
     $('#pas_province').select2(select2Options);
     $('#pas_status').select2(select2Options);
     $('#pas_projectTypeId').select2({ ...select2Options, multiple: true, placeholder: 'เลือกประเภทโครงการ' });
+
+    // สร้าง Select2 สำหรับ "เจ้าของโครงการ" พร้อม Logic พิเศษ
+    $('#pas_projectOwnerId').select2({
+        ...select2Options, // ใช้ option พื้นฐานร่วมกัน
+        placeholder: '-- ค้นหาหรือเลือกเจ้าของ --',
+        language: {
+            noResults: function () {
+                // HTML ของปุ่มที่จะให้แสดงเมื่อค้นหาไม่เจอ
+                const btnHtml = `<button type="button" class="btn btn-sm btn-success btn-block" onclick="vdr_prepareAddOwnerSubModal()">` +
+                                `<i class="fas fa-plus mr-1"></i> เพิ่มเจ้าของใหม่</button>`;
+                return $('<span>ไม่พบข้อมูล</span><hr class="my-1">' + btnHtml);
+            }
+        },
+        escapeMarkup: function (markup) {
+            // อนุญาตให้แสดงผล HTML ในส่วน noResults
+            return markup;
+        }
+    });
     
     $('#projectAddSubModal').modal('show');
 };
