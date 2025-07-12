@@ -40,7 +40,7 @@ function renderVendorTable(vendors) {
         const infoCell = `<td class="text-center">${infoContent}</td>`;
 
         const statusBadge = `<span class="badge ${vendor.StatusColor || '#6c757d'}">${vendor.StatusName || 'N/A'}</span>`;
-        const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-info mr-1">${escapeHtml(name)}</span>`).join(' ');
+        const packageBadges = (vendor.PackageDisplayNames || []).map(name => `<span class="badge badge-secondary mr-1">${escapeHtml(name)}</span>`).join(' ');
         const grade = vendor.LatestGrade || '-';
         const gradeColorMapping = { 'A': '#28a745', 'B': '#17a2b8', 'C': '#ffc107', 'D': '#dc3545' };
         const gradeColor = gradeColorMapping[grade.replace('+', '')] || '#6c757d';
